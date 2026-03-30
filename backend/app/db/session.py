@@ -1,15 +1,20 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
 DATABASE_URL = "mysql+pymysql://root:password@localhost:3306/retail_db"
 
-engine = create_engine(
+engine = create_async_engine(
     DATABASE_URL,
-    echo=True # Shows SQL Queries (good for debugging)
+    echo=True, # Shows SQL Queries (good for debugging)
+    pool_pre_ping=True,
+    pool_recycle=3600,
+    pool_size=10,
+    max_overflow=20,
 )
 
-SessionLocal = sessionmaker(
-    autocommit=False,
+AsyncSessionLocal = async_sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
     autoflush=False,
-    bind=engine
+    autocommit=False,
 )

@@ -6,7 +6,7 @@ from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-from app.core.config import get_settings
+from app.core import get_settings
 
 settings = get_settings()
 
@@ -50,7 +50,8 @@ def hash_otp(otp: str) -> str:
     return hashlib.sha256(otp.encode()).hexdigest()
 
 def verify_otp(plain: str, hashed: str) -> bool:
-    return hashlib.sha256(plain.encode()).hexdigest() == hashed
+    target = hashlib.sha256(plain.encode()).hexdigest()
+    return secrets.compare_digest(target, hashed)
 
 def otp_expiry() -> datetime:
     return datetime.now(timezone.utc) + timedelta(minutes=settings.otp_expire_minutes)
