@@ -6,6 +6,6 @@ router = APIRouter()
 def login():
     return {"message": "login working"}
 
-@ router.post("/register")
+@router.post("/register")
 def register():
     return {"message": "register working"}
