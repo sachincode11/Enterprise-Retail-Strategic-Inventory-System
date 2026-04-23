@@ -1,7 +1,11 @@
 // src/layouts/CashierTopbar.jsx
-import { currentUser } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
 
 export default function CashierTopbar() {
+  const { user } = useAuth();
+  const name     = user?.name || 'Cashier';
+  const initials = user?.initials || 'CA';
+
   return (
     <header className="h-[52px] flex items-center justify-between px-5 shrink-0 border-b" style={{ background: '#0f172a', borderColor: '#1e293b' }}>
       <div className="flex items-center gap-3">
@@ -13,10 +17,10 @@ export default function CashierTopbar() {
         <StatusPill label="IoT Connected" />
         <StatusPill label="WS Live" />
         <span className="text-xs" style={{ color: '#64748b' }}>
-          {currentUser.name} · <span className="capitalize">Cashier</span>
+          {name} · <span className="capitalize">Cashier</span>
         </span>
         <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold" style={{ background: '#1e3a5f', border: '1px solid #2d4a6f' }}>
-          {currentUser.initials}
+          {initials}
         </div>
       </div>
     </header>

@@ -1,5 +1,6 @@
 // src/pages/cashier/CashierApp.jsx
 import { CashierProvider, useCashier } from '../../context/CashierContext';
+import { useAuth } from '../../context/AuthContext';
 
 import Login          from './Login';
 import Verification   from './Verification';
@@ -16,8 +17,6 @@ import S4Notifications from './S4Notifications';
 import S5Security     from './S5Security';
 
 const pageMap = {
-  login:        Login,
-  verification: Verification,
   dashboard:    Dashboard,
   pos:          POS,
   products:     Products,
@@ -33,7 +32,11 @@ const pageMap = {
 
 function CashierRouter() {
   const { currentPage } = useCashier();
-  const Page = pageMap[currentPage] || Login;
+  const { user } = useAuth();
+
+  if (!user) return <Login />;
+  if (currentPage === 'verification') return <Verification />;
+  const Page = pageMap[currentPage] || Dashboard;
   return <Page />;
 }
 

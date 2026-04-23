@@ -1,10 +1,12 @@
 // src/pages/admin/Verification.jsx
 import { useState } from 'react';
 import { useAdmin } from '../../context/AdminContext';
+import { useAuth } from '../../context/AuthContext';
 import logo from '../../assets/Full logo.png';
 
 export default function Verification() {
   const { setCurrentPage } = useAdmin();
+  const { user } = useAuth();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
 
   function handleChange(i, val) {
@@ -34,7 +36,7 @@ export default function Verification() {
             </svg>
           </div>
           <h1 className="text-2xl font-semibold mb-2 text-[#0f172a]">Verify Your Identity</h1>
-          <p className="text-sm mb-8 text-[#94a3b8]">A 6-digit code was sent to <strong className="text-[#0f172a]">admin123@gmail.com</strong></p>
+          <p className="text-sm mb-8 text-[#94a3b8]">A 6-digit code was sent to <strong className="text-[#0f172a]">{user?.email || 'your email'}</strong></p>
           <div className="flex gap-3 mb-6">
             {otp.map((val, i) => (
               <input key={i} id={`otp-${i}`} type="text" inputMode="numeric" maxLength={1} value={val}
@@ -44,11 +46,10 @@ export default function Verification() {
               />
             ))}
           </div>
+          <p className="text-xs text-[#94a3b8] mb-4 text-center">For demo: enter any 6 digits</p>
           <button onClick={() => setCurrentPage('dashboard')}
-            className="w-full py-3 rounded-lg text-sm font-semibold text-white mb-4 transition-all duration-150"
+            className="w-full py-3 rounded-lg text-sm font-semibold text-white mb-4 transition-all duration-150 hover:bg-[#16324f] hover:shadow-[0_4px_12px_rgba(30,58,95,0.35)]"
             style={{ background: '#1e3a5f' }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#16324f'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(30,58,95,0.35)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#1e3a5f'; e.currentTarget.style.boxShadow = ''; }}
           >Verify & Continue</button>
           <div className="flex justify-between">
             <button className="text-xs text-[#94a3b8] hover:text-[#475569] transition-colors">Didn't receive code?</button>

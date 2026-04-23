@@ -1,5 +1,6 @@
 // src/layouts/AdminSidebar.jsx
 import { useAdmin } from '../context/AdminContext';
+import { useAuth } from '../context/AuthContext';
 import logo from '../assets/Full logo.png';
 
 const navItems = [
@@ -21,19 +22,26 @@ const navItems = [
     { id: 'discounts', label: 'Discounts', icon: DiscIcon },
   ]},
   { group: 'Intelligence', items: [
-    { id: 'reports', label: 'Reports',         icon: RepIcon },
-    { id: 'ai',      label: 'AI Forecasting',  icon: AIIcon  },
+    { id: 'reports', label: 'Reports',        icon: RepIcon },
+    { id: 'ai',      label: 'AI Forecasting', icon: AIIcon  },
   ]},
 ];
 
 const bottomItems = [
   { id: 'settings', label: 'Settings',  icon: SetIcon  },
   { id: 'profile',  label: 'My Profile',icon: ProfIcon },
-  { id: 'login',    label: 'Log Out',   icon: LogIcon  },
+  { id: '__logout', label: 'Log Out',   icon: LogIcon  },
 ];
 
 export default function AdminSidebar() {
   const { currentPage, setCurrentPage } = useAdmin();
+  const { logout } = useAuth();
+
+  const handleNav = async (id) => {
+    if (id === '__logout') { await logout(); return; }
+    setCurrentPage(id);
+  };
+
   return (
     <aside className="fixed left-0 top-0 h-screen flex flex-col" style={{ width: '192px', background: '#0f172a', zIndex: 50 }}>
       <div className="flex items-center gap-2 px-4 py-4 border-b" style={{ borderColor: '#1e293b' }}>
@@ -44,7 +52,7 @@ export default function AdminSidebar() {
           <div key={group.group} className="mb-4">
             <p className="section-label" style={{ color: '#475569', fontSize: '10px' }}>{group.group}</p>
             {group.items.map(item => (
-              <button key={item.id} onClick={() => setCurrentPage(item.id)}
+              <button key={item.id} onClick={() => handleNav(item.id)}
                 className={`sidebar-link w-full text-left ${currentPage === item.id ? 'active' : ''}`}
               >
                 <item.icon /><span>{item.label}</span>
@@ -55,7 +63,7 @@ export default function AdminSidebar() {
       </nav>
       <div className="border-t px-2 py-3" style={{ borderColor: '#1e293b' }}>
         {bottomItems.map(item => (
-          <button key={item.id} onClick={() => setCurrentPage(item.id)}
+          <button key={item.id} onClick={() => handleNav(item.id)}
             className={`sidebar-link w-full text-left ${currentPage === item.id ? 'active' : ''}`}
           >
             <item.icon /><span>{item.label}</span>

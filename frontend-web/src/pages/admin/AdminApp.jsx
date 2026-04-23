@@ -1,32 +1,32 @@
 // src/pages/admin/AdminApp.jsx
 import { AdminProvider, useAdmin } from '../../context/AdminContext';
+import { useAuth } from '../../context/AuthContext';
 
-import Login            from './Login';
-import Verification     from './Verification';
-import Dashboard        from './Dashboard';
-import Products         from './Products';
-import Inventory        from './Inventory';
-import Customers        from './Customers';
-import Suppliers        from './Suppliers';
-import Staff            from './Staff';
-import Transaction      from './Transaction';
-import PurchaseOrders   from './PurchaseOrders';
-import Reports          from './Reports';
-import Discounts        from './Discounts';
-import Profile          from './Profile';
-import AI               from './AI';
+import Login              from './Login';
+import Verification       from './Verification';
+import Dashboard          from './Dashboard';
+import Products           from './Products';
+import Inventory          from './Inventory';
+import Customers          from './Customers';
+import Suppliers          from './Suppliers';
+import Staff              from './Staff';
+import Transaction        from './Transaction';
+import PurchaseOrders     from './PurchaseOrders';
+import Reports            from './Reports';
+import Discounts          from './Discounts';
+import Profile            from './Profile';
+import AI                 from './AI';
 import TransactionHistory from './TransactionHistory';
-import AddProduct       from './AddProduct';
-import AddStock         from './AddStock';
-import ViewPurchaseOrder from './ViewPurchaseOrder';
-import AddSupplier      from './AddSupplier';
-import ViewCustomer     from './ViewCustomer';
-import AddStaff         from './AddStaff';
-import AddDiscount      from './AddDiscount';
-import AuditLogSnapshot from './AuditLogSnapshot';
-import Chatbot          from './Chatbot';
-import Notifications    from './Notifications';
-import NewOrder         from './NewOrder';
+import AddProduct         from './AddProduct';
+import AddStock           from './AddStock';
+import ViewPurchaseOrder  from './ViewPurchaseOrder';
+import AddSupplier        from './AddSupplier';
+import ViewCustomer       from './ViewCustomer';
+import AddStaff           from './AddStaff';
+import AddDiscount        from './AddDiscount';
+import AuditLogSnapshot   from './AuditLogSnapshot';
+import Notifications      from './Notifications';
+import NewOrder           from './NewOrder';
 import S1 from './S1';
 import S2 from './S2';
 import S3 from './S3';
@@ -36,8 +36,6 @@ import S6 from './S6';
 import S7 from './S7';
 
 const pageMap = {
-  login:                 Login,
-  verification:          Verification,
   dashboard:             Dashboard,
   products:              Products,
   inventory:             Inventory,
@@ -59,7 +57,6 @@ const pageMap = {
   'add-staff':           AddStaff,
   'add-discount':        AddDiscount,
   'audit-log-snapshot':  AuditLogSnapshot,
-  chatbot:               Chatbot,
   notifications:         Notifications,
   'new-order':           NewOrder,
   settings:              S1,
@@ -68,7 +65,14 @@ const pageMap = {
 
 function AdminRouter() {
   const { currentPage } = useAdmin();
-  const Page = pageMap[currentPage] || Login;
+  const { user } = useAuth();
+
+  // Not authenticated → show login
+  if (!user) return <Login />;
+  // Authenticated but needs OTP → show verification
+  if (currentPage === 'verification') return <Verification />;
+  // Route to page
+  const Page = pageMap[currentPage] || Dashboard;
   return <Page />;
 }
 

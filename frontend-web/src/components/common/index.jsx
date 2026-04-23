@@ -53,6 +53,7 @@ const badgeStyles = {
   'Low Stock':    'bg-[#fef3c7] text-[#92400e]',
   Break:          'bg-[#fef3c7] text-[#92400e]',
   Refunded:       'bg-[#fee2e2] text-[#991b1b]',
+  Voided:         'bg-[#fee2e2] text-[#991b1b]',
   'Out of Stock': 'bg-[#fee2e2] text-[#991b1b]',
 };
 export function Badge({ status }) {
@@ -60,24 +61,52 @@ export function Badge({ status }) {
   return <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${cls}`}>{status}</span>;
 }
 
-// ── Toggle ────────────────────────────────────────────────────
+// ── Toggle — Modern smooth slider ──────────────────────────────
 export function Toggle({ checked, onChange, on }) {
   const isOn = checked !== undefined ? checked : (on !== undefined ? on : false);
   return (
-    <button onClick={() => onChange && onChange(!isOn)}
-      className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${isOn ? 'bg-[#1e3a5f]' : 'bg-[#cbd5e1]'}`}
+    <button
+      onClick={() => onChange && onChange(!isOn)}
+      role="switch"
+      aria-checked={isOn}
+      style={{
+        width: 48,
+        height: 26,
+        borderRadius: 13,
+        background: isOn ? '#1e3a5f' : '#cbd5e1',
+        border: 'none',
+        cursor: 'pointer',
+        position: 'relative',
+        transition: 'background 0.25s cubic-bezier(.4,0,.2,1)',
+        flexShrink: 0,
+        boxShadow: isOn ? '0 0 0 3px rgba(30,58,95,0.18)' : 'none',
+        outline: 'none',
+      }}
     >
-      <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${isOn ? 'translate-x-5' : 'translate-x-0.5'}`} />
+      <span
+        style={{
+          position: 'absolute',
+          top: 3,
+          left: isOn ? 25 : 3,
+          width: 20,
+          height: 20,
+          borderRadius: '50%',
+          background: 'white',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
+          transition: 'left 0.22s cubic-bezier(.4,0,.2,1)',
+          display: 'block',
+        }}
+      />
     </button>
   );
 }
 
 // ── Modal ─────────────────────────────────────────────────────
-export function Modal({ isOpen, onClose, title, children }) {
+export function Modal({ isOpen, onClose, title, children, maxWidth = 'max-w-md' }) {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.45)' }}>
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+      <div className={`bg-white rounded-xl shadow-2xl w-full ${maxWidth} p-6 fade-in`}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-semibold text-[#0f172a]">{title}</h3>
           <button onClick={onClose} className="text-[#94a3b8] hover:text-[#475569] transition-colors">
@@ -89,6 +118,20 @@ export function Modal({ isOpen, onClose, title, children }) {
         {children}
       </div>
     </div>
+  );
+}
+
+// ── ConfirmDialog ─────────────────────────────────────────────
+export function ConfirmDialog({ isOpen, onClose, onConfirm, title, message, confirmLabel = 'Delete', danger = true }) {
+  if (!isOpen) return null;
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={title}>
+      <p className="text-sm text-[#475569] mb-6">{message}</p>
+      <div className="flex justify-end gap-2">
+        <Button variant="secondary" onClick={onClose}>Cancel</Button>
+        <Button variant={danger ? 'danger' : 'primary'} onClick={() => { onConfirm(); onClose(); }}>{confirmLabel}</Button>
+      </div>
+    </Modal>
   );
 }
 
@@ -108,12 +151,12 @@ export function Avatar({ initials, size = 'md', color = '#1e3a5f' }) {
 }
 
 // ── StatCard ──────────────────────────────────────────────────
-export function StatCard({ label, value, sub, progress, navy = false }) {
+export function StatCard({ label, value, progress, navy = false }) {
   if (navy) {
     return (
       <div className="p-5 flex-1 rounded-xl border border-[#1e3a5f] transition-all duration-200 cursor-default"
         style={{ background: '#1e3a5f' }}
-        onMouseEnter={e => { e.currentTarget.style.background = '#16324f'; e.currentTarget.style.transform = 'translateY(-2px) scale(1.03)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(30,58,95,0.4)'; }}
+        onMouseEnter={e => { e.currentTarget.style.background = '#16324f'; e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(30,58,95,0.4)'; }}
         onMouseLeave={e => { e.currentTarget.style.background = '#1e3a5f'; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
       >
         <p className="text-[11px] font-mono uppercase tracking-widest mb-1" style={{ color: 'rgba(255,255,255,0.7)' }}>{label}</p>
@@ -127,7 +170,7 @@ export function StatCard({ label, value, sub, progress, navy = false }) {
     );
   }
   return (
-    <Card className="p-5 flex-1 transition-all duration-200 cursor-default hover:shadow-[0_8px_24px_rgba(30,58,95,0.12)] hover:-translate-y-0.5 hover:scale-[1.01]">
+    <Card className="p-5 flex-1 transition-all duration-200 cursor-default hover:shadow-[0_8px_24px_rgba(30,58,95,0.12)] hover:-translate-y-0.5">
       <p className="text-[11px] text-[#94a3b8] font-mono uppercase tracking-widest mb-1">{label}</p>
       <p className="text-2xl font-bold text-[#0f172a] mb-2">{value}</p>
       {progress !== undefined && (
@@ -176,28 +219,18 @@ export function Pagination({ current = 1, total = 1, label = '', onPage }) {
     <div className="flex items-center justify-between px-5 py-3 border-t" style={{ borderColor: '#e2e8f0' }}>
       <span className="text-xs text-[#94a3b8]">{label}</span>
       <div className="flex items-center gap-1">
-        <button
-          onClick={() => onPage && onPage(Math.max(1, current - 1))}
-          disabled={current <= 1}
+        <button onClick={() => onPage && onPage(Math.max(1, current - 1))} disabled={current <= 1}
           className="w-7 h-7 rounded border flex items-center justify-center text-xs transition-all hover:bg-[#eff6ff] disabled:opacity-40"
-          style={{ borderColor: '#e2e8f0', color: '#475569' }}
-        >‹</button>
+          style={{ borderColor: '#e2e8f0', color: '#475569' }}>‹</button>
         {Array.from({ length: Math.min(total, 5) }, (_, i) => i + 1).map(p => (
           <button key={p} onClick={() => onPage && onPage(p)}
             className="w-7 h-7 rounded border flex items-center justify-center text-xs transition-all"
-            style={{
-              borderColor: p === current ? '#1e3a5f' : '#e2e8f0',
-              background:  p === current ? '#1e3a5f' : 'white',
-              color:       p === current ? 'white'   : '#475569',
-            }}
+            style={{ borderColor: p === current ? '#1e3a5f' : '#e2e8f0', background: p === current ? '#1e3a5f' : 'white', color: p === current ? 'white' : '#475569' }}
           >{p}</button>
         ))}
-        <button
-          onClick={() => onPage && onPage(Math.min(total, current + 1))}
-          disabled={current >= total}
+        <button onClick={() => onPage && onPage(Math.min(total, current + 1))} disabled={current >= total}
           className="w-7 h-7 rounded border flex items-center justify-center text-xs transition-all hover:bg-[#eff6ff] disabled:opacity-40"
-          style={{ borderColor: '#e2e8f0', color: '#475569' }}
-        >›</button>
+          style={{ borderColor: '#e2e8f0', color: '#475569' }}>›</button>
       </div>
     </div>
   );
@@ -232,13 +265,40 @@ export function BarChart({ data = [], height = 120 }) {
               <div
                 className="w-full rounded-t-sm chart-bar"
                 style={{ height: barH, background: '#1e3a5f', animationDelay: `${i * 0.05}s` }}
-                title={`${d.label || d.month || d.day}: ${d.value?.toLocaleString()}`}
+                title={`${d.label || d.month}: ${d.value?.toLocaleString()}`}
               />
-              <span className="text-[9px] text-[#94a3b8] whitespace-nowrap">{d.label || d.month || d.day}</span>
+              <span className="text-[9px] text-[#94a3b8] whitespace-nowrap">{d.label || d.month}</span>
             </div>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ── LoadingSpinner ────────────────────────────────────────────
+export function LoadingSpinner({ size = 20 }) {
+  return (
+    <div className="flex items-center justify-center p-8">
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#1e3a5f" strokeWidth="2"
+        style={{ animation: 'spin 0.8s linear infinite' }}>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <circle cx="12" cy="12" r="10" strokeOpacity="0.2" />
+        <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
+      </svg>
+    </div>
+  );
+}
+
+// ── EmptyState ────────────────────────────────────────────────
+export function EmptyState({ message = 'No items found', action, actionLabel }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" className="mb-3">
+        <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" strokeLinecap="round" />
+      </svg>
+      <p className="text-sm text-[#94a3b8]">{message}</p>
+      {actionLabel && <button onClick={action} className="mt-3 text-xs text-[#1e3a5f] hover:underline">{actionLabel}</button>}
     </div>
   );
 }
@@ -253,6 +313,19 @@ export function SectionHeader({ title, action, actionLabel }) {
           {actionLabel} →
         </button>
       )}
+    </div>
+  );
+}
+
+// ── Toast ─────────────────────────────────────────────────────
+export function Toast({ message, type = 'success', visible }) {
+  if (!visible) return null;
+  const bg = type === 'success' ? '#dcfce7' : type === 'error' ? '#fee2e2' : '#eff6ff';
+  const color = type === 'success' ? '#15803d' : type === 'error' ? '#991b1b' : '#1e3a5f';
+  return (
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-lg text-sm font-medium shadow-lg fade-in"
+      style={{ background: bg, color }}>
+      {message}
     </div>
   );
 }

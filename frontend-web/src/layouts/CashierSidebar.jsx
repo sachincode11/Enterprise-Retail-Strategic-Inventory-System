@@ -1,24 +1,27 @@
 // src/layouts/CashierSidebar.jsx
 import { useCashier } from '../context/CashierContext';
+import { useAuth } from '../context/AuthContext';
 import logo from '../assets/Full logo.png';
 
 const navItems = [
-  { id: 'dashboard',    label: 'Dashboard',    icon: DashIcon    },
-  { id: 'pos',          label: 'POS Billing',  icon: POSIcon     },
-  { id: 'transactions', label: 'Transactions', icon: TxnIcon     },
-  { id: 'products',     label: 'Products',     icon: ProductsIcon},
+  { id: 'dashboard',    label: 'Dashboard',    icon: DashIcon     },
+  { id: 'pos',          label: 'POS Billing',  icon: POSIcon      },
+  { id: 'transactions', label: 'Transactions', icon: TxnIcon      },
+  { id: 'products',     label: 'Products',     icon: ProductsIcon },
 ];
 const bottomItems = [
-  { id: 'profile',  label: 'My Profile', icon: ProfileIcon  },
-  { id: 'settings', label: 'Settings',   icon: SettingsIcon },
-  { id: 'logout',   label: 'Log Out',    icon: LogoutIcon   },
+  { id: 'profile',     label: 'My Profile', icon: ProfileIcon  },
+  { id: 'settings',    label: 'Settings',   icon: SettingsIcon },
+  { id: '__logout',    label: 'Log Out',    icon: LogoutIcon   },
 ];
 
 export default function CashierSidebar() {
   const { currentPage, setCurrentPage } = useCashier();
-  const handleNav = (id) => {
-    if (id === 'logout')   { setCurrentPage('login'); return; }
-    if (id === 'settings') { setCurrentPage('s1');    return; }
+  const { logout } = useAuth();
+
+  const handleNav = async (id) => {
+    if (id === '__logout') { await logout(); return; }
+    if (id === 'settings') { setCurrentPage('s1'); return; }
     setCurrentPage(id);
   };
 
@@ -60,7 +63,7 @@ export default function CashierSidebar() {
         <ul className="space-y-0.5">
           {bottomItems.map(item => {
             const isActive = currentPage === item.id || (item.id === 'settings' && currentPage?.startsWith('s'));
-            const isLogout = item.id === 'logout';
+            const isLogout = item.id === '__logout';
             return (
               <li key={item.id}>
                 <button onClick={() => handleNav(item.id)}

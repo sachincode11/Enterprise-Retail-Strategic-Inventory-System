@@ -1,6 +1,7 @@
 // src/layouts/AdminLayout.jsx
 import AdminSidebar from './AdminSidebar';
 import AdminNavbar from './AdminNavbar';
+import ChatbotButton from '../components/ChatbotButton';
 
 export default function AdminLayout({ children }) {
   return (
@@ -13,6 +14,7 @@ export default function AdminLayout({ children }) {
       >
         {children}
       </main>
+      <ChatbotButton />
     </div>
   );
 }

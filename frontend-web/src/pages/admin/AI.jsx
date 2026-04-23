@@ -1,8 +1,9 @@
 // src/pages/admin/AI.jsx
-import { useAdmin } from '../../context/AdminContext';
+// "Run Forecast" button and "Schedule Form AI Forecast" REMOVED as per requirements.
 import AdminLayout from '../../layouts/AdminLayout';
-import { PageHeader, Button, SectionCard, BarChart } from '../../components/common';
+import { PageHeader, SectionCard, BarChart } from '../../components/common';
 import { forecastData, restockRecommendations, ragKnowledgeBase } from '../../data/mockData';
+import { useAdmin } from '../../context/AdminContext';
 
 const modelMetrics = [
   { label: 'Forecast Accuracy (MAE)', value: '±4.2%', pct: 96 },
@@ -12,6 +13,7 @@ const modelMetrics = [
 
 export default function AI() {
   const { setCurrentPage } = useAdmin();
+
   return (
     <AdminLayout>
       <div className="flex items-center gap-2 text-xs mb-1 text-[#94a3b8]">
@@ -20,13 +22,10 @@ export default function AI() {
       <PageHeader
         title="AI Intelligence"
         actions={
-          <>
-            <span className="ai-badge">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6" cy="6" r="2"/><path d="M6 1v1M6 10v1M1 6h1M10 6h1" strokeLinecap="round"/></svg>
-              AI Powered
-            </span>
-            <Button variant="primary">Run Forecast</Button>
-          </>
+          <span className="ai-badge">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6" cy="6" r="2"/><path d="M6 1v1M6 10v1M1 6h1M10 6h1" strokeLinecap="round"/></svg>
+            AI Powered
+          </span>
         }
       />
       <div className="grid grid-cols-2 gap-4 mb-4">
@@ -40,7 +39,12 @@ export default function AI() {
             </div>
           </div>
         </SectionCard>
-        <SectionCard title="Restock Recommendations" headerRight={<span className="ai-badge"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6" cy="6" r="2"/><path d="M6 1v1M6 10v1M1 6h1M10 6h1" strokeLinecap="round"/></svg>AI Powered</span>}>
+        <SectionCard title="Restock Recommendations" headerRight={
+          <span className="ai-badge">
+            <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6" cy="6" r="2"/><path d="M6 1v1M6 10v1M1 6h1M10 6h1" strokeLinecap="round"/></svg>
+            AI Powered
+          </span>
+        }>
           <div className="px-4 py-3 space-y-3">
             {restockRecommendations.map((r, i) => (
               <div key={i} className="flex items-start justify-between gap-3 py-1">
@@ -51,13 +55,13 @@ export default function AI() {
                 <button
                   onClick={() => r.action === 'Reorder' && setCurrentPage('new-order')}
                   className="text-xs font-medium px-3 py-1.5 rounded-lg whitespace-nowrap flex-shrink-0 transition-all duration-150"
-                  style={r.action === 'Reorder' ? { background: '#1e3a5f', color: '#ffffff' } : { border: '1px solid #e2e8f0', color: '#0f172a' }}
+                  style={r.action === 'Reorder' ? { background: '#1e3a5f', color: '#fff' } : { border: '1px solid #e2e8f0', color: '#0f172a' }}
                   onMouseEnter={e => {
-                    if (r.action === 'Reorder') { e.currentTarget.style.background = '#16324f'; e.currentTarget.style.boxShadow = '0 4px 10px rgba(30,58,95,0.3)'; }
+                    if (r.action === 'Reorder') { e.currentTarget.style.background = '#16324f'; }
                     else { e.currentTarget.style.background = '#eff6ff'; e.currentTarget.style.color = '#1e3a5f'; }
                   }}
                   onMouseLeave={e => {
-                    if (r.action === 'Reorder') { e.currentTarget.style.background = '#1e3a5f'; e.currentTarget.style.boxShadow = ''; }
+                    if (r.action === 'Reorder') { e.currentTarget.style.background = '#1e3a5f'; }
                     else { e.currentTarget.style.background = ''; e.currentTarget.style.color = '#0f172a'; }
                   }}
                 >{r.action}</button>
@@ -95,21 +99,6 @@ export default function AI() {
           </div>
         </SectionCard>
       </div>
-      {/* Floating Chatbot Button */}
-      <button onClick={() => setCurrentPage('chatbot')} title="Open AI Chatbot"
-        className="fixed bottom-8 z-50 flex items-center justify-center rounded-full shadow-2xl transition-all duration-200 group"
-        style={{ width: 56, height: 56, left: 216, background: '#1e3a5f' }}
-        onMouseEnter={e => { e.currentTarget.style.background = '#16324f'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(30,58,95,0.5)'; e.currentTarget.style.transform = 'scale(1.1)'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = '#1e3a5f'; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.transform = 'scale(1)'; }}
-      >
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-          <circle cx="9" cy="10" r="1" fill="#93c5fd" stroke="none"/>
-          <circle cx="12" cy="10" r="1" fill="#93c5fd" stroke="none"/>
-          <circle cx="15" cy="10" r="1" fill="#93c5fd" stroke="none"/>
-        </svg>
-        <span className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ background: '#1e3a5f' }} />
-      </button>
     </AdminLayout>
   );
 }

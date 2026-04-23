@@ -1,9 +1,14 @@
 // src/layouts/AdminNavbar.jsx
-import { navbarUser, store } from '../data/mockData';
 import { useAdmin } from '../context/AdminContext';
+import { useAuth } from '../context/AuthContext';
+import { store } from '../data/mockData';
 
 export default function AdminNavbar() {
   const { setCurrentPage } = useAdmin();
+  const { user } = useAuth();
+  const name     = user?.name?.split(' ').map((n, i) => i === 0 ? n : n[0] + '.').join(' ') || 'Admin';
+  const initials = user?.initials || 'AD';
+
   return (
     <header
       className="fixed top-0 right-0 flex items-center justify-between px-5"
@@ -24,11 +29,11 @@ export default function AdminNavbar() {
         <button onClick={() => setCurrentPage('profile')} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
           <div className="text-right">
             <p className="text-sm font-medium" style={{ color: '#cbd5e1' }}>
-              {navbarUser.name} · <span style={{ color: '#64748b' }}>{navbarUser.role}</span>
+              {name} · <span style={{ color: '#64748b' }}>Admin</span>
             </p>
           </div>
           <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white" style={{ background: '#1e3a5f', border: '1px solid #2d4a6f' }}>
-            {navbarUser.initials}
+            {initials}
           </div>
         </button>
       </div>

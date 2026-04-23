@@ -1,7 +1,8 @@
 // src/App.jsx
 import { useState, useEffect } from 'react';
+import { AuthProvider } from './context/AuthContext';
+import AdminApp  from './pages/admin/AdminApp';
 import CashierApp from './pages/cashier/CashierApp';
-import AdminApp from './pages/admin/AdminApp';
 
 function getRoleFromHash() {
   const hash = window.location.hash;
@@ -10,7 +11,7 @@ function getRoleFromHash() {
   return null;
 }
 
-export default function App() {
+function RoleSelector() {
   const [role, setRole] = useState(getRoleFromHash);
 
   useEffect(() => {
@@ -38,7 +39,6 @@ export default function App() {
           Select your workspace
         </p>
       </div>
-
       <div className="flex gap-4">
         <RoleCard
           label="Admin Dashboard"
@@ -83,4 +83,12 @@ function AdminIcon() {
 }
 function CashierIcon() {
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M7 15h2M11 15h2"/></svg>;
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <RoleSelector />
+    </AuthProvider>
+  );
 }

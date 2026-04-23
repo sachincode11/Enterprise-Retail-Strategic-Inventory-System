@@ -1,20 +1,25 @@
 // src/pages/admin/Reports.jsx
+// All emojis removed as per requirements.
 import { useState } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { PageHeader, Button, StatCard, SectionCard, BarChart } from '../../components/common';
-import { useAdmin } from '../../context/AdminContext';
 import { monthlyRevenueTrend, cashierPerformance, auditLog } from '../../data/mockData';
+import { exportCSV } from '../../utils/exportData';
 
+// Emojis removed — labels are clean text
 const paymentSplit = [
-  { method: '💵 Cash',   pct: 52, amount: 'Rs 12.5L', bar: 88 },
-  { method: '💳 Card',   pct: 30, amount: 'Rs 7.2L',  bar: 56 },
-  { method: '📱 Wallet', pct: 18, amount: 'Rs 4.4L',  bar: 34 },
+  { method: 'Cash',   pct: 52, amount: 'Rs 12.5L', bar: 88 },
+  { method: 'Card',   pct: 30, amount: 'Rs 7.2L',  bar: 56 },
+  { method: 'QR Pay', pct: 18, amount: 'Rs 4.4L',  bar: 34 },
 ];
 
 export default function Reports() {
-  const { setCurrentPage } = useAdmin();
   const [fromDate, setFromDate] = useState('');
   const [toDate,   setToDate]   = useState('');
+
+  const handleExport = () => {
+    exportCSV(cashierPerformance.map(c => ({ name: c.name, transactions: c.txns, revenue: c.revenue, avgBasket: c.avg })), 'cashier-performance');
+  };
 
   return (
     <AdminLayout>
@@ -28,7 +33,7 @@ export default function Reports() {
               <span className="text-sm text-[#94a3b8]">—</span>
               <input type="date" value={toDate}   onChange={e => setToDate(e.target.value)}   className="input-field text-sm" style={{ width: 150 }} />
             </div>
-            <Button variant="secondary">↓ Export PDF</Button>
+            <Button variant="secondary" onClick={handleExport}>Export CSV</Button>
           </>
         }
       />
@@ -74,10 +79,7 @@ export default function Reports() {
             </table>
           </div>
         </SectionCard>
-        <SectionCard
-          title="Audit Log Snapshot"
-          headerRight={<button onClick={() => setCurrentPage('audit-log-snapshot')} className="text-xs text-[#94a3b8] hover:text-[#1e3a5f] transition-colors">View All →</button>}
-        >
+        <SectionCard title="Audit Log Snapshot">
           <div className="px-5 py-3 space-y-4">
             {auditLog.map((log, i) => (
               <div key={i} className="border-b pb-3 last:border-0 last:pb-0" style={{ borderColor: '#e2e8f0' }}>

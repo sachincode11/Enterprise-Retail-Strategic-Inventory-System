@@ -1,6 +1,7 @@
 // src/layouts/CashierLayout.jsx
 import CashierSidebar from './CashierSidebar';
 import CashierTopbar from './CashierTopbar';
+import ChatbotButton from '../components/ChatbotButton';
 
 export default function CashierLayout({ children }) {
   return (
@@ -12,6 +13,7 @@ export default function CashierLayout({ children }) {
           {children}
         </main>
       </div>
+      <ChatbotButton />
     </div>
   );
 }
