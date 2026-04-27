@@ -1,6 +1,4 @@
-"""
-Product & Inventory routers.
-"""
+from typing import Optional, Union, List, Dict
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -16,7 +14,7 @@ from app.schemas import (
 )
 
 
-def _get_product_supplier_id(db: Session, product_id: int) -> int | None:
+def _get_product_supplier_id(db: Session, product_id: int) -> Optional[int]:
     link = (
         db.query(ProductSupplier)
         .filter(ProductSupplier.product_id == product_id)
@@ -43,7 +41,7 @@ def _serialize_product(db: Session, product: Product) -> ProductOut:
     )
 
 
-def _sync_product_supplier(db: Session, store_id: str, product_id: int, supplier_id: int | None) -> None:
+def _sync_product_supplier(db: Session, store_id: str, product_id: int, supplier_id: Optional[int]) -> None:
     db.query(ProductSupplier).filter(ProductSupplier.product_id == product_id).delete()
     if supplier_id is None:
         return
@@ -110,8 +108,8 @@ def list_products(
     store_id: str,
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
-    search: str | None = Query(None),
-    category_id: str | None = Query(None),
+    search: Optional[str] = Query(None),
+    category_id: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
@@ -289,6 +287,7 @@ def adjust_inventory(
         reference_id=body.reference_id,
         notes=body.notes,
         performed_by=admin.user_id,
+        log_id=inv.inventory_id,
     )
     db.add(log)
     db.commit()

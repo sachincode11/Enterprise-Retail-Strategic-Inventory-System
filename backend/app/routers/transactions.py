@@ -1,9 +1,4 @@
-"""
-Transaction (billing), Refund, and Payment routers.
-"""
-
-from datetime import datetime, timezone
-
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -39,7 +34,7 @@ def list_transactions(
     store_id: str,
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
-    customer_id: str | None = None,
+    customer_id: Optional[str] = None,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):

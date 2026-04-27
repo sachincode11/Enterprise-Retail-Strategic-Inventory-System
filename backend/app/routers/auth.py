@@ -3,7 +3,7 @@ Auth router – register, login (with 2FA for admin/cashier), token refresh, log
 """
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
@@ -126,8 +126,8 @@ def login(
     if UserRoleEnum.customer in roles and not roles.intersection(
         {UserRoleEnum.admin, UserRoleEnum.cashier}
     ):
-        at = create_access_token({"sub": user.user_id})
-        rt = create_refresh_token({"sub": user.user_id})
+        at = create_access_token({"sub": str(user.user_id)})
+        rt = create_refresh_token({"sub": str(user.user_id)})
         db.add(RefreshToken(user_id=user.user_id, token_hash=hash_token(rt),
                             expires_at=datetime.now(timezone.utc).replace(
                                 tzinfo=None)))
@@ -181,8 +181,8 @@ def verify_otp_endpoint(body: OTPVerifyRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Invalid or expired OTP.")
 
     token_row.is_used = True
-    at = create_access_token({"sub": user.user_id})
-    rt = create_refresh_token({"sub": user.user_id})
+    at = create_access_token({"sub": str(user.user_id)})
+    rt = create_refresh_token({"sub": str(user.user_id)})
     db.add(RefreshToken(user_id=user.user_id, token_hash=hash_token(rt),
                         expires_at=datetime.now(timezone.utc).replace(tzinfo=None)))
     db.commit()
@@ -211,8 +211,8 @@ def refresh_token(body: RefreshRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Refresh token revoked or unknown.")
 
     row.revoked_at = datetime.now(timezone.utc)
-    at = create_access_token({"sub": payload["sub"]})
-    rt = create_refresh_token({"sub": payload["sub"]})
+    at = create_access_token({"sub": str(payload["sub"])})
+    rt = create_refresh_token({"sub": str(payload["sub"])})
     db.add(RefreshToken(user_id=row.user_id, token_hash=hash_token(rt),
                         expires_at=datetime.now(timezone.utc).replace(tzinfo=None)))
     db.commit()
@@ -230,3 +230,37 @@ def logout(
         row.revoked_at = datetime.now(timezone.utc)
         db.commit()
     return MessageResponse(message="Logged out successfully.")
+
+@router.post("/dev/grant-role")
+def dev_grant_role(
+    email: str = Body(...),
+    role: UserRoleEnum = Body(...),
+    store_id: int = Body(1),
+    db: Session = Depends(get_db)
+):
+    """DEV ONLY: Grant a role to a user by email."""
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    
+    role_obj = _get_role(db, role)
+    if not role_obj:
+        raise HTTPException(status_code=400, detail="Role not found in DB.")
+        
+    existing = db.query(UserRole).filter(
+        UserRole.user_id == user.user_id,
+        UserRole.role_id == role_obj.role_id,
+        UserRole.store_id == store_id
+    ).first()
+    
+    if existing:
+        return {"message": f"User already has role {role.value} for store {store_id}."}
+        
+    db.add(UserRole(
+        user_id=user.user_id,
+        role_id=role_obj.role_id,
+        store_id=store_id,
+        is_active=True
+    ))
+    db.commit()
+    return {"message": f"Granted role {role.value} to user {email}."}

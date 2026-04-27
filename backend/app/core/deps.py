@@ -2,6 +2,7 @@
 FastAPI dependencies: extract and validate the current user from JWT,
 enforce role-based access control.
 """
+from typing import Optional, Union
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
@@ -30,7 +31,7 @@ def get_current_user(
             detail="Invalid or expired token.",
         )
 
-    user_id: str | None = payload.get("sub")
+    user_id: Optional[str] = payload.get("sub")
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Token payload missing subject.")
