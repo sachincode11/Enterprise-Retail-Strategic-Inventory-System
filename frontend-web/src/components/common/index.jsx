@@ -6,11 +6,11 @@ export function Button({ children, variant = 'primary', size = 'md', onClick, di
   const base = 'inline-flex items-center justify-center gap-2 font-medium rounded-lg cursor-pointer transition-all duration-150';
   const sizes = { sm: 'px-3 py-1.5 text-xs', md: 'px-4 py-2 text-sm', lg: 'px-5 py-3 text-sm' };
   const variants = {
-    primary:   'bg-[#1e3a5f] text-white hover:bg-[#16324f] hover:shadow-[0_4px_12px_rgba(30,58,95,0.35)] hover:scale-[1.03]',
+    primary: 'bg-[#1e3a5f] text-white hover:bg-[#16324f] hover:shadow-[0_4px_12px_rgba(30,58,95,0.35)] hover:scale-[1.03]',
     secondary: 'bg-white text-[#0f172a] border border-[#e2e8f0] hover:bg-[#eff6ff] hover:text-[#1e3a5f] hover:border-[#bfdbfe]',
-    outline:   'border border-[#e2e8f0] text-[#475569] hover:bg-[#eff6ff] hover:text-[#1e3a5f] hover:border-[#bfdbfe]',
-    ghost:     'text-[#475569] hover:text-[#0f172a] hover:bg-black/5',
-    danger:    'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100',
+    outline: 'border border-[#e2e8f0] text-[#475569] hover:bg-[#eff6ff] hover:text-[#1e3a5f] hover:border-[#bfdbfe]',
+    ghost: 'text-[#475569] hover:text-[#0f172a] hover:bg-black/5',
+    danger: 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100',
   };
   return (
     <button onClick={onClick} disabled={disabled}
@@ -35,25 +35,25 @@ export function Input({ label, type = 'text', value, onChange, placeholder, read
 
 // ── Badge ─────────────────────────────────────────────────────
 const badgeStyles = {
-  Active:         'bg-[#dcfce7] text-[#15803d]',
-  'In Stock':     'bg-[#dcfce7] text-[#15803d]',
-  Connected:      'bg-[#dcfce7] text-[#15803d]',
-  Online:         'bg-[#dcfce7] text-[#15803d]',
-  Healthy:        'bg-[#dcfce7] text-[#15803d]',
-  Paid:           'bg-[#dcfce7] text-[#15803d]',
-  Received:       'bg-[#dcfce7] text-[#15803d]',
-  'On Shift':     'bg-[#dbeafe] text-[#1d4ed8]',
-  Admin:          'bg-[#1e3a5f] text-white',
-  Registered:     'bg-[#1e3a5f] text-white',
-  Inactive:       'bg-[#f3f4f6] text-[#6b7280]',
-  Guest:          'bg-[#f3f4f6] text-[#6b7280]',
-  Cashier:        'bg-[#f3f4f6] text-[#374151]',
-  Pending:        'bg-[#fef3c7] text-[#92400e]',
-  Expired:        'bg-[#f3f4f6] text-[#6b7280]',
-  'Low Stock':    'bg-[#fef3c7] text-[#92400e]',
-  Break:          'bg-[#fef3c7] text-[#92400e]',
-  Refunded:       'bg-[#fee2e2] text-[#991b1b]',
-  Voided:         'bg-[#fee2e2] text-[#991b1b]',
+  Active: 'bg-[#dcfce7] text-[#15803d]',
+  'In Stock': 'bg-[#dcfce7] text-[#15803d]',
+  Connected: 'bg-[#dcfce7] text-[#15803d]',
+  Online: 'bg-[#dcfce7] text-[#15803d]',
+  Healthy: 'bg-[#dcfce7] text-[#15803d]',
+  Paid: 'bg-[#dcfce7] text-[#15803d]',
+  Received: 'bg-[#dcfce7] text-[#15803d]',
+  'On Shift': 'bg-[#dbeafe] text-[#1d4ed8]',
+  Admin: 'bg-[#1e3a5f] text-white',
+  Registered: 'bg-[#1e3a5f] text-white',
+  Inactive: 'bg-[#f3f4f6] text-[#6b7280]',
+  Guest: 'bg-[#f3f4f6] text-[#6b7280]',
+  Cashier: 'bg-[#f3f4f6] text-[#374151]',
+  Pending: 'bg-[#fef3c7] text-[#92400e]',
+  Expired: 'bg-[#f3f4f6] text-[#6b7280]',
+  'Low Stock': 'bg-[#fef3c7] text-[#92400e]',
+  Break: 'bg-[#fef3c7] text-[#92400e]',
+  Refunded: 'bg-[#fee2e2] text-[#991b1b]',
+  Voided: 'bg-[#fee2e2] text-[#991b1b]',
   'Out of Stock': 'bg-[#fee2e2] text-[#991b1b]',
 };
 export function Badge({ status }) {
