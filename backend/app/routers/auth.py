@@ -3,7 +3,7 @@ Auth router – register, login (with 2FA for admin/cashier), token refresh, log
 """
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
@@ -23,6 +23,46 @@ from app.schemas import (
 from app.utils import  _get_role, _user_roles, _send_otp_email
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+
+
+def _role_slug(role_obj) -> str:
+    value = getattr(role_obj, "value", role_obj)
+    return str(value).strip().lower()
+
+
+def _session_user_payload(db: Session, user: User) -> dict:
+    roles = _user_roles(db, user)
+    role_slugs = {_role_slug(role) for role in roles}
+
+    if "admin" in role_slugs:
+        primary_role = "admin"
+    elif "cashier" in role_slugs:
+        primary_role = "cashier"
+    else:
+        primary_role = "customer"
+
+    role_row = (
+        db.query(UserRole)
+        .filter(UserRole.user_id == user.user_id, UserRole.is_active == True)
+        .order_by(UserRole.user_role_id.asc())
+        .first()
+    )
+    store_id = role_row.store_id if role_row else 1
+
+    display_name = " ".join(filter(None, [user.first_name, user.last_name]))
+    initials = "".join([p[0] for p in display_name.split() if p])[:2].upper() or "US"
+
+    return {
+        "id": user.user_id,
+        "name": display_name,
+        "email": user.email,
+        "phone": user.phone,
+        "role": primary_role,
+        "roles": sorted(role_slugs),
+        "initials": initials,
+        "store": f"STORE-{store_id:03d}",
+        "storeId": store_id,
+    }
 
 # endpoints
 @router.post("/register", response_model=UserOut, status_code=201)
@@ -79,6 +119,7 @@ def login(
         raise HTTPException(status_code=401, detail="Invalid credentials.")
 
     roles = _user_roles(db, user)
+    user_payload = _session_user_payload(db, user)
 
     # Customers skip 2FA
     if UserRoleEnum.customer in roles and not roles.intersection(
@@ -90,7 +131,13 @@ def login(
                             expires_at=datetime.now(timezone.utc).replace(
                                 tzinfo=None)))
         db.commit()
-        return TokenResponse(access_token=at, refresh_token=rt)
+        return {
+            "requires_otp": False,
+            "user": user_payload,
+            "access_token": at,
+            "refresh_token": rt,
+            "token_type": "bearer",
+        }
 
     # Admin / Cashier → send OTP
     otp = generate_otp()
@@ -98,10 +145,15 @@ def login(
                     purpose=OTPPurpose.login_2fa, expires_at=otp_expiry()))
     db.commit()
     background.add_task(_send_otp_email, user.email, otp)
-    return {"detail": "OTP sent to registered email. Please verify to complete login."}
+    return {
+        "requires_otp": True,
+        "user": user_payload,
+        "otp_purpose": OTPPurpose.login_2fa,
+        "message": "OTP sent to registered email. Please verify to complete login.",
+    }
 
 
-@router.post("/verify-otp", response_model=TokenResponse)
+@router.post("/verify-otp")
 def verify_otp_endpoint(body: OTPVerifyRequest, db: Session = Depends(get_db)):
     """Step 2 – submit OTP to get tokens."""
     user = db.query(User).filter(User.email == body.email,
@@ -129,7 +181,12 @@ def verify_otp_endpoint(body: OTPVerifyRequest, db: Session = Depends(get_db)):
     db.add(RefreshToken(user_id=user.user_id, token_hash=hash_token(rt),
                         expires_at=datetime.now(timezone.utc).replace(tzinfo=None)))
     db.commit()
-    return TokenResponse(access_token=at, refresh_token=rt)
+    return {
+        "user": _session_user_payload(db, user),
+        "access_token": at,
+        "refresh_token": rt,
+        "token_type": "bearer",
+    }
 
 @router.post("/refresh", response_model=TokenResponse)
 def refresh_token(body: RefreshRequest, db: Session = Depends(get_db)):
