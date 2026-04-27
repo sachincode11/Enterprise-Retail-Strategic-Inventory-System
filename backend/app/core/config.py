@@ -36,7 +36,12 @@ class Settings(BaseSettings):
     MQTT_SCAN_TOPIC: str = "ersis/scans"
 
     # CORS
-    ALLOWED_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8081"]
+    ALLOWED_ORIGINS: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:8081",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
 
     # AI / RAG
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
