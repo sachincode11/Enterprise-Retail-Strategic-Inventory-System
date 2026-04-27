@@ -1,0 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-base: #f0f4f8;
+  --bg-card: #ffffff;
+  --bg-sidebar: #0f172a;
+  --bg-navbar: #0f172a;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --text-sidebar: #cbd5e1;
+  --accent-primary: #1e3a5f;
+  --accent-hover: #16324f;
+  --accent-light: #dbeafe;
+  --border: #e2e8f0;
+  --border-dark: #1e293b;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+code, .mono { font-family: 'DM Mono', monospace; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ── Sidebar ── */
+.sidebar-link {
+  @apply flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all duration-150 cursor-pointer;
+  color: var(--text-sidebar);
+}
+.sidebar-link:hover { background: rgba(14,165,233,0.18); color: #fff; transform: translateX(2px); }
+.sidebar-link.active { background: var(--accent-primary); color: #fff; box-shadow: 0 2px 8px rgba(30,58,95,0.4); }
+.sidebar-link svg { width: 16px; height: 16px; opacity: 0.8; }
+
+/* ── Table ── */
+.data-table { @apply w-full text-sm; }
+.data-table thead tr { border-bottom: 1px solid var(--border); }
+.data-table thead th { @apply text-left py-3 px-4 text-xs font-medium uppercase tracking-wide; color: var(--text-muted); }
+.data-table tbody tr { border-bottom: 1px solid var(--border); transition: all 0.2s; }
+.data-table tbody tr:hover { background: #eff6ff; }
+.data-table tbody td { @apply py-3.5 px-4; color: var(--text-primary); }
+
+/* ── Progress ── */
+.progress-bar { @apply h-1.5 rounded-full bg-gray-200 overflow-hidden; }
+.progress-bar-fill { @apply h-full rounded-full transition-all; background: var(--accent-primary); }
+
+/* ── Buttons ── */
+.btn-primary { @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-all duration-150; background: var(--accent-primary); }
+.btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px) scale(1.03); box-shadow: 0 4px 12px rgba(30,58,95,0.35); }
+
+.btn-secondary { @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-all duration-150; border-color: var(--border); background: white; color: var(--text-primary); }
+.btn-secondary:hover { background: #eff6ff; color: var(--accent-primary); border-color: #bfdbfe; }
+
+.btn-outline { @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium border transition-all duration-150; border-color: var(--border); color: var(--text-secondary); }
+.btn-outline:hover { background: #eff6ff; color: var(--accent-primary); border-color: #bfdbfe; }
+
+/* ── Inputs ── */
+.input-field { @apply w-full px-3 py-2 rounded-lg text-sm border outline-none transition-all; border-color: var(--border); background: #f8fafc; color: var(--text-primary); }
+.input-field:focus { border-color: var(--accent-primary); background: white; box-shadow: 0 0 0 3px rgba(30,58,95,0.1); }
+.input-field::placeholder { color: var(--text-muted); }
+
+/* ── Misc ── */
+.section-label { @apply text-xs font-semibold uppercase tracking-widest mb-2 px-3; color: var(--text-secondary); }
+.ai-badge { @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium; background: #eff6ff; color: var(--accent-primary); border: 1px solid #bfdbfe; }
+
+button { transition: all 0.15s ease; }
+button:active { transform: scale(0.97); }
+
+/* ── Animations ── */
+@keyframes fadeIn  { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeIn 0.3s ease-out forwards; }
+
+@keyframes growUp  { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.chart-bar { transform-origin: bottom; animation: growUp 0.6s ease-out forwards; }
+
+@keyframes bounce  { 0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; } 40% { transform: scale(1.1); opacity: 1; } }
+
+@keyframes spin    { to { transform: rotate(360deg); } }
+
+/* ── Modern Toggle (smooth slider) ── */
+/* Handled inline via React style props in Toggle component for full control */
+/* No additional CSS needed — the component uses inline styles */
+
+/* ── Chatbot bounce dots ── */
+.chatbot-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #94a3b8;
+  display: inline-block;
+  animation: bounce 1s ease-in-out infinite;
+}
+.chatbot-dot:nth-child(2) { animation-delay: 0.2s; }
+.chatbot-dot:nth-child(3) { animation-delay: 0.4s; }

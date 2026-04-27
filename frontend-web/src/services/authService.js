@@ -1,0 +1,159 @@
+import { fakeApi } from '../utils/fakeApi';
+import { lsGet, lsSet, lsDel } from '../utils/storage';
+import { apiRequest, normalizeServiceError, toApiEnvelope } from './apiClient';
+
+const USE_MOCK = import.meta.env.VITE_USE_MOCK_AUTH === 'true';
+const SESSION_KEY = 'invosix_session';
+const PENDING_KEY = 'invosix_pending_login';
+
+const MOCK_USERS = [
+  { id: 1, name: 'Anita Shrestha', email: 'admin@store.np', password: 'admin123', role: 'admin', initials: 'AS', store: 'KTM-001', storeId: 1 },
+  { id: 2, name: 'Kasim Rijal', email: 'kasim@store.np', password: 'cashier123', role: 'cashier', initials: 'KR', store: 'KTM-001', storeId: 1 },
+  { id: 3, name: 'Priya Shrestha', email: 'priya.staff@store.np', password: 'cashier123', role: 'cashier', initials: 'PS', store: 'KTM-001', storeId: 1 },
+];
+
+function mapBackendUser(user) {
+  if (!user) return null;
+
+  const role = (user.role || 'customer').toLowerCase();
+  const safeName = user.name || [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email || 'User';
+  const initials = user.initials || safeName.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
+
+  return {
+    id: user.id || user.user_id,
+    name: safeName,
+    email: user.email,
+    role,
+    roles: user.roles || [role],
+    initials,
+    store: user.store || `STORE-${String(user.storeId || user.store_id || 1).padStart(3, '0')}`,
+    storeId: Number(user.storeId || user.store_id || 1),
+    phone: user.phone || '',
+  };
+}
+
+function persistSession(user, accessToken, refreshToken) {
+  const session = {
+    ...user,
+    accessToken,
+    refreshToken,
+    token: accessToken,
+    loginAt: new Date().toISOString(),
+    pending2FA: false,
+  };
+  lsSet(SESSION_KEY, session);
+  lsDel(PENDING_KEY);
+  return session;
+}
+
+export async function login({ email, password }) {
+  if (USE_MOCK) {
+    const user = MOCK_USERS.find(u => u.email === email && u.password === password);
+    if (!user) {
+      return new Promise((_, reject) =>
+        setTimeout(() => reject({ status: 401, message: 'Invalid email or password', data: null }), 400)
+      );
+    }
+
+    const { password: _pw, ...safeUser } = user;
+    const pending = {
+      ...safeUser,
+      pending2FA: true,
+      otpPurpose: 'login_2fa',
+      loginAt: new Date().toISOString(),
+    };
+    lsSet(PENDING_KEY, pending);
+    return fakeApi(pending);
+  }
+
+  try {
+    const payload = await apiRequest('/auth/login', {
+      method: 'POST',
+      body: { email, password },
+      withAuth: false,
+    });
+
+    const user = mapBackendUser(payload.user) || { email, role: 'customer', storeId: 1, pending2FA: true };
+
+    if (payload.requires_otp) {
+      const pending = {
+        ...user,
+        pending2FA: true,
+        otpPurpose: payload.otp_purpose || 'login_2fa',
+      };
+      lsSet(PENDING_KEY, pending);
+      return toApiEnvelope(pending, 200, payload.message || 'OTP sent');
+    }
+
+    if (!payload.access_token || !payload.refresh_token) {
+      throw { status: 500, message: 'Login response missing tokens.', data: null };
+    }
+
+    const session = persistSession(user, payload.access_token, payload.refresh_token);
+    return toApiEnvelope(session, 200, 'Success');
+  } catch (error) {
+    throw normalizeServiceError(error, 'Login failed');
+  }
+}
+
+export async function verifyOtp({ otp }) {
+  const pending = getPendingLogin();
+  if (!pending?.email) {
+    throw { status: 400, message: 'No pending login found. Please sign in again.', data: null };
+  }
+
+  if (USE_MOCK) {
+    if (otp === '123456' || otp.length === 6) {
+      const session = persistSession(pending, `mock-token-${Date.now()}`, `mock-refresh-${Date.now()}`);
+      return fakeApi(session);
+    }
+    return new Promise((_, reject) =>
+      setTimeout(() => reject({ status: 400, message: 'Invalid OTP', data: null }), 400)
+    );
+  }
+
+  try {
+    const payload = await apiRequest('/auth/verify-otp', {
+      method: 'POST',
+      withAuth: false,
+      body: {
+        email: pending.email,
+        otp_code: otp,
+        purpose: pending.otpPurpose || 'login_2fa',
+      },
+    });
+
+    const user = mapBackendUser(payload.user) || pending;
+    const session = persistSession(user, payload.access_token, payload.refresh_token);
+    return toApiEnvelope(session, 200, 'Verified');
+  } catch (error) {
+    throw normalizeServiceError(error, 'OTP verification failed');
+  }
+}
+
+export async function logout() {
+  const session = lsGet(SESSION_KEY, null);
+
+  if (!USE_MOCK && session?.refreshToken) {
+    try {
+      await apiRequest('/auth/logout', {
+        method: 'POST',
+        body: { refresh_token: session.refreshToken },
+      });
+    } catch {
+      // Logout should clear local session even if backend revoke fails.
+    }
+  }
+
+  lsDel(SESSION_KEY);
+  lsDel(PENDING_KEY);
+  return toApiEnvelope({ loggedOut: true }, 200, 'Success');
+}
+
+export function getSession() {
+  return lsGet(SESSION_KEY, null);
+}
+
+export function getPendingLogin() {
+  return lsGet(PENDING_KEY, null);
+}
