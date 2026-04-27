@@ -121,6 +121,9 @@ def list_products(
         )
     if category_id:
         q = q.filter(Product.category_id == category_id)
+        
+    q = q.order_by(Product.created_at.desc())
+    
     total = q.count()
     items = q.offset((page - 1) * size).limit(size).all()
     return PaginatedResponse(total=total, page=page, size=size,
