@@ -290,7 +290,6 @@ def adjust_inventory(
         reference_id=body.reference_id,
         notes=body.notes,
         performed_by=admin.user_id,
-        log_id=inv.inventory_id,
     )
     db.add(log)
     db.commit()

@@ -421,7 +421,7 @@ class Inventory(Base):
 class InventoryLog(Base):
     __tablename__ = "inventory_logs"
 
-    log_id          = Column(BigInteger, primary_key=True, autoincrement=True)
+    log_id          = Column(Integer, primary_key=True, autoincrement=True)
     inventory_id    = Column(Integer,    ForeignKey("inventory.inventory_id", ondelete="RESTRICT"), nullable=False)
     product_id      = Column(Integer,    ForeignKey("products.product_id",    ondelete="RESTRICT"), nullable=False)
     store_id        = Column(Integer,    ForeignKey("stores.store_id",         ondelete="RESTRICT"), nullable=False)
