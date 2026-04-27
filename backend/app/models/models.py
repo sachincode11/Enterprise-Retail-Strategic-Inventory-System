@@ -87,6 +87,7 @@ class Store(Base):
     transactions     = relationship("Transaction",      back_populates="store")
     purchase_orders  = relationship("PurchaseOrder",    back_populates="store")
     iot_devices      = relationship("IoTDevice",        back_populates="store")
+    suppliers        = relationship("Supplier",         back_populates="store")
     sales_forecasts  = relationship("SalesForecast",    back_populates="store")
     chatbot_sessions = relationship("ChatbotSession",   back_populates="store")
     audit_logs       = relationship("AuditLog",         back_populates="store")
@@ -444,13 +445,16 @@ class Supplier(Base):
     __tablename__ = "suppliers"
 
     supplier_id    = Column(Integer,     primary_key=True, autoincrement=True)
+    store_id       = Column(Integer,     ForeignKey("stores.store_id", ondelete="RESTRICT"), nullable=False)
     supplier_name  = Column(String(150), nullable=False)
     contact_person = Column(String(100), nullable=True)
     email          = Column(String(150), nullable=True)
     phone          = Column(String(20),  nullable=True)
     address        = Column(Text,        nullable=True)
+    is_active      = Column(Boolean,     nullable=False, default=True)
     created_at     = Column(DateTime,    nullable=False, server_default=func.now())
 
+    store            = relationship("Store", back_populates="suppliers")
     product_suppliers = relationship("ProductSupplier", back_populates="supplier")
     purchase_orders   = relationship("PurchaseOrder",   back_populates="supplier")
 

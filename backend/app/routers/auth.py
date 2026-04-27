@@ -7,6 +7,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
+from app.core.config import settings
 from app.core.security import (
     create_access_token, create_refresh_token, generate_otp,
     hash_otp, hash_password, hash_token, otp_expiry,
@@ -141,16 +142,20 @@ def login(
 
     # Admin / Cashier → send OTP
     otp = generate_otp()
+    print(f"[OTP] Login OTP for {user.email}: {otp}")
     db.add(OTPToken(user_id=user.user_id, otp_code_hash=hash_otp(otp),
                     purpose=OTPPurpose.login_2fa, expires_at=otp_expiry()))
     db.commit()
     background.add_task(_send_otp_email, user.email, otp)
-    return {
+    response = {
         "requires_otp": True,
         "user": user_payload,
-        "otp_purpose": OTPPurpose.login_2fa,
+        "otp_purpose": OTPPurpose.login_2fa.value,
         "message": "OTP sent to registered email. Please verify to complete login.",
     }
+    if settings.DEBUG or not settings.SMTP_USER or not settings.SMTP_PASSWORD:
+        response["debug_otp"] = otp
+    return response
 
 
 @router.post("/verify-otp")
@@ -167,7 +172,7 @@ def verify_otp_endpoint(body: OTPVerifyRequest, db: Session = Depends(get_db)):
             OTPToken.user_id == user.user_id,
             OTPToken.purpose == body.purpose,
             OTPToken.is_used == False,
-            OTPToken.expires_at >= datetime.now(timezone.utc),
+            OTPToken.expires_at >= datetime.now(timezone.utc).replace(tzinfo=None),
         )
         .order_by(OTPToken.created_at.desc())
         .first()

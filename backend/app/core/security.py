@@ -63,4 +63,4 @@ def verify_otp(plain: str, hashed: str) -> bool:
 
 
 def otp_expiry() -> datetime:
-    return datetime.now(timezone.utc) + timedelta(minutes=settings.OTP_EXPIRE_MINUTES)
+    return (datetime.now(timezone.utc) + timedelta(minutes=settings.OTP_EXPIRE_MINUTES)).replace(tzinfo=None)

@@ -11,7 +11,7 @@ from pydantic import BaseModel, EmailStr, field_validator
 
 from app.models.enums import (
     DiscountAppliesTo, DiscountType,
-    MovementType, NotificationChannel, NotificationType,
+    InventoryReferenceType, MovementType, NotificationChannel, NotificationType,
     NotificationStatus,
     OTPPurpose, PaymentMethod, PolicyAccessLevel,
     PurchaseOrderStatus, RAGAccessLevel,
@@ -67,10 +67,22 @@ class UserOut(BaseModel):
     email: str
     phone: Optional[str]
     is_active: bool
-    # is_verified: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class StaffOut(BaseModel):
+    user_id: int
+    name: str
+    email: str
+    phone: Optional[str]
+    role: str
+    store_id: int
+    is_active: bool
+    created_at: datetime
+
+    model_config = {"from_attributes": False}
 
 
 class UserUpdate(BaseModel):
@@ -126,6 +138,7 @@ class CategoryOut(BaseModel):
 # Product
 class ProductCreate(BaseModel):
     category_id: Optional[int] = None
+    supplier_id: Optional[int] = None
     product_name: str
     barcode: str
     description: Optional[str] = None
@@ -136,6 +149,7 @@ class ProductCreate(BaseModel):
 
 class ProductUpdate(BaseModel):
     category_id: Optional[int] = None
+    supplier_id: Optional[int] = None
     product_name: Optional[str] = None
     description: Optional[str] = None
     unit_price: Optional[Decimal] = None
@@ -148,6 +162,7 @@ class ProductOut(BaseModel):
     product_id: int
     store_id: int
     category_id: Optional[int]
+    supplier_id: Optional[int] = None
     product_name: str
     barcode: str
     description: Optional[str]
@@ -176,7 +191,7 @@ class InventoryOut(BaseModel):
 class InventoryAdjust(BaseModel):
     quantity_change: int          # positive = add, negative = remove
     movement_type: MovementType
-    reference_type: Optional[str] = None
+    reference_type: Optional[InventoryReferenceType] = None
     reference_id: Optional[int] = None
     notes: Optional[str] = None
 
@@ -201,9 +216,25 @@ class DiscountOut(BaseModel):
     discount_type: DiscountType
     discount_value: Decimal
     applies_to: DiscountAppliesTo
+    min_purchase_amount: Optional[Decimal]
+    valid_from: Optional[date]
+    valid_until: Optional[date]
     is_active: bool
 
     model_config = {"from_attributes": True}
+
+
+class DiscountUpdate(BaseModel):
+    discount_name: Optional[str] = None
+    discount_type: Optional[DiscountType] = None
+    discount_value: Optional[Decimal] = None
+    applies_to: Optional[DiscountAppliesTo] = None
+    product_id: Optional[int] = None
+    category_id: Optional[int] = None
+    min_purchase_amount: Optional[Decimal] = None
+    valid_from: Optional[date] = None
+    valid_until: Optional[date] = None
+    is_active: Optional[bool] = None
 
 
 # Transaction
@@ -268,7 +299,7 @@ class SupplierCreate(BaseModel):
 
 class SupplierOut(BaseModel):
     supplier_id: int
-    # store_id: str
+    store_id: Optional[int] = None
     supplier_name: str
     contact_person: Optional[str]
     phone: Optional[str]

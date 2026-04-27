@@ -10,6 +10,7 @@ from .schemas import (
     UserOut,
     UserUpdate,
     AssignRoleRequest,
+    StaffOut,
 
     # Store
     StoreCreate,
@@ -30,6 +31,7 @@ from .schemas import (
 
     # Discount
     DiscountCreate,
+    DiscountUpdate,
     DiscountOut,
 
     # Transaction
@@ -81,6 +83,7 @@ __all__ = [
     "UserOut",
     "UserUpdate",
     "AssignRoleRequest",
+    "StaffOut",
 
     # Store
     "StoreCreate",
@@ -101,6 +104,7 @@ __all__ = [
 
     # Discount
     "DiscountCreate",
+    "DiscountUpdate",
     "DiscountOut",
 
     # Transaction

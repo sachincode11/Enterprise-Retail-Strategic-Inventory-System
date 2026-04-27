@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     # App
     APP_NAME: str = "Enterprise Retail & Strategic Inventory System"
     APP_VERSION: str = "1.0.0"
-    DEBUG: bool = False
+    DEBUG: bool = True
 
     # Database
     DATABASE_URL: str = "mysql+pymysql://root:password@localhost/ersis"
@@ -41,6 +41,10 @@ class Settings(BaseSettings):
         "http://localhost:8081",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+        "http://localhost:5175",
+        "http://localhost:5176",
     ]
 
     # AI / RAG

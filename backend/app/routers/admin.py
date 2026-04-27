@@ -1,5 +1,5 @@
 """
-Supplier, Purchase-Order, User-management, Store-admin, Notification routers.
+Supplier, Purchase-Order, User-management, Discount, Staff, Store-admin, Notification routers.
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -8,18 +8,18 @@ from app.core.deps import get_current_user, require_admin, require_cashier
 from app.database import get_db
 
 from app.models import (
-    PurchaseOrder, PurchaseOrderItem, Supplier, ProductSupplier,
+    Discount, PurchaseOrder, PurchaseOrderItem, Store, Supplier, ProductSupplier,
     Notification,
     User, UserRole as UserRoleModel, Role, StoreFAQ, StorePolicy,
-
 )
 from app.models.enums import NotificationStatus, UserRole as UserRoleEnum
 
 from app.schemas import (
-    AssignRoleRequest, FAQCreate, FAQOut, MessageResponse,
+    AssignRoleRequest, DiscountCreate, DiscountOut, DiscountUpdate,
+    FAQCreate, FAQOut, MessageResponse,
     NotificationOut, PolicyCreate, PolicyOut,
     PurchaseOrderCreate, PurchaseOrderOut,
-    SupplierCreate, SupplierOut, UserOut,
+    StaffOut, StoreOut, SupplierCreate, SupplierOut, UserOut,
 )
 
 
@@ -231,3 +231,166 @@ def mark_read(notification_id: str, current_user: User = Depends(get_current_use
     n.status = NotificationStatus.read
     db.commit()
     return MessageResponse(message="Notification marked as read.")
+
+
+# ── Discounts ─────────────────────────────────────────────────────────────────
+discount_router = APIRouter(
+    prefix="/stores/{store_id}/discounts", tags=["Discounts"]
+)
+
+
+@discount_router.get("", response_model=list[DiscountOut])
+def list_discounts(
+    store_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    return (
+        db.query(Discount)
+        .filter(Discount.store_id == store_id, Discount.is_active == True)
+        .all()
+    )
+
+
+@discount_router.post("", response_model=DiscountOut, status_code=201)
+def create_discount(
+    store_id: int,
+    body: DiscountCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    d = Discount(store_id=store_id, **body.model_dump())
+    db.add(d)
+    db.commit()
+    db.refresh(d)
+    return d
+
+
+@discount_router.patch("/{discount_id}", response_model=DiscountOut)
+def update_discount(
+    store_id: int,
+    discount_id: int,
+    body: DiscountUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    d = db.query(Discount).filter(
+        Discount.discount_id == discount_id,
+        Discount.store_id == store_id,
+    ).first()
+    if not d:
+        raise HTTPException(404, "Discount not found.")
+    for k, v in body.model_dump(exclude_none=True).items():
+        setattr(d, k, v)
+    db.commit()
+    db.refresh(d)
+    return d
+
+
+@discount_router.delete("/{discount_id}", response_model=MessageResponse)
+def delete_discount(
+    store_id: int,
+    discount_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    d = db.query(Discount).filter(
+        Discount.discount_id == discount_id,
+        Discount.store_id == store_id,
+    ).first()
+    if not d:
+        raise HTTPException(404, "Discount not found.")
+    d.is_active = False
+    db.commit()
+    return MessageResponse(message="Discount deactivated.")
+
+
+# ── Staff (cashiers + admins for a store) ─────────────────────────────────────
+staff_router = APIRouter(
+    prefix="/stores/{store_id}/staff", tags=["Staff"]
+)
+
+
+@staff_router.get("", response_model=list[StaffOut])
+def list_staff(
+    store_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """Return all active admin/cashier users for the given store."""
+    allowed_roles = {UserRoleEnum.admin.value, UserRoleEnum.cashier.value}
+    role_rows = (
+        db.query(UserRoleModel)
+        .join(Role, UserRoleModel.role_id == Role.role_id)
+        .filter(
+            UserRoleModel.store_id == store_id,
+            UserRoleModel.is_active == True,
+            Role.role_name.in_(allowed_roles),
+        )
+        .all()
+    )
+    seen = set()
+    result = []
+    for ur in role_rows:
+        user = ur.user
+        role = ur.role
+        if user.user_id in seen:
+            continue
+        seen.add(user.user_id)
+        full_name = " ".join(filter(None, [user.first_name, user.last_name]))
+        result.append(
+            StaffOut(
+                user_id=user.user_id,
+                name=full_name,
+                email=user.email,
+                phone=user.phone,
+                role=str(role.role_name),
+                store_id=ur.store_id,
+                is_active=user.is_active,
+                created_at=user.created_at,
+            )
+        )
+    return result
+
+
+# ── Customers (registered users with customer role) ───────────────────────────
+customer_router = APIRouter(
+    prefix="/stores/{store_id}/customers", tags=["Customers"]
+)
+
+
+@customer_router.get("", response_model=list[UserOut])
+def list_customers(
+    store_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """Return all registered customer users (customer role)."""
+    customer_users = (
+        db.query(User)
+        .join(UserRoleModel, User.user_id == UserRoleModel.user_id)
+        .join(Role, UserRoleModel.role_id == Role.role_id)
+        .filter(
+            Role.role_name == UserRoleEnum.customer.value,
+            UserRoleModel.is_active == True,
+            User.is_active == True,
+        )
+        .all()
+    )
+    return customer_users
+
+
+# ── Store detail ──────────────────────────────────────────────────────────────
+store_router = APIRouter(prefix="/stores", tags=["Stores"])
+
+
+@store_router.get("/{store_id}", response_model=StoreOut)
+def get_store(
+    store_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    store = db.query(Store).filter(Store.store_id == store_id).first()
+    if not store:
+        raise HTTPException(404, "Store not found.")
+    return store

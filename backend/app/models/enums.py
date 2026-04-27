@@ -14,7 +14,7 @@ class UserRole(str, enum.Enum):
 class OTPPurpose(str, enum.Enum):
     login_2fa = "login_2fa"
     password_reset = "password_reset"
-    email_verify = "email_verify"
+    email_verification = "email_verification"
 
 
 class PushPlatform(str, enum.Enum):
@@ -50,7 +50,7 @@ class TransactionStatus(str, enum.Enum):
 
 class PaymentMethod(str, enum.Enum):
     cash = "cash"
-    digital_wallet = "digital_wallet"
+    card = "card"
 
 
 class PaymentStatus(str, enum.Enum):
@@ -65,14 +65,14 @@ class MovementType(str, enum.Enum):
     sale = "sale"                        # Stock reduced by a sale
     restock = "restock"                  # Stock added from supplier
     adjustment = "adjustment"            # Manual correction
-    refund = "refund"                    # Stock returned via refund
-    manual = "manual"                    # Ad-hoc manual entry
+    damage = "damage"                    # Stock lost due to damage
+    return_ = "return"                   # Stock returned
 
 
 class InventoryReferenceType(str, enum.Enum):
     transaction = "transaction"
-    purchase_order = "purchase_order"
-    manual_adjustment = "manual_adjustment"
+    manual = "manual"
+    return_ = "return"
 
 
 # Purchase Orders (Supplier)
