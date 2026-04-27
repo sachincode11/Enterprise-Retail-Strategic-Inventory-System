@@ -1,57 +1,66 @@
-import secrets
 import hashlib
+import random
+import string
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
-from app.core import get_settings
+from app.core.config import settings
 
-settings = get_settings()
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Password hashing  (bcrypt, work factor 12)
+def hash_password(plain: str) -> str:
+    return bcrypt.hashpw(plain.encode(), bcrypt.gensalt(rounds=12)).decode()
 
-# Password Hashing
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+def verify_password(plain: str, hashed: str) -> bool:
+    return bcrypt.checkpw(plain.encode(), hashed.encode())
+
 
 # JWT
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (
-        expires_delta or timedelta(minutes=settings.access_token_expire_minutes)
+def create_access_token(data: dict) -> str:
+    payload = data.copy()
+    payload["exp"] = datetime.now(timezone.utc) + timedelta(
+        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
-    to_encode.update({"exp": expire, "type": "access"})
-    return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+    payload["type"] = "access"
+    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
-def create_refresh_token(data: dict) -> tuple[str, str]:
-    """Returns (raw_token, token_hash). Store only the hash in DB."""
-    raw = secrets.token_urlsafe(64)
-    token_hash = hashlib.sha256(raw.encode()).hexdigest()
-    return raw, token_hash
 
-def decode_access_token(token: str) -> dict:
-    """Raises JWTError if invalid or expired."""
-    payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-    if payload.get("type") != "access":
-        raise JWTError("Invalid token type")
-    return payload
+def create_refresh_token(data: dict) -> str:
+    payload = data.copy()
+    payload["exp"] = datetime.now(timezone.utc) + timedelta(
+        days=settings.REFRESH_TOKEN_EXPIRE_DAYS
+    )
+    payload["type"] = "refresh"
+    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+
+def decode_token(token: str) -> dict:
+    """Raises JWTError on invalid / expired token."""
+    return jwt.decode(token, settings.JWT_SECRET_KEY,
+                      algorithms=[settings.JWT_ALGORITHM])
+
+
+# Token hashing  (store hash of refresh token)
+def hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
 
 # OTP
 def generate_otp() -> str:
-    """6-digit numeric OTP."""
-    return f"{secrets.randbelow(1_000_000):06d}"
+    """Returns a random numeric OTP of configured length."""
+    return "".join(random.choices(string.digits, k=settings.OTP_LENGTH))
+
 
 def hash_otp(otp: str) -> str:
     return hashlib.sha256(otp.encode()).hexdigest()
 
+
 def verify_otp(plain: str, hashed: str) -> bool:
-    target = hashlib.sha256(plain.encode()).hexdigest()
-    return secrets.compare_digest(target, hashed)
+    return hash_otp(plain) == hashed
+
 
 def otp_expiry() -> datetime:
-    return datetime.now(timezone.utc) + timedelta(minutes=settings.otp_expire_minutes)
+    return datetime.now(timezone.utc) + timedelta(minutes=settings.OTP_EXPIRE_MINUTES)
