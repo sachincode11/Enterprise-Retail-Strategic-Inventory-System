@@ -8,7 +8,7 @@ import { apiRequest, getStoreId, normalizeServiceError, toApiEnvelope } from './
 
 const USE_MOCK = false;
 const LS_KEY = 'invosix_products';
-const DEFAULT_PAGE_SIZE = 10
+const DEFAULT_PAGE_SIZE = 100;
 
 function getStored() {
   return lsGet(LS_KEY, mockProducts);
@@ -89,14 +89,37 @@ async function resolveCategoryId(storeId, categoryName) {
 export async function getProducts() {
   try {
     const storeId = getStoreId();
-    console.log(`The store id is ${storeId}`)
-    const [pageData, stockMap, categoryMap, supplierMap] = await Promise.all([
-      apiRequest(`/stores/${storeId}/products?page=1&size=${DEFAULT_PAGE_SIZE}`),
+    console.log(`The store id is ${storeId}`);
+
+    // Fetch first page
+    const firstPageResponse = await apiRequest(`/stores/${storeId}/products?page=1&size=${DEFAULT_PAGE_SIZE}`);
+    let allItems = firstPageResponse.items || [];
+    const total = firstPageResponse.total || 0;
+    const itemsFetched = allItems.length;
+
+    // If there are more items, fetch them
+    if (total > itemsFetched && itemsFetched > 0) {
+      const remainingPages = Math.ceil(total / itemsFetched) - 1;
+      const pagePromises = [];
+      for (let i = 2; i <= remainingPages + 1; i++) {
+        pagePromises.push(apiRequest(`/stores/${storeId}/products?page=${i}&size=${itemsFetched}`));
+      }
+
+      const remainingResponses = await Promise.all(pagePromises);
+      for (const res of remainingResponses) {
+        if (res.items) {
+          allItems = allItems.concat(res.items);
+        }
+      }
+    }
+
+    const [stockMap, categoryMap, supplierMap] = await Promise.all([
       loadStockMap(storeId),
       loadCategoryMap(storeId),
       loadSupplierMap(storeId),
     ]);
-    const mapped = (pageData.items || []).map(p => mapProductFromBackend(p, stockMap, categoryMap, supplierMap));
+
+    const mapped = allItems.map(p => mapProductFromBackend(p, stockMap, categoryMap, supplierMap));
     saveStored(mapped);
     return toApiEnvelope(mapped);
   } catch {
