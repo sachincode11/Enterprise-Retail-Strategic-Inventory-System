@@ -60,6 +60,7 @@ export function AppProvider({ children }) {
   // ── Products ──────────────────────────────────────────────────────────────
   const handleAddProduct = useCallback(async (product) => {
     const res = await addProduct(product);
+    console.log(`The products  are ${res}`)
     try {
       const fresh = await getProducts();
       setProducts(fresh.data);

@@ -89,10 +89,13 @@ export default function AddProduct() {
         showToast('Product updated successfully.');
       } else {
         await addProduct(payload);
-        showToast('Product added — visible across all pages.');
+        showToast('Product added successfully.');
       }
-      setEditTarget(null);
-      setTimeout(() => setCurrentPage('products'), 900);
+      
+      setTimeout(() => {
+        setEditTarget(null);
+        setCurrentPage('products');
+      }, 1500);
     } catch (error) {
       showToast(error?.message || 'Unable to save product.', 'error');
     } finally {

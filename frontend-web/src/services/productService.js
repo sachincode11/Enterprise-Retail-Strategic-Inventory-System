@@ -3,11 +3,12 @@
 
 import { fakeApi } from '../utils/fakeApi';
 import { lsGet, lsSet } from '../utils/storage';
-import { products as mockProducts } from '../data/mockData';
+import { products as mockProducts, store } from '../data/mockData';
 import { apiRequest, getStoreId, normalizeServiceError, toApiEnvelope } from './apiClient';
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK_PRODUCTS === 'true';
+const USE_MOCK = false;
 const LS_KEY = 'invosix_products';
+const DEFAULT_PAGE_SIZE = 10
 
 function getStored() {
   return lsGet(LS_KEY, mockProducts);
@@ -86,12 +87,11 @@ async function resolveCategoryId(storeId, categoryName) {
 }
 
 export async function getProducts() {
-  if (USE_MOCK) return fakeApi(getStored());
-
   try {
     const storeId = getStoreId();
+    console.log(`The store id is ${storeId}`)
     const [pageData, stockMap, categoryMap, supplierMap] = await Promise.all([
-      apiRequest(`/stores/${storeId}/products?page=1&size=500`),
+      apiRequest(`/stores/${storeId}/products?page=1&size=${DEFAULT_PAGE_SIZE}`),
       loadStockMap(storeId),
       loadCategoryMap(storeId),
       loadSupplierMap(storeId),
@@ -126,6 +126,8 @@ export async function getProductById(id) {
 }
 
 export async function addProduct(product) {
+  console.log("the product to be added is")
+  console.log(product)
   if (USE_MOCK) {
     const stored = getStored();
     const newItem = {
@@ -141,6 +143,7 @@ export async function addProduct(product) {
 
   try {
     const storeId = getStoreId();
+    console.log(`The store id is ${storeId}`)
     const categoryId = await resolveCategoryId(storeId, product.category);
 
     // barcode is required by backend — fall back to SKU, then a timestamp-based code

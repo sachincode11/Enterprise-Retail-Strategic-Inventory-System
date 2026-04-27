@@ -6,6 +6,7 @@ import { apiRequest, getStoreId, normalizeServiceError, toApiEnvelope } from './
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK_TRANSACTIONS === 'true';
 const LS_KEY = 'invosix_transactions';
+const DEFAULT_PAGE_SIZE = 10
 
 function getStored() { return lsGet(LS_KEY, mockTransactions); }
 function saveStored(data) { lsSet(LS_KEY, data); }
@@ -41,7 +42,7 @@ export async function getTransactions() {
 
   try {
     const storeId = getStoreId();
-    const txns = await apiRequest(`/stores/${storeId}/transactions?page=1&size=500`);
+    const txns = await apiRequest(`/stores/${storeId}/transactions?page=1&size=${DEFAULT_PAGE_SIZE}`);
     const mapped = txns.map(mapTxnFromBackend);
     saveStored(mapped);
     return toApiEnvelope(mapped);
