@@ -1,6 +1,6 @@
 import { lsGet } from '../utils/storage';
 
-const API_ROOT = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
+const API_ROOT = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/$/, '');
 const SESSION_KEY = 'invosix_session';
 const PENDING_KEY = 'invosix_pending_login';
 const DEFAULT_STORE_ID = Number(import.meta.env.VITE_DEFAULT_STORE_ID || 1);

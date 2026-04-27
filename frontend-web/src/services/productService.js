@@ -23,7 +23,7 @@ function stockStatus(stock) {
   return 'Active';
 }
 
-function mapProductFromBackend(product, stockMap, categoryMap) {
+function mapProductFromBackend(product, stockMap, categoryMap, supplierMap) {
   const stock = stockMap.get(product.product_id) ?? 0;
   const priceNum = Number(product.unit_price || 0);
   return {
@@ -35,7 +35,8 @@ function mapProductFromBackend(product, stockMap, categoryMap) {
     priceNum,
     price: `Rs ${priceNum}`,
     stock,
-    supplier: '—',
+    supplierId: product.supplier_id || '',
+    supplier: supplierMap.get(product.supplier_id) || '—',
     status: stockStatus(stock),
     unit: product.unit_of_measure || 'pcs',
     tax: Number(product.tax_rate || 0),
@@ -61,6 +62,15 @@ async function loadStockMap(storeId) {
   }
 }
 
+async function loadSupplierMap(storeId) {
+  try {
+    const suppliers = await apiRequest(`/stores/${storeId}/suppliers`);
+    return new Map(suppliers.map(supplier => [supplier.supplier_id, supplier.supplier_name]));
+  } catch {
+    return new Map();
+  }
+}
+
 async function resolveCategoryId(storeId, categoryName) {
   if (!categoryName) return null;
 
@@ -80,12 +90,13 @@ export async function getProducts() {
 
   try {
     const storeId = getStoreId();
-    const [pageData, stockMap, categoryMap] = await Promise.all([
+    const [pageData, stockMap, categoryMap, supplierMap] = await Promise.all([
       apiRequest(`/stores/${storeId}/products?page=1&size=500`),
       loadStockMap(storeId),
       loadCategoryMap(storeId),
+      loadSupplierMap(storeId),
     ]);
-    const mapped = (pageData.items || []).map(p => mapProductFromBackend(p, stockMap, categoryMap));
+    const mapped = (pageData.items || []).map(p => mapProductFromBackend(p, stockMap, categoryMap, supplierMap));
     saveStored(mapped);
     return toApiEnvelope(mapped);
   } catch {
@@ -101,12 +112,13 @@ export async function getProductById(id) {
 
   try {
     const storeId = getStoreId();
-    const [product, stockMap, categoryMap] = await Promise.all([
+    const [product, stockMap, categoryMap, supplierMap] = await Promise.all([
       apiRequest(`/stores/${storeId}/products/${id}`),
       loadStockMap(storeId),
       loadCategoryMap(storeId),
+      loadSupplierMap(storeId),
     ]);
-    return toApiEnvelope(mapProductFromBackend(product, stockMap, categoryMap));
+    return toApiEnvelope(mapProductFromBackend(product, stockMap, categoryMap, supplierMap));
   } catch {
     const item = getStored().find(p => p.id === id) || null;
     return fakeApi(item);
@@ -131,12 +143,18 @@ export async function addProduct(product) {
     const storeId = getStoreId();
     const categoryId = await resolveCategoryId(storeId, product.category);
 
+    // barcode is required by backend — fall back to SKU, then a timestamp-based code
+    const barcode = (product.barcode || '').trim() || (product.sku || '').trim() || `SKU-${Date.now()}`;
+
+    console.log('product', product);
+    console.log("i am here");
     const created = await apiRequest(`/stores/${storeId}/products`, {
       method: 'POST',
       body: {
         category_id: categoryId,
+        supplier_id: product.supplierId ? Number(product.supplierId) : undefined,
         product_name: product.name,
-        barcode: product.barcode || product.sku,
+        barcode,
         description: product.description || null,
         unit_price: Number(product.priceNum || 0),
         tax_rate: Number(product.tax || 0),
@@ -150,16 +168,17 @@ export async function addProduct(product) {
         method: 'POST',
         body: {
           quantity_change: openingStock,
-          movement_type: 'restock',
-          reference_type: 'manual_adjustment',
-          notes: 'Opening stock from product create',
+          movement_type: 'adjustment',   // MovementType.adjustment
+          reference_type: 'manual',      // InventoryReferenceType.manual
+          notes: 'Opening stock on product creation',
         },
       });
     }
 
     const stockMap = new Map([[created.product_id, openingStock]]);
     const categoryMap = await loadCategoryMap(storeId);
-    const mapped = mapProductFromBackend(created, stockMap, categoryMap);
+    const supplierMap = await loadSupplierMap(storeId);
+    const mapped = mapProductFromBackend(created, stockMap, categoryMap, supplierMap);
     saveStored([mapped, ...getStored().filter(p => p.id !== mapped.id)]);
     return toApiEnvelope(mapped, 201, 'Created');
   } catch (error) {
@@ -193,6 +212,10 @@ export async function updateProduct(id, updates) {
       patchBody.category_id = await resolveCategoryId(storeId, updates.category);
     }
 
+    if (updates.supplierId !== undefined) {
+      patchBody.supplier_id = updates.supplierId ? Number(updates.supplierId) : null;
+    }
+
     const updatedProduct = await apiRequest(`/stores/${storeId}/products/${id}`, {
       method: 'PATCH',
       body: patchBody,
@@ -211,7 +234,7 @@ export async function updateProduct(id, updates) {
           body: {
             quantity_change: delta,
             movement_type: 'adjustment',
-            reference_type: 'manual_adjustment',
+            reference_type: 'manual',
             notes: 'Stock updated from frontend',
           },
         });
@@ -220,7 +243,8 @@ export async function updateProduct(id, updates) {
 
     const stockMap = await loadStockMap(storeId);
     const categoryMap = await loadCategoryMap(storeId);
-    const mapped = mapProductFromBackend(updatedProduct, stockMap, categoryMap);
+    const supplierMap = await loadSupplierMap(storeId);
+    const mapped = mapProductFromBackend(updatedProduct, stockMap, categoryMap, supplierMap);
     saveStored(getStored().map(p => (p.id === Number(id) ? mapped : p)));
     return toApiEnvelope(mapped);
   } catch (error) {

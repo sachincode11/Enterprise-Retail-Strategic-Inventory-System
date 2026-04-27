@@ -1,26 +1,31 @@
-// src/layouts/AdminNavbar.jsx — IMPROVED: live Nepal time, live unread notification count
+// src/layouts/AdminNavbar.jsx — live store name from AppContext, live NPT time, live notification count
 import { useAdmin } from '../context/AdminContext';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
-import { store } from '../data/mockData';
 
 export default function AdminNavbar() {
   const { setCurrentPage } = useAdmin();
   const { user }           = useAuth();
-  const { nowNP, products } = useApp();
+  const { nowNP, products, storeInfo } = useApp();
 
   const name     = user?.name?.split(' ').map((n, i) => i === 0 ? n : n[0] + '.').join(' ') || 'Admin';
   const initials = user?.initials || 'AD';
+
+  // Live store display — derived from storeInfo (or auth session fallback)
+  const storeId   = storeInfo?.id   || user?.store || `STORE-${String(user?.storeId || 1).padStart(3, '0')}`;
+  const storeName = storeInfo?.name || 'Main Store';
 
   // Live unread count — low-stock products that need attention
   const lowStockCount = products.filter(p => p.status === 'Low Stock' || p.status === 'Out of Stock').length;
   const unreadCount   = Math.min(lowStockCount, 9); // cap badge at 9
 
   // Nepal time
-  const timeStr = nowNP.toLocaleTimeString('en-US', {
+  // Nepal time — safe check
+  const isValidTime = nowNP instanceof Date && !isNaN(nowNP);
+  const timeStr = isValidTime ? nowNP.toLocaleTimeString('en-US', {
     hour: '2-digit', minute: '2-digit',
     timeZone: 'Asia/Kathmandu',
-  });
+  }) : '--:--';
 
   return (
     <header
@@ -28,14 +33,15 @@ export default function AdminNavbar() {
       style={{ left: '192px', height: '52px', background: '#0f172a', zIndex: 40, borderBottom: '1px solid #1e293b' }}
     >
       <div className="flex items-center gap-3">
-        <span className="text-xs font-mono font-medium" style={{ color: '#475569' }}>{store.id}</span>
+        <span className="text-xs font-mono font-medium" style={{ color: '#475569' }}>{storeId}</span>
         <span style={{ color: '#334155' }}>—</span>
-        <span className="text-sm" style={{ color: '#cbd5e1' }}>{store.name}</span>
+        <span className="text-sm" style={{ color: '#cbd5e1' }}>{storeName}</span>
         {/* Live Nepal time — always visible in navbar near store name */}
         <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ color: '#64748b', background: 'rgba(255,255,255,0.04)', border: '1px solid #1e293b' }}>
           NPT {timeStr}
         </span>
       </div>
+
 
       <div className="flex items-center gap-4">
         {/* Notification bell with live low-stock badge */}

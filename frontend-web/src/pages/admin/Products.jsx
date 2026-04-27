@@ -1,7 +1,7 @@
 // src/pages/admin/Products.jsx — IMPROVED: uses AppContext for live shared data
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
-import { PageHeader, Badge, Button, Pagination, StatCard, ConfirmDialog, Toast } from '../../components/common';
+import { PageHeader, Badge, Button, Pagination, StatCard, ConfirmDialog, Toast, LoadingSpinner } from '../../components/common';
 import { useAdmin } from '../../context/AdminContext';
 import { useApp } from '../../context/AppContext';
 import { exportCSV } from '../../utils/exportData';
@@ -10,8 +10,8 @@ const CATEGORIES = ['All', 'Grains', 'Dairy', 'Instant Food', 'Condiments', 'Hou
 const STATUSES   = ['All', 'Active', 'Low Stock', 'Out of Stock'];
 
 export default function Products() {
-  const { navigateTo, setCurrentPage, setEditTarget } = useAdmin();
-  const { products, deleteProduct } = useApp();
+  const { setCurrentPage, setEditTarget } = useAdmin();
+  const { products, deleteProduct, loading } = useApp();
 
   const [query, setQuery]         = useState('');
   const [catFilter, setCat]       = useState('All');
@@ -34,10 +34,25 @@ export default function Products() {
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
+  useEffect(() => {
+    if (totalPages === 0 && page !== 1) {
+      setPage(1);
+      return;
+    }
+    if (totalPages > 0 && page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
   const handleDelete = async () => {
-    await deleteProduct(deleteId);
-    setDeleteId(null);
-    showToast('Product deleted successfully.');
+    try {
+      await deleteProduct(deleteId);
+      setDeleteId(null);
+      showToast('Product deleted successfully.');
+    } catch (error) {
+      setDeleteId(null);
+      showToast(error?.message || 'Failed to delete product.', 'error');
+    }
   };
 
   const handleExport = () => {
@@ -51,6 +66,18 @@ export default function Products() {
   return (
     <AdminLayout>
       <Toast visible={toast.visible} message={toast.message} />
+      {loading ? (
+        <div className="flex items-center justify-center min-h-[55vh]">
+          <div className="rounded-xl border bg-white px-8 py-10 flex flex-col items-center gap-4" style={{ borderColor: '#e2e8f0' }}>
+            <LoadingSpinner size={28} />
+            <div className="text-center">
+              <p className="text-sm font-semibold text-[#0f172a]">Loading products</p>
+              <p className="text-xs text-[#94a3b8] mt-1">Fetching data from the backend database…</p>
+            </div>
+          </div>
+        </div>
+      ) : (
+      <>
       <PageHeader
         breadcrumb="Product Catalogue"
         title="Products"
@@ -137,6 +164,8 @@ export default function Products() {
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
       />
+      </>
+      )}
     </AdminLayout>
   );
 }

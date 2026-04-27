@@ -1,8 +1,7 @@
-// src/pages/admin/Reports.jsx — IMPROVED: live transaction data wired in, working export
+// src/pages/admin/Reports.jsx — live transaction data, no mockData imports
 import { useState } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { PageHeader, Button, StatCard, SectionCard, BarChart } from '../../components/common';
-import { monthlyRevenueTrend, cashierPerformance, auditLog } from '../../data/mockData';
 import { useApp } from '../../context/AppContext';
 import { exportCSV } from '../../utils/exportData';
 

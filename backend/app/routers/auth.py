@@ -103,7 +103,7 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
     return user
 
 
-@router.post("/login")
+@router.post("/login", openapi_extra={"security": []})
 def login(
     body: LoginRequest,
     background: BackgroundTasks,
@@ -158,7 +158,7 @@ def login(
     return response
 
 
-@router.post("/verify-otp")
+@router.post("/verify-otp", openapi_extra={"security": []})
 def verify_otp_endpoint(body: OTPVerifyRequest, db: Session = Depends(get_db)):
     """Step 2 – submit OTP to get tokens."""
     user = db.query(User).filter(User.email == body.email,

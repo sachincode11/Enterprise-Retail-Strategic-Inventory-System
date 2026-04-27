@@ -1,8 +1,8 @@
-// src/pages/admin/Profile.jsx — IMPROVED: working password & PIN change, saved to localStorage
+// src/pages/admin/Profile.jsx — real user data from AuthContext, no mockData
 import { useState } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { Button, Toggle, Toast } from '../../components/common';
-import { currentUser, activityLog } from '../../data/mockData';
+import { useAuth } from '../../context/AuthContext';
 import { lsGet, lsSet } from '../../utils/storage';
 
 const DEFAULT_PIN = '1111';
@@ -29,19 +29,32 @@ function Field({ label, value, onChange, type = 'text', readOnly }) {
 }
 
 export default function Profile() {
+  const { user } = useAuth();
   const [twoFA,   setTwoFA]   = useState(true);
   const [editing, setEditing] = useState(false);
   const [toast,   setToast]   = useState({ visible: false, message: '' });
 
+  // Derive from live auth session
+  const nameParts = (user?.name || 'Admin User').split(' ');
   const [form, setForm] = useState({
-    firstName: 'Anita', lastName: 'Shrestha',
-    email: currentUser.email, phone: currentUser.phone,
+    firstName: nameParts[0] || 'Admin',
+    lastName:  nameParts.slice(1).join(' ') || '',
+    email:     user?.email || '',
+    phone:     user?.phone || '',
   });
 
   // Password change state
   const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
   // PIN change state
   const [pinForm, setPinForm] = useState({ current: '', next: '', confirm: '' });
+
+  // Live user display values
+  const displayName  = user?.name  || `${form.firstName} ${form.lastName}`.trim();
+  const displayRole  = user?.role  ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Admin';
+  const displayStore = user?.store || 'STORE-001';
+  const displayEmail = user?.email || form.email;
+  const displayPhone = user?.phone || form.phone || '—';
+  const initials     = user?.initials || nameParts.map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'AS';
 
   const showToast = (msg) => { setToast({ visible: true, message: msg }); setTimeout(() => setToast({ visible: false, message: '' }), 2500); };
   const set = key => e => setForm(f => ({ ...f, [key]: e.target.value }));
@@ -89,21 +102,21 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Hero card */}
+      {/* Hero card — live user data */}
       <div className="rounded-xl p-6 mb-4 flex items-center justify-between" style={{ background: '#0f172a' }}>
         <div className="flex items-center gap-4">
           <div className="relative">
-            <div className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold text-white" style={{ background: '#1e3a5f' }}>AS</div>
+            <div className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold text-white" style={{ background: '#1e3a5f' }}>{initials}</div>
             <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: '#22c55e' }}>
               <svg width="8" height="8" viewBox="0 0 8 8" fill="white"><circle cx="4" cy="4" r="3"/></svg>
             </div>
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-white">{currentUser.name}</h2>
+            <h2 className="text-lg font-semibold text-white">{displayName}</h2>
             <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-medium" style={{ background: 'rgba(255,255,255,0.1)', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.15)' }}>
-              {currentUser.role.toUpperCase()}
+              {displayRole.toUpperCase()}
             </span>
-            <p className="text-xs mt-1.5" style={{ color: '#475569' }}>{currentUser.email} · {currentUser.phone} · {currentUser.store}</p>
+            <p className="text-xs mt-1.5" style={{ color: '#475569' }}>{displayEmail} · {displayPhone} · {displayStore}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -122,8 +135,8 @@ export default function Profile() {
             </div>
             <Field label="Email" value={form.email} onChange={set('email')} type="email" readOnly={!editing} />
             <Field label="Phone" value={form.phone} onChange={set('phone')} readOnly={!editing} />
-            <Field label="Store" value={currentUser.store} readOnly />
-            <Field label="Role"  value={currentUser.role}  readOnly />
+            <Field label="Store" value={displayStore} readOnly />
+            <Field label="Role"  value={displayRole}  readOnly />
           </div>
         </Section>
 
@@ -165,15 +178,7 @@ export default function Profile() {
         </Section>
         <Section title="Recent Activity">
           <div className="space-y-3 max-h-[160px] overflow-y-auto">
-            {activityLog.slice(0, 5).map((log, i) => (
-              <div key={i} className="flex items-start gap-2 pb-2 border-b last:border-0 last:pb-0" style={{ borderColor: '#e2e8f0' }}>
-                <div className="w-1.5 h-1.5 rounded-full bg-[#1e3a5f] mt-1.5 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-[#0f172a] truncate">{log.action}</p>
-                  <p className="text-xs text-[#94a3b8]">{log.by} · {log.time}</p>
-                </div>
-              </div>
-            ))}
+            <p className="text-xs text-[#94a3b8] text-center py-4">Activity log available via audit trail</p>
           </div>
         </Section>
       </div>

@@ -5,18 +5,20 @@ import { AppProvider } from './context/AppContext';
 import AdminApp  from './pages/admin/AdminApp';
 import CashierApp from './pages/cashier/CashierApp';
 
-function getRoleFromHash() {
-  const hash = window.location.hash;
-  if (hash.startsWith('#/admin'))   return 'admin';
-  if (hash.startsWith('#/cashier')) return 'cashier';
+function getRoleFromLocation() {
+  const hash = window.location.hash || '';
+  const path = window.location.pathname || '';
+
+  if (hash.startsWith('#/admin') || path.startsWith('/admin')) return 'admin';
+  if (hash.startsWith('#/cashier') || path.startsWith('/cashier')) return 'cashier';
   return null;
 }
 
 function RoleSelector() {
-  const [role, setRole] = useState(getRoleFromHash);
+  const [role, setRole] = useState(getRoleFromLocation);
 
   useEffect(() => {
-    const onHashChange = () => setRole(getRoleFromHash());
+    const onHashChange = () => setRole(getRoleFromLocation());
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);

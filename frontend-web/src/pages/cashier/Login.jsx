@@ -22,7 +22,7 @@ export default function Login() {
     setError('');
     if (!email || !password) { setError('Please enter your email and password.'); return; }
     try {
-      const user = await login({ email, password });
+      const user = await login({ email, password, expectedRole: 'cashier' });
       if (user.role !== 'cashier') { setError('This terminal is for cashier accounts only.'); return; }
       setCurrentPage('verification');
     } catch (err) {

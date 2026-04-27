@@ -69,8 +69,16 @@ function AdminRouter() {
 
   // Not authenticated → show login
   if (!user) return <Login />;
-  // Authenticated but needs OTP → show verification
-  if (currentPage === 'verification') return <Verification />;
+
+  // Pending 2FA users must always complete verification first.
+  if (user.pending2FA) return <Verification />;
+
+  // Fully authenticated users should not stay on verification route.
+  if (currentPage === 'verification') {
+    const Page = pageMap.dashboard || Dashboard;
+    return <Page />;
+  }
+
   // Route to page
   const Page = pageMap[currentPage] || Dashboard;
   return <Page />;

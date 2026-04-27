@@ -1,20 +1,23 @@
 // src/context/AppContext.jsx
 // GLOBAL STATE — shared across Admin and Cashier.
-// Products, transactions, orders, discounts all live here so every page sees the same data.
-// To connect backend: replace service imports in useEffect with real API calls.
+// Products, transactions, orders, discounts, staff, customers all live here.
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { getProducts, updateProduct, addProduct, deleteProduct } from '../services/productService';
 import { getTransactions, addTransaction as addTxnService, voidTransaction, refundTransaction } from '../services/transactionService';
 import { getOrders, addOrder as addOrderService, updateOrderStatus } from '../services/orderService';
 import { getDiscounts, addDiscount as addDiscountService, updateDiscount, deleteDiscount } from '../services/discountService';
 import { getCustomers } from '../services/customerService';
+import { getStaff } from '../services/staffService';
+import { getStoreInfo } from '../services/storeService';
 import { lsGet, lsSet } from '../utils/storage';
 
 const AppContext = createContext(null);
 
 // Nepal real-time clock helper
 export function getNepaliNow() {
-  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kathmandu' }));
+  // Returns current system date. Components use .toLocaleString(..., { timeZone: 'Asia/Kathmandu' })
+  // to display Nepal time accurately regardless of system locale.
+  return new Date();
 }
 
 export function AppProvider({ children }) {
@@ -23,6 +26,8 @@ export function AppProvider({ children }) {
   const [orders, setOrders]             = useState([]);
   const [discounts, setDiscounts]       = useState([]);
   const [customers, setCustomers]       = useState([]);
+  const [staff, setStaff]               = useState([]);
+  const [storeInfo, setStoreInfo]       = useState(null);
   const [loading, setLoading]           = useState(true);
 
   // Nepal real-time clock
@@ -35,14 +40,18 @@ export function AppProvider({ children }) {
   // Bootstrap all data
   useEffect(() => {
     async function boot() {
-      const [p, t, o, d, c] = await Promise.all([
-        getProducts(), getTransactions(), getOrders(), getDiscounts(), getCustomers(),
+      const [p, t, o, d, c, s, si] = await Promise.allSettled([
+        getProducts(), getTransactions(), getOrders(), getDiscounts(),
+        getCustomers(), getStaff(), getStoreInfo(),
       ]);
-      setProducts(p.data);
-      setTransactions(t.data);
-      setOrders(o.data);
-      setDiscounts(d.data);
-      setCustomers(c.data);
+
+      setProducts(p.status === 'fulfilled' ? (p.value?.data || []) : []);
+      setTransactions(t.status === 'fulfilled' ? (t.value?.data || []) : []);
+      setOrders(o.status === 'fulfilled' ? (o.value?.data || []) : []);
+      setDiscounts(d.status === 'fulfilled' ? (d.value?.data || []) : []);
+      setCustomers(c.status === 'fulfilled' ? (c.value?.data || []) : []);
+      setStaff(s.status === 'fulfilled' ? (s.value?.data || []) : []);
+      setStoreInfo(si.status === 'fulfilled' ? (si.value?.data || null) : null);
       setLoading(false);
     }
     boot();
@@ -51,19 +60,34 @@ export function AppProvider({ children }) {
   // ── Products ──────────────────────────────────────────────────────────────
   const handleAddProduct = useCallback(async (product) => {
     const res = await addProduct(product);
-    setProducts(prev => [res.data, ...prev]);
+    try {
+      const fresh = await getProducts();
+      setProducts(fresh.data);
+    } catch {
+      setProducts(prev => [res.data, ...prev]);
+    }
     return res.data;
   }, []);
 
   const handleUpdateProduct = useCallback(async (id, updates) => {
     const res = await updateProduct(id, updates);
-    setProducts(prev => prev.map(p => p.id === id ? res.data : p));
+    try {
+      const fresh = await getProducts();
+      setProducts(fresh.data);
+    } catch {
+      setProducts(prev => prev.map(p => p.id === id ? res.data : p));
+    }
     return res.data;
   }, []);
 
   const handleDeleteProduct = useCallback(async (id) => {
     await deleteProduct(id);
-    setProducts(prev => prev.filter(p => p.id !== id));
+    try {
+      const fresh = await getProducts();
+      setProducts(fresh.data);
+    } catch {
+      setProducts(prev => prev.filter(p => p.id !== id));
+    }
   }, []);
 
   // Update stock — used when PO is "Received" or stock is adjusted
@@ -71,7 +95,14 @@ export function AppProvider({ children }) {
     const product = products.find(p => p.id === productId);
     if (!product) return;
     const newStock = product.stock + qty;
-    return handleUpdateProduct(productId, { stock: newStock });
+    const result = await handleUpdateProduct(productId, { stock: newStock });
+    try {
+      const fresh = await getProducts();
+      setProducts(fresh.data);
+    } catch {
+      // Keep the update result already applied if a refresh fails.
+    }
+    return result;
   }, [products, handleUpdateProduct]);
 
   // ── Transactions ──────────────────────────────────────────────────────────
@@ -141,6 +172,7 @@ export function AppProvider({ children }) {
     <AppContext.Provider value={{
       loading,
       nowNP,
+      storeInfo,
       // Products
       products,
       addProduct: handleAddProduct,
@@ -163,6 +195,8 @@ export function AppProvider({ children }) {
       deleteDiscount: handleDeleteDiscount,
       // Customers
       customers,
+      // Staff
+      staff,
     }}>
       {children}
     </AppContext.Provider>

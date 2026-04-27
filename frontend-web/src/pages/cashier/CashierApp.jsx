@@ -35,7 +35,14 @@ function CashierRouter() {
   const { user } = useAuth();
 
   if (!user) return <Login />;
-  if (currentPage === 'verification') return <Verification />;
+
+  if (user.pending2FA) return <Verification />;
+
+  if (currentPage === 'verification') {
+    const Page = pageMap.dashboard || Dashboard;
+    return <Page />;
+  }
+
   const Page = pageMap[currentPage] || Dashboard;
   return <Page />;
 }

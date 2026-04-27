@@ -1,10 +1,25 @@
 // src/context/CashierContext.jsx
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 const CashierContext = createContext(null);
 
+function getCashierPageFromHash() {
+  const hash = window.location.hash || '';
+  const [scope, page] = hash.replace(/^#\//, '').split('/');
+  if (scope !== 'cashier') return 'dashboard';
+  return page || 'dashboard';
+}
+
+function setCashierHash(page) {
+  const nextPage = page || 'dashboard';
+  const nextHash = `#/cashier/${nextPage}`;
+  if (window.location.hash !== nextHash) {
+    window.location.hash = nextHash;
+  }
+}
+
 export function CashierProvider({ children }) {
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [currentPageState, setCurrentPageState] = useState(getCashierPageFromHash);
   const [cart, setCart] = useState([]);
   const [discount, setDiscount]               = useState(0);
   const [paymentMethod, setPaymentMethod]     = useState('Cash');
@@ -67,9 +82,20 @@ export function CashierProvider({ children }) {
   const total       = subtotal - discountAmt + tax;
   const change      = tendered - total;
 
+  function setCurrentPage(page) {
+    setCurrentPageState(page);
+    setCashierHash(page);
+  }
+
+  useEffect(() => {
+    const onHashChange = () => setCurrentPageState(getCashierPageFromHash());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
   return (
     <CashierContext.Provider value={{
-      currentPage, setCurrentPage,
+      currentPage: currentPageState, setCurrentPage,
       cart, addToCart, updateQty, removeFromCart, clearCart,
       discount, setDiscount,
       paymentMethod, setPaymentMethod,

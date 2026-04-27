@@ -20,10 +20,17 @@ export default function Login() {
 
   const handleSubmit = async () => {
     setError('');
-    if (!email || !password) { setError('Please enter your email and password.'); return; }
+    const safeEmail = email.trim().toLowerCase();
+    if (!safeEmail || !password) { setError('Please enter your email and password.'); return; }
     try {
-      await login({ email, password });
-      setCurrentPage('verification');
+      // API step 1: POST /api/v1/auth/login
+      const user = await login({ email: safeEmail, password, expectedRole: 'admin' });
+      if (user.role !== 'admin') {
+        setError('This terminal is for admin accounts only.');
+        return;
+      }
+      // Admin flow is OTP based. If backend ever returns tokens directly, go to dashboard.
+      setCurrentPage(user.pending2FA ? 'verification' : 'dashboard');
     } catch (err) {
       setError(err?.message || 'Invalid email or password.');
     }

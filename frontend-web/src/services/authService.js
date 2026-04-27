@@ -12,10 +12,14 @@ const MOCK_USERS = [
   { id: 3, name: 'Priya Shrestha', email: 'priya.staff@store.np', password: 'cashier123', role: 'cashier', initials: 'PS', store: 'KTM-001', storeId: 1 },
 ];
 
+function normalizeRole(roleValue) {
+  return String(roleValue || '').trim().toLowerCase();
+}
+
 function mapBackendUser(user) {
   if (!user) return null;
 
-  const role = (user.role || 'customer').toLowerCase();
+  const role = normalizeRole(user.role || user.user_role || user.role_name || 'customer');
   const safeName = user.name || [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email || 'User';
   const initials = user.initials || safeName.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
 
@@ -26,10 +30,28 @@ function mapBackendUser(user) {
     role,
     roles: user.roles || [role],
     initials,
+    username: user.username || safeName,
     store: user.store || `STORE-${String(user.storeId || user.store_id || 1).padStart(3, '0')}`,
     storeId: Number(user.storeId || user.store_id || 1),
     phone: user.phone || '',
   };
+}
+
+async function resolveStaffRoleByEmail(email, storeId, accessToken) {
+  if (!email || !storeId || !accessToken) return null;
+  try {
+    const staff = await apiRequest(`/stores/${storeId}/staff`, {
+      method: 'GET',
+      withAuth: false,
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const match = Array.isArray(staff)
+      ? staff.find(member => String(member.email || '').toLowerCase() === String(email).toLowerCase())
+      : null;
+    return mapBackendUser(match);
+  } catch {
+    return null;
+  }
 }
 
 function persistSession(user, accessToken, refreshToken) {
@@ -46,7 +68,7 @@ function persistSession(user, accessToken, refreshToken) {
   return session;
 }
 
-export async function login({ email, password }) {
+export async function login({ email, password, expectedRole }) {
   if (USE_MOCK) {
     const user = MOCK_USERS.find(u => u.email === email && u.password === password);
     if (!user) {
@@ -79,7 +101,9 @@ export async function login({ email, password }) {
       const pending = {
         ...user,
         pending2FA: true,
+        expectedRole: normalizeRole(expectedRole || user.role),
         otpPurpose: payload.otp_purpose || 'login_2fa',
+        debugOtp: payload.debug_otp || null,
       };
       lsSet(PENDING_KEY, pending);
       return toApiEnvelope(pending, 200, payload.message || 'OTP sent');
@@ -89,7 +113,8 @@ export async function login({ email, password }) {
       throw { status: 500, message: 'Login response missing tokens.', data: null };
     }
 
-    const session = persistSession(user, payload.access_token, payload.refresh_token);
+    const enriched = (await resolveStaffRoleByEmail(user.email, user.storeId, payload.access_token)) || user;
+    const session = persistSession(enriched, payload.access_token, payload.refresh_token);
     return toApiEnvelope(session, 200, 'Success');
   } catch (error) {
     throw normalizeServiceError(error, 'Login failed');
@@ -124,7 +149,13 @@ export async function verifyOtp({ otp }) {
     });
 
     const user = mapBackendUser(payload.user) || pending;
-    const session = persistSession(user, payload.access_token, payload.refresh_token);
+    const resolvedUser = (await resolveStaffRoleByEmail(user.email, user.storeId || pending.storeId, payload.access_token)) || user;
+    const finalUser = {
+      ...resolvedUser,
+      role: normalizeRole(resolvedUser.role || pending.expectedRole || user.role),
+      roles: resolvedUser.roles || [normalizeRole(resolvedUser.role || pending.expectedRole || user.role || 'customer')],
+    };
+    const session = persistSession(finalUser, payload.access_token, payload.refresh_token);
     return toApiEnvelope(session, 200, 'Verified');
   } catch (error) {
     throw normalizeServiceError(error, 'OTP verification failed');

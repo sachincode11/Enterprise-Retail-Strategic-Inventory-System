@@ -27,7 +27,11 @@ export default function Verification() {
       return;
     }
     try {
-      await verifyOtp({ otp: code });
+      const verifiedUser = await verifyOtp({ otp: code });
+      if (verifiedUser.role !== 'admin') {
+        setError('This terminal is for admin accounts only.');
+        return;
+      }
       setCurrentPage('dashboard');
     } catch (err) {
       setError(err?.message || 'OTP verification failed.');
@@ -63,7 +67,9 @@ export default function Verification() {
             ))}
           </div>
           {error && <p className="text-xs text-[#dc2626] mb-3 text-center">{error}</p>}
-          <p className="text-xs text-[#94a3b8] mb-4 text-center">For demo: enter any 6 digits</p>
+          <p className="text-xs text-[#94a3b8] mb-4 text-center">
+            {user?.debugOtp ? `Dev OTP code: ${user.debugOtp}` : 'Enter the 6-digit OTP from your email'}
+          </p>
           <button onClick={handleVerify} disabled={loading}
             className="w-full py-3 rounded-lg text-sm font-semibold text-white mb-4 transition-all duration-150 hover:bg-[#16324f] hover:shadow-[0_4px_12px_rgba(30,58,95,0.35)]"
             style={{ background: '#1e3a5f' }}

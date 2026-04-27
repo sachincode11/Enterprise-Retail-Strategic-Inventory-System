@@ -1,7 +1,6 @@
-// src/pages/cashier/Dashboard.jsx — IMPROVED: bar graph, real data, export, Nepal time
+// src/pages/cashier/Dashboard.jsx — all data live from AppContext (no mockData)
 import CashierLayout from '../../layouts/CashierLayout';
 import { Card, StatCard, SectionHeader } from '../../components/common';
-import { topProducts } from '../../data/mockData';
 import { useCashier } from '../../context/CashierContext';
 import { useApp } from '../../context/AppContext';
 import { exportCSV } from '../../utils/exportData';
@@ -30,9 +29,11 @@ export default function Dashboard() {
   const { setCurrentPage } = useCashier();
   const { transactions, products, nowNP } = useApp();
 
-  const today = nowNP.toLocaleDateString('en-US', {
+  // Nepal clock strings — safe check to avoid RangeError on invalid date
+  const isValidDate = nowNP instanceof Date && !isNaN(nowNP);
+  const today = isValidDate ? nowNP.toLocaleDateString('en-US', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kathmandu',
-  });
+  }) : '...';
 
   // Compute today's live stats from real transactions
   const paidTxns   = transactions.filter(t => t.status === 'Paid');
@@ -42,6 +43,25 @@ export default function Dashboard() {
 
   const lowStockAlerts = products.filter(p => p.status === 'Low Stock' || p.status === 'Out of Stock').slice(0, 5);
   const recentTxns = transactions.slice(0, 4);
+
+  // Compute top products from sold quantities in transactions
+  const productSaleMap = {};
+  transactions.forEach(t => {
+    if (t.itemDetails) {
+      t.itemDetails.forEach(item => {
+        productSaleMap[item.id] = (productSaleMap[item.id] || 0) + (item.qty || 1);
+      });
+    }
+  });
+  const topProducts = products
+    .map(p => ({ ...p, soldUnits: productSaleMap[p.id] || 0 }))
+    .sort((a, b) => b.soldUnits - a.soldUnits)
+    .slice(0, 4)
+    .map(p => ({
+      name: p.name,
+      units: `${p.soldUnits}`,
+      revenue: `Rs ${(p.soldUnits * (p.priceNum || 0)).toLocaleString('en-IN')}`,
+    }));
 
   // Build hourly bar data from transactions (mock hour distribution for now)
   const hourlyData = [

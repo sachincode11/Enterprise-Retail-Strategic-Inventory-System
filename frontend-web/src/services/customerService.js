@@ -1,38 +1,76 @@
 // src/services/customerService.js
-import { fakeApi } from '../utils/fakeApi';
 import { lsGet, lsSet } from '../utils/storage';
-import { customers as mockCustomers } from '../data/mockData';
+import { apiRequest, getStoreId, normalizeServiceError, toApiEnvelope } from './apiClient';
 
-const USE_MOCK = true;
 const LS_KEY = 'invosix_customers';
 
-function getStored() { return lsGet(LS_KEY, mockCustomers); }
-function saveStored(data) { lsSet(LS_KEY, data); }
+function mapCustomerFromBackend(u) {
+  const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username || u.email;
+  return {
+    id: u.user_id,
+    name,
+    phone: u.phone || '—',
+    email: u.email,
+    orders: 0,
+    lastVisit: '—',
+    value: 'Rs 0',
+    type: 'Registered',
+    is_active: u.is_active,
+  };
+}
+
+function getStored() {
+  return lsGet(LS_KEY, []);
+}
+function saveStored(data) {
+  lsSet(LS_KEY, data);
+}
 
 export async function getCustomers() {
-  if (USE_MOCK) return fakeApi(getStored());
-  const res = await fetch('/api/customers');
-  return res.json();
+  try {
+    const storeId = getStoreId();
+    const items = await apiRequest(`/stores/${storeId}/customers`);
+    const mapped = items.map(mapCustomerFromBackend);
+    saveStored(mapped);
+    return toApiEnvelope(mapped);
+  } catch {
+    return toApiEnvelope(getStored());
+  }
 }
 
 export async function addCustomer(customer) {
-  if (USE_MOCK) {
-    const stored = getStored();
-    const newItem = { ...customer, id: Date.now(), orders: 0, lastVisit: 'Never', value: 'Rs 0', type: 'Registered' };
-    saveStored([newItem, ...stored]);
-    return fakeApi(newItem);
+  try {
+    // Self-registration endpoint — creates a user with customer role
+    const created = await apiRequest('/auth/register', {
+      method: 'POST',
+      withAuth: false,
+      body: {
+        username: customer.email.split('@')[0] + Date.now(),
+        first_name: customer.name?.split(' ')[0] || customer.name,
+        last_name: customer.name?.split(' ').slice(1).join(' ') || null,
+        email: customer.email,
+        password: customer.password || 'Temp@1234',
+        phone: customer.phone || null,
+      },
+    });
+    const mapped = mapCustomerFromBackend(created);
+    saveStored([mapped, ...getStored()]);
+    return toApiEnvelope(mapped, 201, 'Created');
+  } catch (error) {
+    throw normalizeServiceError(error, 'Failed to add customer');
   }
-  const res = await fetch('/api/customers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(customer) });
-  return res.json();
 }
 
 export async function updateCustomer(id, updates) {
-  if (USE_MOCK) {
-    const stored = getStored();
-    const updated = stored.map(c => c.id === id ? { ...c, ...updates } : c);
-    saveStored(updated);
-    return fakeApi(updated.find(c => c.id === id));
+  try {
+    // Activate / deactivate support
+    if (updates.status === 'Inactive' || updates.is_active === false) {
+      await apiRequest(`/users/${id}/deactivate`, { method: 'PATCH' });
+    }
+    const stored = getStored().map((c) => (c.id === id ? { ...c, ...updates } : c));
+    saveStored(stored);
+    return toApiEnvelope(stored.find((c) => c.id === id));
+  } catch (error) {
+    throw normalizeServiceError(error, 'Failed to update customer');
   }
-  const res = await fetch(`/api/customers/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updates) });
-  return res.json();
 }
