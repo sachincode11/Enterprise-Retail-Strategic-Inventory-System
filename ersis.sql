@@ -262,7 +262,7 @@ CREATE TABLE product_images (
 -- product_id and store_id are intentional denormalization for fast AI forecasting
 -- queries that need product+store+date without multi-table JOINs.
 CREATE TABLE inventory_logs (
-    log_id          BIGINT   NOT NULL AUTO_INCREMENT,
+    log_id          INT   NOT NULL AUTO_INCREMENT,
     inventory_id    INT      NOT NULL,
     product_id      INT      NOT NULL,   -- denorm; FK for query index
     store_id        INT      NOT NULL,   -- denorm; FK for query index
@@ -535,7 +535,7 @@ CREATE TABLE chatbot_messages (
 -- old_value / new_value stored as JSON to cover any entity type without
 -- per-entity audit tables.
 CREATE TABLE audit_logs (
-    log_id      BIGINT       NOT NULL AUTO_INCREMENT,
+    log_id      INT       NOT NULL AUTO_INCREMENT,
     user_id     INT          NULL,   -- NULL for system/automated actions
     store_id    INT          NULL,   -- NULL for global actions
     action      VARCHAR(100) NOT NULL,   -- e.g., LOGIN, CREATE_PRODUCT, VOID_TRANSACTION
@@ -670,3 +670,4 @@ CREATE TABLE notifications (
     CONSTRAINT fk_notif_user  FOREIGN KEY (user_id)  REFERENCES users  (user_id)  ON DELETE SET NULL,
     CONSTRAINT fk_notif_store FOREIGN KEY (store_id) REFERENCES stores (store_id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
+
