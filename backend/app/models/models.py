@@ -567,7 +567,7 @@ class Notification(Base):
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
-    log_id      = Column(BigInteger,  primary_key=True, autoincrement=True)
+    log_id      = Column(Integer,  primary_key=True, autoincrement=True)
     user_id     = Column(Integer,     ForeignKey("users.user_id",   ondelete="SET NULL"), nullable=True)
     store_id    = Column(Integer,     ForeignKey("stores.store_id", ondelete="SET NULL"), nullable=True)
     action      = Column(String(100), nullable=False)

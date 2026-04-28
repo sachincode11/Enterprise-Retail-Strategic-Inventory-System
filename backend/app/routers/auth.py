@@ -19,6 +19,7 @@ from app.models import OTPToken, RefreshToken, Role, User, UserRole
 from app.schemas import (
     LoginRequest, MessageResponse, OTPVerifyRequest,
     RefreshRequest, RegisterRequest, TokenResponse, UserOut,
+    UserProfileUpdate,
 )
 
 from app.utils import  _get_role, _user_roles, _send_otp_email
@@ -192,6 +193,36 @@ def verify_otp_endpoint(body: OTPVerifyRequest, db: Session = Depends(get_db)):
         "refresh_token": rt,
         "token_type": "bearer",
     }
+
+
+@router.patch("/me")
+def update_my_profile(
+    body: UserProfileUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update the currently authenticated user's profile details."""
+    if body.email and body.email.lower() != current_user.email.lower():
+        existing = (
+            db.query(User)
+            .filter(User.email == body.email, User.user_id != current_user.user_id)
+            .first()
+        )
+        if existing:
+            raise HTTPException(status_code=400, detail="Email already in use.")
+
+    if body.first_name is not None:
+        current_user.first_name = body.first_name.strip()
+    if body.last_name is not None:
+        current_user.last_name = body.last_name.strip() or None
+    if body.email is not None:
+        current_user.email = body.email.strip().lower()
+    if body.phone is not None:
+        current_user.phone = body.phone.strip() or None
+
+    db.commit()
+    db.refresh(current_user)
+    return {"user": _session_user_payload(db, current_user)}
 
 @router.post("/refresh", response_model=TokenResponse)
 def refresh_token(body: RefreshRequest, db: Session = Depends(get_db)):

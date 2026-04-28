@@ -8,3 +8,6 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Dummy Test Data
+seed.py

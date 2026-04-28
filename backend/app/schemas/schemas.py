@@ -90,6 +90,13 @@ class UserUpdate(BaseModel):
     phone: Optional[str] = None
 
 
+class UserProfileUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+
+
 class AssignRoleRequest(BaseModel):
     user_id: int
     role: UserRole
@@ -320,6 +327,16 @@ class PurchaseOrderCreate(BaseModel):
     items: list[PurchaseOrderItemIn]
     expected_date: Optional[date] = None
     notes: Optional[str] = None
+
+
+class PurchaseOrderReceiptItemIn(BaseModel):
+    product_id: int
+    quantity_received: int
+
+
+class PurchaseOrderStatusUpdate(BaseModel):
+    status: PurchaseOrderStatus
+    items: list[PurchaseOrderReceiptItemIn] = []
 
 
 class PurchaseOrderOut(BaseModel):

@@ -9,6 +9,7 @@ from .schemas import (
     # User
     UserOut,
     UserUpdate,
+    UserProfileUpdate,
     AssignRoleRequest,
     StaffOut,
 
@@ -47,7 +48,9 @@ from .schemas import (
     SupplierCreate,
     SupplierOut,
     PurchaseOrderItemIn,
+    PurchaseOrderReceiptItemIn,
     PurchaseOrderCreate,
+    PurchaseOrderStatusUpdate,
     PurchaseOrderOut,
 
     # Notification
@@ -82,6 +85,7 @@ __all__ = [
     # User
     "UserOut",
     "UserUpdate",
+    "UserProfileUpdate",
     "AssignRoleRequest",
     "StaffOut",
 
@@ -120,7 +124,9 @@ __all__ = [
     "SupplierCreate",
     "SupplierOut",
     "PurchaseOrderItemIn",
+    "PurchaseOrderReceiptItemIn",
     "PurchaseOrderCreate",
+    "PurchaseOrderStatusUpdate",
     "PurchaseOrderOut",
 
     # Notification

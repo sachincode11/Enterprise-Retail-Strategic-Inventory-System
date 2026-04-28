@@ -1,6 +1,8 @@
 """
 Supplier, Purchase-Order, User-management, Discount, Staff, Store-admin, Notification routers.
 """
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -9,16 +11,23 @@ from app.database import get_db
 
 from app.models import (
     Discount, PurchaseOrder, PurchaseOrderItem, Store, Supplier, ProductSupplier,
+    Inventory, InventoryLog,
     Notification,
     User, UserRole as UserRoleModel, Role, StoreFAQ, StorePolicy,
 )
-from app.models.enums import NotificationStatus, UserRole as UserRoleEnum
+from app.models.enums import (
+    InventoryReferenceType,
+    MovementType,
+    NotificationStatus,
+    PurchaseOrderStatus,
+    UserRole as UserRoleEnum,
+)
 
 from app.schemas import (
     AssignRoleRequest, DiscountCreate, DiscountOut, DiscountUpdate,
     FAQCreate, FAQOut, MessageResponse,
     NotificationOut, PolicyCreate, PolicyOut,
-    PurchaseOrderCreate, PurchaseOrderOut,
+    PurchaseOrderCreate, PurchaseOrderOut, PurchaseOrderStatusUpdate,
     StaffOut, StoreOut, SupplierCreate, SupplierOut, UserOut,
 )
 
@@ -100,6 +109,89 @@ def create_order(store_id: str, body: PurchaseOrderCreate,
     db.flush()
     for i in body.items:
         db.add(PurchaseOrderItem(order_id=order.order_id, **i.model_dump()))
+    db.commit()
+    db.refresh(order)
+    return order
+
+
+@po_router.patch("/{order_id}/status", response_model=PurchaseOrderOut)
+def update_order_status(
+    store_id: str,
+    order_id: int,
+    body: PurchaseOrderStatusUpdate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    order = db.query(PurchaseOrder).filter(
+        PurchaseOrder.order_id == order_id,
+        PurchaseOrder.store_id == store_id,
+    ).first()
+    if not order:
+        raise HTTPException(404, "Purchase order not found.")
+
+    if order.status == PurchaseOrderStatus.received and body.status != PurchaseOrderStatus.received:
+        raise HTTPException(400, "Received purchase orders cannot be moved to another status.")
+
+    receipt_map = {item.product_id: item.quantity_received for item in body.items}
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    if body.status in {PurchaseOrderStatus.partial, PurchaseOrderStatus.received}:
+        for po_item in order.items:
+            default_received = po_item.quantity_ordered if body.status == PurchaseOrderStatus.received else (po_item.quantity_received or 0)
+            target_received = receipt_map.get(po_item.product_id, default_received)
+            if target_received < 0:
+                raise HTTPException(400, "Received quantity cannot be negative.")
+            if target_received > po_item.quantity_ordered:
+                raise HTTPException(
+                    400,
+                    f"Received quantity exceeds ordered quantity for product {po_item.product_id}.",
+                )
+
+            previous_received = po_item.quantity_received or 0
+            if target_received < previous_received:
+                raise HTTPException(
+                    400,
+                    f"Received quantity cannot be reduced for product {po_item.product_id}.",
+                )
+
+            delta = target_received - previous_received
+            po_item.quantity_received = target_received
+            if delta <= 0:
+                continue
+
+            inv = db.query(Inventory).filter(
+                Inventory.product_id == po_item.product_id,
+                Inventory.store_id == store_id,
+            ).first()
+            if not inv:
+                inv = Inventory(product_id=po_item.product_id, store_id=store_id, quantity_in_stock=0)
+                db.add(inv)
+                db.flush()
+
+            before = inv.quantity_in_stock
+            inv.quantity_in_stock = before + delta
+            inv.last_restocked_at = now_utc
+
+            db.add(InventoryLog(
+                inventory_id=inv.inventory_id,
+                product_id=po_item.product_id,
+                store_id=store_id,
+                movement_type=MovementType.restock,
+                quantity_change=delta,
+                quantity_before=before,
+                quantity_after=inv.quantity_in_stock,
+                reference_type=InventoryReferenceType.manual,
+                reference_id=order.order_id,
+                notes=f"Stock received from purchase order #{order.order_id}",
+                performed_by=admin.user_id,
+            ))
+
+    if body.status == PurchaseOrderStatus.received:
+        order.received_date = now_utc
+    else:
+        order.received_date = None
+
+    order.status = body.status
     db.commit()
     db.refresh(order)
     return order
@@ -393,4 +485,4 @@ def get_store(
     store = db.query(Store).filter(Store.store_id == store_id).first()
     if not store:
         raise HTTPException(404, "Store not found.")
-    return store
+    return store
