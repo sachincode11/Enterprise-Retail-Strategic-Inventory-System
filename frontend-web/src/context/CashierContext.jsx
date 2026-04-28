@@ -28,6 +28,7 @@ export function CashierProvider({ children }) {
   const [heldTransactions, setHeldTransactions] = useState([]);
   const [lastTransaction, setLastTransaction]   = useState(null);
   const [settingsTab, setSettingsTab]         = useState('general');
+  const [postAuthPage, setPostAuthPage]       = useState('dashboard');
 
   const addToCart = (product) => {
     setCart(prev => {
@@ -103,6 +104,7 @@ export function CashierProvider({ children }) {
       selectedCustomer, setSelectedCustomer,
       heldTransactions, holdTransaction, resumeHeld, voidCart,
       settingsTab, setSettingsTab,
+      postAuthPage, setPostAuthPage,
       subtotal, discountAmt, tax, total, change,
       lastTransaction, setLastTransaction,
     }}>

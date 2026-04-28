@@ -1,6 +1,6 @@
 // src/App.jsx — Updated to include AppProvider for global shared state
 import { useState, useEffect } from 'react';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
 import AdminApp  from './pages/admin/AdminApp';
 import CashierApp from './pages/cashier/CashierApp';
@@ -16,6 +16,7 @@ function getRoleFromLocation() {
 
 function RoleSelector() {
   const [role, setRole] = useState(getRoleFromLocation);
+  const { user } = useAuth();
 
   useEffect(() => {
     const onHashChange = () => setRole(getRoleFromLocation());
@@ -27,6 +28,11 @@ function RoleSelector() {
     window.location.hash = `/${to}`;
     setRole(to);
   }
+
+  const signedInRole = user?.role?.toLowerCase?.() || null;
+
+  if (signedInRole === 'admin') return <AdminApp />;
+  if (signedInRole === 'cashier') return <CashierApp />;
 
   if (role === 'admin')   return <AdminApp />;
   if (role === 'cashier') return <CashierApp />;

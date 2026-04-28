@@ -6,7 +6,7 @@ import { useApp } from '../context/AppContext';
 export default function AdminNavbar() {
   const { setCurrentPage } = useAdmin();
   const { user }           = useAuth();
-  const { nowNP, products, storeInfo } = useApp();
+  const { nowNP, storeInfo, unreadLiveNotificationCount } = useApp();
 
   const name     = user?.name?.split(' ').map((n, i) => i === 0 ? n : n[0] + '.').join(' ') || 'Admin';
   const initials = user?.initials || 'AD';
@@ -15,9 +15,8 @@ export default function AdminNavbar() {
   const storeId   = storeInfo?.id   || user?.store || `STORE-${String(user?.storeId || 1).padStart(3, '0')}`;
   const storeName = storeInfo?.name || 'Main Store';
 
-  // Live unread count — low-stock products that need attention
-  const lowStockCount = products.filter(p => p.status === 'Low Stock' || p.status === 'Out of Stock').length;
-  const unreadCount   = Math.min(lowStockCount, 9); // cap badge at 9
+  // Live unread count — shared with the admin notifications page
+  const unreadCount   = Math.min(unreadLiveNotificationCount, 9); // cap badge at 9
 
   // Nepal time
   // Nepal time — safe check

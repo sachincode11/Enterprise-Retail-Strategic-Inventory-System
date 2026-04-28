@@ -12,12 +12,29 @@ import { getStoreInfo } from '../services/storeService';
 import { lsGet, lsSet } from '../utils/storage';
 
 const AppContext = createContext(null);
+const LIVE_NOTIFICATION_READS_KEY = 'invosix_admin_live_notification_reads';
 
 // Nepal real-time clock helper
 export function getNepaliNow() {
   // Returns current system date. Components use .toLocaleString(..., { timeZone: 'Asia/Kathmandu' })
   // to display Nepal time accurately regardless of system locale.
   return new Date();
+}
+
+function buildLiveNotifications(products = []) {
+  return products
+    .filter(p => p.status === 'Low Stock' || p.status === 'Out of Stock')
+    .map(p => ({
+      id:      `live-${p.id}-${p.status}`,
+      type:    p.status === 'Out of Stock' ? 'critical' : 'warning',
+      title:   p.status === 'Out of Stock' ? 'Out of Stock' : 'Low Stock Alert',
+      message: p.status === 'Out of Stock'
+        ? `${p.name} (${p.sku}) is out of stock. Last restocked: unknown.`
+        : `${p.name} (${p.sku}) has only ${p.stock} units left. Reorder threshold exceeded.`,
+      time:    'Just now',
+      read:    false,
+      page:    'inventory',
+    }));
 }
 
 export function AppProvider({ children }) {
@@ -29,6 +46,9 @@ export function AppProvider({ children }) {
   const [staff, setStaff]               = useState([]);
   const [storeInfo, setStoreInfo]       = useState(null);
   const [loading, setLoading]           = useState(true);
+  const [liveNotificationReadIds, setLiveNotificationReadIds] = useState(
+    () => new Set(lsGet(LIVE_NOTIFICATION_READS_KEY, []))
+  );
 
   // Nepal real-time clock
   const [nowNP, setNowNP] = useState(getNepaliNow());
@@ -56,6 +76,32 @@ export function AppProvider({ children }) {
     }
     boot();
   }, []);
+
+  useEffect(() => {
+    lsSet(LIVE_NOTIFICATION_READS_KEY, [...liveNotificationReadIds]);
+  }, [liveNotificationReadIds]);
+
+  const liveNotifications = buildLiveNotifications(products);
+  const unreadLiveNotificationCount = liveNotifications.filter(n => !liveNotificationReadIds.has(n.id)).length;
+
+  const markLiveNotificationRead = useCallback((id) => {
+    setLiveNotificationReadIds(prev => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  }, []);
+
+  const markAllLiveNotificationsRead = useCallback((ids = []) => {
+    setLiveNotificationReadIds(prev => {
+      const next = new Set(prev);
+      ids.forEach(id => next.add(id));
+      return next;
+    });
+  }, []);
+
+  const isLiveNotificationRead = useCallback((id) => liveNotificationReadIds.has(id), [liveNotificationReadIds]);
 
   // ── Products ──────────────────────────────────────────────────────────────
   const handleAddProduct = useCallback(async (product) => {
@@ -174,6 +220,11 @@ export function AppProvider({ children }) {
       loading,
       nowNP,
       storeInfo,
+      liveNotifications,
+      unreadLiveNotificationCount,
+      isLiveNotificationRead,
+      markLiveNotificationRead,
+      markAllLiveNotificationsRead,
       // Products
       products,
       addProduct: handleAddProduct,

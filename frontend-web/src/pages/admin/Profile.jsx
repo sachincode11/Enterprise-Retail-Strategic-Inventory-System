@@ -1,5 +1,5 @@
 // src/pages/admin/Profile.jsx — real user data from AuthContext, no mockData
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { Button, Toggle, Toast } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
@@ -29,10 +29,10 @@ function Field({ label, value, onChange, type = 'text', readOnly }) {
 }
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
   const [twoFA,   setTwoFA]   = useState(true);
   const [editing, setEditing] = useState(false);
-  const [toast,   setToast]   = useState({ visible: false, message: '' });
+  const [toast,   setToast]   = useState({ visible: false, message: '', type: 'success' });
 
   // Derive from live auth session
   const nameParts = (user?.name || 'Admin User').split(' ');
@@ -42,6 +42,16 @@ export default function Profile() {
     email:     user?.email || '',
     phone:     user?.phone || '',
   });
+
+  useEffect(() => {
+    const nextNameParts = (user?.name || 'Admin User').split(' ');
+    setForm({
+      firstName: nextNameParts[0] || 'Admin',
+      lastName: nextNameParts.slice(1).join(' ') || '',
+      email: user?.email || '',
+      phone: user?.phone || '',
+    });
+  }, [user]);
 
   // Password change state
   const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
@@ -56,15 +66,28 @@ export default function Profile() {
   const displayPhone = user?.phone || form.phone || '—';
   const initials     = user?.initials || nameParts.map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'AS';
 
-  const showToast = (msg) => { setToast({ visible: true, message: msg }); setTimeout(() => setToast({ visible: false, message: '' }), 2500); };
+  const showToast = (msg, type = 'success') => {
+    setToast({ visible: true, message: msg, type });
+    setTimeout(() => setToast({ visible: false, message: '', type: 'success' }), 2500);
+  };
   const set = key => e => setForm(f => ({ ...f, [key]: e.target.value }));
   const setPw = key => e => setPwForm(f => ({ ...f, [key]: e.target.value }));
   const setPin = key => e => setPinForm(f => ({ ...f, [key]: e.target.value.replace(/\D/g, '').slice(0, 4) }));
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     if (!form.firstName || !form.email) { showToast('Name and email are required.'); return; }
-    setEditing(false);
-    showToast('Profile updated successfully.');
+    try {
+      await updateProfile({
+        first_name: form.firstName.trim(),
+        last_name: form.lastName.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+      });
+      setEditing(false);
+      showToast('Profile updated successfully.');
+    } catch (error) {
+      showToast(error?.message || 'Unable to update profile.', 'error');
+    }
   };
 
   const handleChangePassword = () => {
@@ -89,7 +112,7 @@ export default function Profile() {
 
   return (
     <AdminLayout>
-      <Toast visible={toast.visible} message={toast.message} />
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} />
 
       <div className="flex items-center justify-between mb-6">
         <div>

@@ -4,6 +4,7 @@ import AdminLayout from '../../layouts/AdminLayout';
 import { PageHeader, Button, StatCard, SectionCard, BarChart } from '../../components/common';
 import { useApp } from '../../context/AppContext';
 import { exportCSV } from '../../utils/exportData';
+import { monthlyRevenueTrend, cashierPerformance, auditLog } from '../../data/mockData';
 
 const paymentSplit = [
   { method: 'Cash',   pct: 52, amount: 'Rs 12.5L', bar: 88 },

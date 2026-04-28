@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import logo from '../../assets/Full logo.png';
 
 export default function Verification() {
-  const { setCurrentPage } = useCashier();
+  const { setCurrentPage, postAuthPage } = useCashier();
   const { user, verifyOtp, loading } = useAuth();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
@@ -32,7 +32,7 @@ export default function Verification() {
         setError('This terminal is for cashier accounts only.');
         return;
       }
-      setCurrentPage('dashboard');
+      setCurrentPage(postAuthPage || 'dashboard');
     } catch (err) {
       setError(err?.message || 'OTP verification failed.');
     }

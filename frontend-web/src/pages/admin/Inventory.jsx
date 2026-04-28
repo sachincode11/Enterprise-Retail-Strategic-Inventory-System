@@ -28,8 +28,12 @@ export default function Inventory() {
     return matchSearch && matchCat && matchStatus;
   });
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(p => Math.min(p, totalPages));
+  }, [totalPages]);
 
   const inStock    = products.filter(p => p.status === 'Active').length;
   const lowStock   = products.filter(p => p.status === 'Low Stock').length;
@@ -134,6 +138,7 @@ export default function Inventory() {
           </tbody>
         </table>
         <Pagination current={page} total={totalPages} label={`Showing ${(page-1)*PAGE_SIZE+1}–${Math.min(page*PAGE_SIZE,filtered.length)} of ${filtered.length} items`}
+          onPage={setPage}
           onPrev={() => setPage(p => Math.max(1,p-1))} onNext={() => setPage(p => Math.min(totalPages,p+1))} />
       </div>
     </AdminLayout>

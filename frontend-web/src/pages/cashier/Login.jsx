@@ -12,7 +12,7 @@ const FEATURES = [
 
 export default function Login() {
   const { login, loading } = useAuth();
-  const { setCurrentPage } = useCashier();
+  const { currentPage, setCurrentPage, setPostAuthPage } = useCashier();
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
@@ -24,6 +24,7 @@ export default function Login() {
     try {
       const user = await login({ email, password, expectedRole: 'cashier' });
       if (user.role !== 'cashier') { setError('This terminal is for cashier accounts only.'); return; }
+      setPostAuthPage(currentPage === 'verification' ? 'dashboard' : currentPage || 'dashboard');
       setCurrentPage('verification');
     } catch (err) {
       setError(err?.message || 'Invalid email or password.');

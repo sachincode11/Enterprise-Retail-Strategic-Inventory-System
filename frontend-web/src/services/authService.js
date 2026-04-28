@@ -68,6 +68,17 @@ function persistSession(user, accessToken, refreshToken) {
   return session;
 }
 
+function updateSessionUser(userUpdate) {
+  const session = lsGet(SESSION_KEY, null);
+  if (!session) return null;
+  const updated = {
+    ...session,
+    ...userUpdate,
+  };
+  lsSet(SESSION_KEY, updated);
+  return updated;
+}
+
 export async function login({ email, password, expectedRole }) {
   if (USE_MOCK) {
     const user = MOCK_USERS.find(u => u.email === email && u.password === password);
@@ -179,6 +190,34 @@ export async function logout() {
   lsDel(SESSION_KEY);
   lsDel(PENDING_KEY);
   return toApiEnvelope({ loggedOut: true }, 200, 'Success');
+}
+
+export async function updateProfile(profile) {
+  if (USE_MOCK) {
+    const session = lsGet(SESSION_KEY, null);
+    if (!session) {
+      throw { status: 401, message: 'No active session found.', data: null };
+    }
+    const updated = updateSessionUser({
+      ...session,
+      ...profile,
+      name: `${profile.first_name || session.name?.split(' ')[0] || ''} ${profile.last_name ?? ''}`.trim() || session.name,
+      email: profile.email ?? session.email,
+      phone: profile.phone ?? session.phone,
+    });
+    return fakeApi(updated);
+  }
+
+  try {
+    const payload = await apiRequest('/auth/me', {
+      method: 'PATCH',
+      body: profile,
+    });
+    const session = updateSessionUser(payload.user || payload);
+    return toApiEnvelope(session || payload.user || payload, 200, 'Profile updated');
+  } catch (error) {
+    throw normalizeServiceError(error, 'Profile update failed');
+  }
 }
 
 export function getSession() {

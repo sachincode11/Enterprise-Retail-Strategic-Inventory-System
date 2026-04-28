@@ -4,6 +4,7 @@ import {
   login as loginService,
   logout as logoutService,
   verifyOtp as verifyOtpService,
+  updateProfile as updateProfileService,
   getSession,
   getPendingLogin,
 } from '../services/authService';
@@ -50,8 +51,23 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  const updateProfile = useCallback(async (profile) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await updateProfileService(profile);
+      setUser(res.data);
+      return res.data;
+    } catch (err) {
+      setError(err.message || 'Profile update failed');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, verifyOtp, loading, error, setError }}>
+    <AuthContext.Provider value={{ user, login, logout, verifyOtp, updateProfile, loading, error, setError }}>
       {children}
     </AuthContext.Provider>
   );

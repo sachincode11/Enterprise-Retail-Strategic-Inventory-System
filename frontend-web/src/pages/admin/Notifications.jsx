@@ -1,5 +1,5 @@
 // src/pages/admin/Notifications.jsx — IMPROVED: live low-stock alerts injected from AppContext
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { PageHeader, Button } from '../../components/common';
 import { useAdmin } from '../../context/AdminContext';
@@ -25,33 +25,32 @@ const STATIC_NOTIFS = [
 
 export default function Notifications() {
   const { setCurrentPage } = useAdmin();
-  const { products }       = useApp();
+  const {
+    liveNotifications,
+    isLiveNotificationRead,
+    markLiveNotificationRead,
+    markAllLiveNotificationsRead,
+    unreadLiveNotificationCount,
+  } = useApp();
 
-  // Generate live low-stock notifications from AppContext products
-  const liveAlerts = useMemo(() =>
-    products
-      .filter(p => p.status === 'Low Stock' || p.status === 'Out of Stock')
-      .map((p, i) => ({
-        id:      `live-${p.id}`,
-        type:    p.status === 'Out of Stock' ? 'critical' : 'warning',
-        title:   p.status === 'Out of Stock' ? 'Out of Stock' : 'Low Stock Alert',
-        message: p.status === 'Out of Stock'
-          ? `${p.name} (${p.sku}) is out of stock. Last restocked: unknown.`
-          : `${p.name} (${p.sku}) has only ${p.stock} units left. Reorder threshold exceeded.`,
-        time:    'Just now',
-        read:    false,
-        page:    'inventory',
-      })),
-    [products]
+  const [staticReadSet, setStaticReadSet] = useState(
+    () => new Set(STATIC_NOTIFS.filter(n => n.read).map(n => n.id))
   );
 
-  const allNotifs = [...liveAlerts, ...STATIC_NOTIFS];
-  const [readSet, setReadSet] = useState(new Set(allNotifs.filter(n => n.read).map(n => n.id)));
-
-  const isRead    = (id) => readSet.has(id);
-  const markRead  = (id) => setReadSet(prev => new Set([...prev, id]));
-  const markAllRead = () => setReadSet(new Set(allNotifs.map(n => n.id)));
-  const unreadCount = allNotifs.filter(n => !isRead(n.id)).length;
+  const allNotifs = [...liveNotifications, ...STATIC_NOTIFS];
+  const isRead = (id) => (String(id).startsWith('live-') ? isLiveNotificationRead(id) : staticReadSet.has(id));
+  const markRead = (id) => {
+    if (String(id).startsWith('live-')) {
+      markLiveNotificationRead(id);
+      return;
+    }
+    setStaticReadSet(prev => new Set([...prev, id]));
+  };
+  const markAllRead = () => {
+    markAllLiveNotificationsRead(liveNotifications.map(n => n.id));
+    setStaticReadSet(new Set(STATIC_NOTIFS.map(n => n.id)));
+  };
+  const unreadCount = unreadLiveNotificationCount + STATIC_NOTIFS.filter(n => !staticReadSet.has(n.id)).length;
 
   return (
     <AdminLayout>
