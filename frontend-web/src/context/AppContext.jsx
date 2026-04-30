@@ -187,15 +187,21 @@ export function AppProvider({ children }) {
   }, []);
 
   const handleReceiveOrder = useCallback(async (orderId, orderItems) => {
-    await updateOrderStatus(orderId, 'Received');
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'Received' } : o));
-    // Increase stock for received items
-    if (orderItems && Array.isArray(orderItems)) {
-      for (const item of orderItems) {
-        await handleAddStock(item.productId, item.qty);
-      }
+    // Update status in service (saves to localStorage and calls backend)
+    const res = await updateOrderStatus(orderId, 'Received', orderItems);
+    
+    // Update local orders state
+    setOrders(prev => prev.map(o => o.id === orderId ? res.data : o));
+    
+    // Refresh products to get updated stock levels from the backend
+    try {
+      const fresh = await getProducts();
+      setProducts(fresh.data || []);
+    } catch (err) {
+      console.error("Failed to refresh products after order receipt:", err);
     }
-  }, [handleAddStock]);
+  }, []);
+
 
   // ── Discounts ─────────────────────────────────────────────────────────────
   const handleAddDiscount = useCallback(async (discount) => {

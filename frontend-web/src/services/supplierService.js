@@ -14,9 +14,10 @@ function mapSupplierFromBackend(s) {
   return {
     id: s.supplier_id,
     name: s.supplier_name,
-    contact: s.contact_person || '—',
-    email: s.email || '—',
-    phone: s.phone || '—',
+    contact: s.contact_person || '',
+    email: s.email || '',
+    phone: s.phone || '',
+    address: s.address || '',
     products: 0,
     lastOrder: '—',
     leadTime: '3 days',
@@ -47,16 +48,18 @@ export async function addSupplier(supplier) {
     return fakeApi(newItem);
   }
 
+  const clean = val => (val === '' || val === '—') ? null : val;
+
   try {
     const storeId = getStoreId();
     const created = await apiRequest(`/stores/${storeId}/suppliers`, {
       method: 'POST',
       body: {
         supplier_name: supplier.name,
-        contact_person: supplier.contact || null,
-        phone: supplier.phone || null,
-        email: supplier.email || null,
-        address: supplier.address || null,
+        contact_person: clean(supplier.contact),
+        phone: clean(supplier.phone),
+        email: clean(supplier.email),
+        address: clean(supplier.address),
       },
     });
 
@@ -76,26 +79,31 @@ export async function updateSupplier(id, updates) {
     return fakeApi(updated.find(s => s.id === id));
   }
 
+  const clean = val => (val === '' || val === '—') ? null : val;
+
   try {
     const storeId = getStoreId();
     const updated = await apiRequest(`/stores/${storeId}/suppliers/${id}`, {
       method: 'PATCH',
       body: {
         supplier_name: updates.name,
-        contact_person: updates.contact || null,
-        phone: updates.phone || null,
-        email: updates.email || null,
-        address: updates.address || null,
+        contact_person: clean(updates.contact),
+        phone: clean(updates.phone),
+        email: clean(updates.email),
+        address: clean(updates.address),
       },
     });
 
     const mapped = mapSupplierFromBackend(updated);
-    saveStored(getStored().map(s => (s.id === Number(id) ? mapped : s)));
+
+    // Ensure numeric comparison for robustness
+    saveStored(getStored().map(s => (Number(s.id) === Number(id) ? mapped : s)));
     return toApiEnvelope(mapped);
   } catch (error) {
     throw normalizeServiceError(error, 'Failed to update supplier');
   }
 }
+
 
 export async function deleteSupplier(id) {
   if (USE_MOCK) {

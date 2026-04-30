@@ -126,7 +126,7 @@ function QRModal({ isOpen, onClose, total, onConfirm }) {
 
 export default function POS() {
   const {
-    cart, updateQty, removeFromCart, clearCart,
+    cart, addToCart, updateQty, removeFromCart, clearCart,
     discount, setDiscount,
     paymentMethod, setPaymentMethod,
     tendered, setTendered,
@@ -135,6 +135,9 @@ export default function POS() {
     subtotal, discountAmt, tax, total, change,
     setCurrentPage, setLastTransaction,
   } = useCashier();
+
+  // include addToCart from cashier context
+  // (merged into the main destructure to avoid multiple hook calls)
 
   const { addTransaction, products } = useApp();
   const [searchQuery, setSearchQuery]   = useState('');

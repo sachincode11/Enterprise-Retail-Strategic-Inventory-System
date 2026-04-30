@@ -13,7 +13,7 @@ export default function Suppliers() {
   const { navigateTo } = useAdmin();
   const { data: suppliers, loading, refetch } = useService(getSuppliers);
   const { execute } = useAction();
-  const { query, setQuery, filtered, clearFilters } = useSearch(suppliers || [], ['name', 'email', 'contact']);
+  const { query, setQuery, filtered, clearFilters } = useSearch(suppliers || [], ['name', 'email', 'contact', 'address']);
 
   const [selected, setSelected]   = useState(new Set()); // fixed interactive checklist
   const [deleteId, setDeleteId]   = useState(null);
@@ -84,12 +84,12 @@ export default function Suppliers() {
                       style={{ accentColor: '#1e3a5f' }}
                     />
                   </th>
-                  <th>Supplier</th><th>Contact</th><th>Products</th><th>Last Order</th><th>Lead Time</th><th>Total Ordered</th><th>Status</th><th></th>
+                  <th>Supplier</th><th>Contact</th><th>Address</th><th>Status</th><th></th>
                 </tr>
               </thead>
               <tbody>
                 {paginated.length === 0
-                  ? <tr><td colSpan={9}><EmptyState message="No suppliers found." /></td></tr>
+                  ? <tr><td colSpan={6}><EmptyState message="No suppliers found." /></td></tr>
                   : paginated.map(s => (
                     <tr key={s.id} style={{ background: selected.has(s.id) ? '#f0f9ff' : '' }}>
                       <td>
@@ -106,12 +106,13 @@ export default function Suppliers() {
                         <p className="text-sm font-semibold">{s.name}</p>
                         <p className="text-xs" style={{ color: '#94a3b8' }}>{s.email}</p>
                       </td>
-                      <td className="text-sm mono">{s.contact}</td>
-                      <td className="text-sm">{s.products} products</td>
-                      <td className="text-sm" style={{ color: '#475569' }}>{s.lastOrder}</td>
-                      <td className="text-sm">{s.leadTime}</td>
-                      <td className="text-sm font-semibold">{s.total}</td>
+                      <td>
+                        <p className="text-sm">{s.contact}</p>
+                        <p className="text-xs" style={{ color: '#94a3b8' }}>{s.phone}</p>
+                      </td>
+                      <td className="text-sm" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.address || '—'}</td>
                       <td><Badge status={s.status} /></td>
+
                       <td>
                         <div className="flex gap-2">
                           <button className="btn-outline" onClick={() => navigateTo('add-supplier', s)}>Edit</button>

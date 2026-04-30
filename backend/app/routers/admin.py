@@ -28,7 +28,7 @@ from app.schemas import (
     FAQCreate, FAQOut, MessageResponse,
     NotificationOut, PolicyCreate, PolicyOut,
     PurchaseOrderCreate, PurchaseOrderOut, PurchaseOrderStatusUpdate,
-    StaffOut, StoreOut, SupplierCreate, SupplierOut, UserOut,
+    StaffOut, StoreOut, SupplierCreate, SupplierOut, SupplierUpdate, UserOut,
 )
 
 
@@ -56,14 +56,16 @@ def create_supplier(store_id: str, body: SupplierCreate,
 
 
 @supplier_router.patch("/{supplier_id}", response_model=SupplierOut)
-def update_supplier(store_id: str, supplier_id: str, body: SupplierCreate,
+def update_supplier(store_id: int, supplier_id: int, body: SupplierUpdate,
                     db: Session = Depends(get_db), _: User = Depends(require_admin)):
     s = db.query(Supplier).filter(Supplier.supplier_id == supplier_id,
                                     Supplier.store_id == store_id).first()
     if not s:
         raise HTTPException(404, "Supplier not found.")
-    for k, v in body.model_dump(exclude_none=True).items():
+    
+    for k, v in body.model_dump(exclude_unset=True).items():
         setattr(s, k, v)
+    
     db.commit()
     db.refresh(s)
     return s

@@ -20,15 +20,27 @@ function formatDate(value) {
 }
 
 function mapOrderFromBackend(order, supplierMap) {
+  const items = order.items || [];
+  const itemsCount = items.length;
+  const totalValue = items.reduce((sum, item) => sum + (Number(item.unit_cost || 0) * Number(item.quantity_ordered || 0)), 0);
+  
   return {
     id: `#PO-${order.order_id}`,
     supplier: supplierMap.get(order.supplier_id) || `Supplier #${order.supplier_id}`,
-    items: 0,
+    items: itemsCount,
     ordered: formatDate(order.order_date),
     expected: formatDate(order.expected_date),
-    value: 'Rs 0',
-    status: order.status === 'received' ? 'Received' : 'Pending',
-    orderItems: [],
+    value: `Rs ${totalValue.toFixed(2)}`,
+    status: order.status === 'received' ? 'Received' : order.status === 'pending' ? 'Pending' : order.status,
+    orderItems: items.map(item => ({
+      productId: item.product_id,
+      qty: item.quantity_ordered,
+      quantityOrdered: item.quantity_ordered,
+      quantityReceived: item.quantity_received,
+      unitCost: item.unit_cost,
+      id: item.product_id,
+    })),
+
   };
 }
 
@@ -101,7 +113,7 @@ export async function addOrder(order) {
   }
 }
 
-export async function updateOrderStatus(id, status) {
+export async function updateOrderStatus(id, status, orderItems = []) {
   if (USE_MOCK) {
     const stored = getStored();
     const updated = stored.map(o => o.id === id ? { ...o, status } : o);
@@ -109,9 +121,40 @@ export async function updateOrderStatus(id, status) {
     return fakeApi(updated.find(o => o.id === id));
   }
 
-  // Backend currently does not expose a purchase-order status update endpoint.
-  // Keep local status in sync for UI workflows.
-  const updated = getStored().map(o => (o.id === id ? { ...o, status } : o));
-  saveStored(updated);
-  return toApiEnvelope(updated.find(o => o.id === id));
+  try {
+    const storeId = getStoreId();
+    const orderId = id.replace('#PO-', '');
+    
+    // Build items payload with quantities
+    const items = (orderItems || []).map(item => ({
+      product_id: item.productId || item.id,
+      quantity_received: item.qty || item.quantityOrdered || 0,
+    }));
+
+    const [updated, suppliersRes] = await Promise.all([
+      apiRequest(
+        `/stores/${storeId}/purchase-orders/${orderId}/status`,
+        {
+          method: 'PATCH',
+          body: {
+            status: status.toLowerCase(),
+            items,
+          },
+        }
+      ),
+      getSuppliers(),
+    ]);
+
+    const supplierMap = new Map((suppliersRes.data || []).map(s => [s.id, s.name]));
+    const mapped = mapOrderFromBackend(updated, supplierMap);
+
+    // Update localStorage with new status
+    const stored = getStored().map(o => (o.id === id ? mapped : o));
+    saveStored(stored);
+    
+    return toApiEnvelope(mapped);
+  } catch (error) {
+    throw normalizeServiceError(error, 'Failed to update order status');
+  }
 }
+

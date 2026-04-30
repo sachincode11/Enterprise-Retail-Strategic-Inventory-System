@@ -46,7 +46,7 @@ def _ensure_schema_compatibility() -> None:
             conn.execute(text("ALTER TABLE suppliers ADD COLUMN store_id INT NULL"))
         if "is_active" not in cols:
             conn.execute(text("ALTER TABLE suppliers ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1"))
-
+        
 def _seed_roles() -> None:
     """Insert the three core roles if they don't exist."""
     from sqlalchemy.orm import Session

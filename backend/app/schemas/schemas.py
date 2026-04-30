@@ -304,13 +304,23 @@ class SupplierCreate(BaseModel):
     address: Optional[str] = None
 
 
+class SupplierUpdate(BaseModel):
+    supplier_name: Optional[str] = None
+    contact_person: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[EmailStr] = None
+    address: Optional[str] = None
+
+
+
 class SupplierOut(BaseModel):
     supplier_id: int
     store_id: Optional[int] = None
     supplier_name: str
-    contact_person: Optional[str]
-    phone: Optional[str]
-    email: Optional[str]
+    contact_person: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
     is_active: bool
 
     model_config = {"from_attributes": True}
@@ -320,6 +330,16 @@ class PurchaseOrderItemIn(BaseModel):
     product_id: int
     quantity_ordered: int
     unit_cost: Decimal
+
+
+class PurchaseOrderItemOut(BaseModel):
+    item_id: int
+    product_id: int
+    quantity_ordered: int
+    unit_cost: Decimal
+    quantity_received: Optional[int]
+
+    model_config = {"from_attributes": True}
 
 
 class PurchaseOrderCreate(BaseModel):
@@ -346,6 +366,7 @@ class PurchaseOrderOut(BaseModel):
     status: PurchaseOrderStatus
     order_date: datetime
     expected_date: Optional[date]
+    items: list[PurchaseOrderItemOut]
 
     model_config = {"from_attributes": True}
 

@@ -17,10 +17,13 @@ export default function PurchaseOrders() {
 
   const filtered = orders.filter(o => {
     const q = search.toLowerCase();
-    const matchSearch = !q || o.id.toLowerCase().includes(q) || o.supplier.toLowerCase().includes(q);
+    const matchSearch = !q || 
+      (o.id?.toLowerCase().includes(q)) || 
+      (o.supplier?.toLowerCase().includes(q));
     const matchStatus = !statusFilter || o.status === statusFilter;
     return matchSearch && matchStatus;
   });
+
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);

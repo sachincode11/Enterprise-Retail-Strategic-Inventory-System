@@ -14,7 +14,7 @@ const FALLBACK_ITEMS = [
 
 export default function ViewPurchaseOrder() {
   const { setCurrentPage, editTarget } = useAdmin();
-  const { orders, receiveOrder }       = useApp();
+  const { orders, products, receiveOrder } = useApp();
   const [receiving, setReceiving]      = useState(false);
   const [toast, setToast]              = useState({ visible: false, message: '' });
 
@@ -22,15 +22,19 @@ export default function ViewPurchaseOrder() {
   const po = editTarget || orders[0];
 
   const lineItems = po?.orderItems
-    ? po.orderItems.map(i => ({
-        sku:      i.productId,
-        name:     i.name,
-        qty:      i.qty,
-        unit:     'pcs',
-        unitCost: `Rs ${i.unitCost}`,
-        total:    `Rs ${(i.qty * i.unitCost).toLocaleString('en-IN')}`,
-      }))
+    ? po.orderItems.map(i => {
+        const product = products.find(p => p.id === i.productId);
+        return {
+          sku:      i.productId,
+          name:     product?.name || i.name || `Product #${i.productId}`,
+          qty:      i.qty,
+          unit:     product?.unit || 'pcs',
+          unitCost: `Rs ${i.unitCost}`,
+          total:    `Rs ${(i.qty * i.unitCost).toLocaleString('en-IN')}`,
+        };
+      })
     : FALLBACK_ITEMS;
+
 
   const showToast = (msg) => { setToast({ visible: true, message: msg }); setTimeout(() => setToast(t => ({ ...t, visible: false })), 2000); };
 

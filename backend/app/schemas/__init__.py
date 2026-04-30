@@ -46,6 +46,7 @@ from .schemas import (
 
     # Supplier & Purchase Orders
     SupplierCreate,
+    SupplierUpdate,
     SupplierOut,
     PurchaseOrderItemIn,
     PurchaseOrderReceiptItemIn,
@@ -122,6 +123,7 @@ __all__ = [
 
     # Supplier & Purchase Orders
     "SupplierCreate",
+    "SupplierUpdate",
     "SupplierOut",
     "PurchaseOrderItemIn",
     "PurchaseOrderReceiptItemIn",

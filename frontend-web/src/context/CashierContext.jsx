@@ -31,10 +31,19 @@ export function CashierProvider({ children }) {
   const [postAuthPage, setPostAuthPage]       = useState('dashboard');
 
   const addToCart = (product) => {
+    const priceSource = product.priceNum ?? product.price;
+    const numericPrice = Number(
+      typeof priceSource === 'number'
+        ? priceSource
+        : String(priceSource || '').replace(/[^0-9.]/g, '')
+    ) || 0;
+
     setCart(prev => {
       const existing = prev.find(i => i.id === product.id);
-      if (existing) return prev.map(i => i.id === product.id ? { ...i, qty: i.qty + 1 } : i);
-      return [...prev, { ...product, qty: 1 }];
+      if (existing) {
+        return prev.map(i => i.id === product.id ? { ...i, qty: i.qty + 1, price: numericPrice } : i);
+      }
+      return [...prev, { ...product, price: numericPrice, qty: 1 }];
     });
   };
 
@@ -77,7 +86,7 @@ export function CashierProvider({ children }) {
 
   const voidCart = () => clearCart();
 
-  const subtotal    = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const subtotal    = cart.reduce((sum, i) => sum + Number(i.price || 0) * i.qty, 0);
   const discountAmt = discount ? subtotal * (discount / 100) : 0;
   const tax         = (subtotal - discountAmt) * 0.13;
   const total       = subtotal - discountAmt + tax;
