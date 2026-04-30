@@ -26,22 +26,36 @@ function stockStatus(stock) {
 
 function mapProductFromBackend(product, stockMap, categoryMap, supplierMap) {
   const stock = stockMap.get(product.product_id) ?? 0;
-  const priceNum = Number(product.unit_price || 0);
   return {
     id: product.product_id,
-    name: product.product_name,
-    sku: product.barcode,
+    product_name: product.product_name,
+    sku: product.sku,
     barcode: product.barcode,
-    category: categoryMap.get(product.category_id) || 'Uncategorized',
-    priceNum,
-    price: `Rs ${priceNum}`,
-    stock,
-    supplierId: product.supplier_id || '',
-    supplier: supplierMap.get(product.supplier_id) || '—',
+    category_id: product.category_id,
+    category_name: categoryMap.get(product.category_id) || 'Uncategorized',
+    unit_price: Number(product.unit_price || 0),
+    quantity_in_stock: stock,
+    supplier_id: product.supplier_id || '',
+    supplier_name: supplierMap.get(product.supplier_id) || '—',
     status: stockStatus(stock),
+    unit_of_measure: product.unit_of_measure || 'pcs',
+    tax_rate: Number(product.tax_rate || 0),
+    description: product.description || '',
+    supply_price: product.supply_price || '',
+    reorder_level: product.reorder_level || '',
+    
+    // Maintain legacy names for backward compatibility if needed, 
+    // but we will update the components to use the new names.
+    name: product.product_name,
+    priceNum: Number(product.unit_price || 0),
+    stock,
+    category: categoryMap.get(product.category_id) || 'Uncategorized',
+    supplier: supplierMap.get(product.supplier_id) || '—',
     unit: product.unit_of_measure || 'pcs',
     tax: Number(product.tax_rate || 0),
-    description: product.description || '',
+    costPrice: product.supply_price || '',
+    reorderAt: product.reorder_level || '',
+    supplierId: product.supplier_id || '',
   };
 }
 
@@ -84,6 +98,16 @@ async function resolveCategoryId(storeId, categoryName) {
     body: { category_name: categoryName },
   });
   return created.category_id;
+}
+
+export async function getCategories() {
+  try {
+    const storeId = getStoreId();
+    const categories = await apiRequest(`/stores/${storeId}/categories`);
+    return toApiEnvelope(categories);
+  } catch {
+    return fakeApi([]);
+  }
 }
 
 export async function getProducts() {
@@ -177,18 +201,21 @@ export async function addProduct(product) {
     const created = await apiRequest(`/stores/${storeId}/products`, {
       method: 'POST',
       body: {
-        category_id: categoryId,
-        supplier_id: product.supplierId ? Number(product.supplierId) : undefined,
-        product_name: product.name,
+        category_id: product.category_id ? Number(product.category_id) : undefined,
+        supplier_id: product.supplier_id ? Number(product.supplier_id) : undefined,
+        product_name: product.product_name || product.name,
         barcode,
+        sku: product.sku,
         description: product.description || null,
-        unit_price: Number(product.priceNum || 0),
-        tax_rate: Number(product.tax || 0),
-        unit_of_measure: product.unit || 'pcs',
+        unit_price: Number(product.unit_price || product.priceNum || 0),
+        tax_rate: Number(product.tax_rate || product.tax || 0),
+        unit_of_measure: product.unit_of_measure || product.unit || 'pcs',
+        reorder_level: product.reorder_level || product.reorderAt ? Number(product.reorder_level || product.reorderAt) : undefined,
+        supply_price: product.supply_price || product.costPrice ? Number(product.supply_price || product.costPrice) : undefined,
       },
     });
 
-    const openingStock = Number(product.stock || 0);
+    const openingStock = Number(product.quantity_in_stock || product.stock || 0);
     if (openingStock > 0) {
       await apiRequest(`/stores/${storeId}/inventory/${created.product_id}/adjust`, {
         method: 'POST',
@@ -227,20 +254,18 @@ export async function updateProduct(id, updates) {
   try {
     const storeId = getStoreId();
     const patchBody = {
-      product_name: updates.name,
+      barcode: updates.barcode,
+      product_name: updates.product_name || updates.name,
       description: updates.description,
-      unit_price: updates.priceNum !== undefined ? Number(updates.priceNum) : undefined,
-      tax_rate: updates.tax !== undefined ? Number(updates.tax) : undefined,
-      unit_of_measure: updates.unit,
+      unit_price: updates.unit_price !== undefined ? Number(updates.unit_price) : (updates.priceNum !== undefined ? Number(updates.priceNum) : undefined),
+      tax_rate: updates.tax_rate !== undefined ? Number(updates.tax_rate) : (updates.tax !== undefined ? Number(updates.tax) : undefined),
+      unit_of_measure: updates.unit_of_measure || updates.unit,
+      sku: updates.sku,
+      reorder_level: updates.reorder_level !== undefined ? Number(updates.reorder_level) : (updates.reorderAt !== undefined ? Number(updates.reorderAt) : undefined),
+      supply_price: updates.supply_price !== undefined ? Number(updates.supply_price) : (updates.costPrice !== undefined ? Number(updates.costPrice) : undefined),
+      category_id: updates.category_id ? Number(updates.category_id) : undefined,
+      supplier_id: updates.supplier_id ? Number(updates.supplier_id) : (updates.supplierId !== undefined ? (updates.supplierId ? Number(updates.supplierId) : null) : undefined),
     };
-
-    if (updates.category) {
-      patchBody.category_id = await resolveCategoryId(storeId, updates.category);
-    }
-
-    if (updates.supplierId !== undefined) {
-      patchBody.supplier_id = updates.supplierId ? Number(updates.supplierId) : null;
-    }
 
     const updatedProduct = await apiRequest(`/stores/${storeId}/products/${id}`, {
       method: 'PATCH',

@@ -37,15 +37,21 @@ async def lifespan(app: FastAPI):
 
 def _ensure_schema_compatibility() -> None:
     inspector = inspect(engine)
-    if "suppliers" not in inspector.get_table_names():
-        return
-
-    cols = {column["name"] for column in inspector.get_columns("suppliers")}
-    with engine.begin() as conn:
-        if "store_id" not in cols:
-            conn.execute(text("ALTER TABLE suppliers ADD COLUMN store_id INT NULL"))
-        if "is_active" not in cols:
-            conn.execute(text("ALTER TABLE suppliers ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1"))
+    # Suppliers table fixes
+    if "suppliers" in inspector.get_table_names():
+        cols = {column["name"] for column in inspector.get_columns("suppliers")}
+        with engine.begin() as conn:
+            if "store_id" not in cols:
+                conn.execute(text("ALTER TABLE suppliers ADD COLUMN store_id INT NULL"))
+            if "is_active" not in cols:
+                conn.execute(text("ALTER TABLE suppliers ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1"))
+    
+    # Products table fixes
+    if "products" in inspector.get_table_names():
+        cols = {column["name"] for column in inspector.get_columns("products")}
+        with engine.begin() as conn:
+            if "sku" not in cols:
+                conn.execute(text("ALTER TABLE products ADD COLUMN sku VARCHAR(100) NULL AFTER barcode"))
         
 def _seed_roles() -> None:
     """Insert the three core roles if they don't exist."""

@@ -120,6 +120,7 @@ CREATE TABLE products (
     category_id     INT           NULL,
     product_name    VARCHAR(200)  NOT NULL,
     barcode         VARCHAR(100)  NOT NULL,
+    sku             VARCHAR(100)  NULL,
     description     TEXT          NULL,        -- also used for RAG embedding
     unit_price      DECIMAL(10,2) NOT NULL,
     tax_rate        DECIMAL(5,2)  NOT NULL DEFAULT 0.00,

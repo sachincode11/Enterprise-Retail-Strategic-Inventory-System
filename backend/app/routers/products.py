@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Optional, Union, List, Dict
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -24,6 +25,16 @@ def _get_product_supplier_id(db: Session, product_id: int) -> Optional[int]:
     return link.supplier_id if link else None
 
 
+def _get_product_supply_price(db: Session, product_id: int) -> Optional[Decimal]:
+    link = (
+        db.query(ProductSupplier)
+        .filter(ProductSupplier.product_id == product_id)
+        .order_by(ProductSupplier.is_preferred.desc(), ProductSupplier.product_supplier_id.asc())
+        .first()
+    )
+    return link.supply_price if link else None
+
+
 def _serialize_product(db: Session, product: Product) -> ProductOut:
     return ProductOut(
         product_id=product.product_id,
@@ -32,16 +43,19 @@ def _serialize_product(db: Session, product: Product) -> ProductOut:
         supplier_id=_get_product_supplier_id(db, product.product_id),
         product_name=product.product_name,
         barcode=product.barcode,
+        sku=product.sku,
         description=product.description,
         unit_price=product.unit_price,
         tax_rate=product.tax_rate,
         unit_of_measure=product.unit_of_measure,
         is_active=product.is_active,
+        reorder_level=product.inventory.reorder_level if product.inventory else None,
+        supply_price=_get_product_supply_price(db, product.product_id),
         created_at=product.created_at,
     )
 
 
-def _sync_product_supplier(db: Session, store_id: str, product_id: int, supplier_id: Optional[int]) -> None:
+def _sync_product_supplier(db: Session, store_id: str, product_id: int, supplier_id: Optional[int], supply_price: Optional[Decimal] = None) -> None:
     db.query(ProductSupplier).filter(ProductSupplier.product_id == product_id).delete()
     if supplier_id is None:
         return
@@ -54,7 +68,12 @@ def _sync_product_supplier(db: Session, store_id: str, product_id: int, supplier
     if not supplier:
         raise HTTPException(404, "Supplier not found.")
 
-    db.add(ProductSupplier(product_id=product_id, supplier_id=supplier_id, is_preferred=True))
+    db.add(ProductSupplier(
+        product_id=product_id, 
+        supplier_id=supplier_id, 
+        is_preferred=True,
+        supply_price=supply_price
+    ))
 
 # Categories
 cat_router = APIRouter(prefix="/stores/{store_id}/categories", tags=["Categories"])
@@ -117,7 +136,9 @@ def list_products(
     if search:
         like = f"%{search}%"
         q = q.filter(
-            Product.product_name.ilike(like) | Product.barcode.ilike(like)
+            Product.product_name.ilike(like) | 
+            Product.barcode.ilike(like) |
+            Product.sku.ilike(like)
         )
     if category_id:
         q = q.filter(Product.category_id == category_id)
@@ -171,17 +192,17 @@ def create_product(
     if db.query(Product).filter(Product.barcode == body.barcode,
                                   Product.store_id == store_id).first():
         raise HTTPException(400, "Barcode already exists in this store.")
-    product_data = body.model_dump(exclude={"supplier_id"})
+    product_data = body.model_dump(exclude={"supplier_id", "reorder_level", "supply_price"})
     p = Product(store_id=store_id, **product_data)
     db.add(p)
     db.flush()
 
     if body.supplier_id is not None:
-        _sync_product_supplier(db, store_id, p.product_id, body.supplier_id)
+        _sync_product_supplier(db, store_id, p.product_id, body.supplier_id, body.supply_price)
 
     # Initialise inventory row
     db.add(Inventory(product_id=p.product_id, store_id=store_id,
-                     quantity_in_stock=0))
+                     quantity_in_stock=0, reorder_level=body.reorder_level))
     db.commit()
     db.refresh(p)
     return _serialize_product(db, p)
@@ -203,12 +224,30 @@ def update_product(
 
     old_price = p.unit_price
     update_data = body.model_dump(exclude_none=True)
+    
+    if "barcode" in update_data:
+        existing = db.query(Product).filter(
+            Product.barcode == update_data["barcode"],
+            Product.store_id == store_id,
+            Product.product_id != product_id
+        ).first()
+        if existing:
+            raise HTTPException(400, "Barcode already exists in this store.")
+
     supplier_id = update_data.pop("supplier_id", None)
+    supply_price = update_data.pop("supply_price", None)
+    reorder_level = update_data.pop("reorder_level", None)
+    
     for field, value in update_data.items():
         setattr(p, field, value)
 
     if supplier_id is not None:
-        _sync_product_supplier(db, store_id, p.product_id, supplier_id)
+        _sync_product_supplier(db, store_id, p.product_id, supplier_id, supply_price)
+
+    if reorder_level is not None:
+        inv = db.query(Inventory).filter(Inventory.product_id == product_id, Inventory.store_id == store_id).first()
+        if inv:
+            inv.reorder_level = reorder_level
 
     # Record price history if price changed
     if body.unit_price and body.unit_price != old_price:

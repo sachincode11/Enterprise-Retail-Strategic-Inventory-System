@@ -343,6 +343,7 @@ class Product(Base):
     category_id     = Column(Integer,       ForeignKey("categories.category_id", ondelete="SET NULL"), nullable=True)
     product_name    = Column(String(200),   nullable=False)
     barcode         = Column(String(100),   nullable=False)
+    sku             = Column(String(100),   nullable=True)
     description     = Column(Text,          nullable=True)
     unit_price      = Column(Numeric(10,2), nullable=False)
     tax_rate        = Column(Numeric(5,2),  nullable=False, default=0.00)

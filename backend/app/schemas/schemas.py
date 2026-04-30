@@ -148,21 +148,28 @@ class ProductCreate(BaseModel):
     supplier_id: Optional[int] = None
     product_name: str
     barcode: str
+    sku: Optional[str] = None
     description: Optional[str] = None
     unit_price: Decimal
     tax_rate: Decimal = Decimal("0.00")
     unit_of_measure: Optional[str] = None
+    reorder_level: Optional[int] = None
+    supply_price: Optional[Decimal] = None
 
 
 class ProductUpdate(BaseModel):
     category_id: Optional[int] = None
     supplier_id: Optional[int] = None
     product_name: Optional[str] = None
+    sku: Optional[str] = None
     description: Optional[str] = None
     unit_price: Optional[Decimal] = None
     tax_rate: Optional[Decimal] = None
     unit_of_measure: Optional[str] = None
     is_active: Optional[bool] = None
+    barcode: Optional[str] = None
+    reorder_level: Optional[int] = None
+    supply_price: Optional[Decimal] = None
 
 
 class ProductOut(BaseModel):
@@ -172,11 +179,14 @@ class ProductOut(BaseModel):
     supplier_id: Optional[int] = None
     product_name: str
     barcode: str
+    sku: Optional[str]
     description: Optional[str]
     unit_price: Decimal
     tax_rate: Decimal
-    unit_of_measure: Optional[str]
+    unit_of_measure: Optional[str] = None
     is_active: bool
+    reorder_level: Optional[int] = None
+    supply_price: Optional[Decimal] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

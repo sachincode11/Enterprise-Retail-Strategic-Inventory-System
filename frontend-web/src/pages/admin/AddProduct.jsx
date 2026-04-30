@@ -5,19 +5,34 @@ import { PageHeader, Button, Input, Toast } from '../../components/common';
 import { useAdmin } from '../../context/AdminContext';
 import { useApp } from '../../context/AppContext';
 import { getSuppliers } from '../../services/supplierService';
+import { getCategories } from '../../services/productService';
 
-const CATEGORIES = ['Grains', 'Dairy', 'Beverages', 'Snacks', 'Household', 'Oils & Fats', 'Instant Food', 'Condiments', 'Personal Care'];
 const UNITS = [{ value: 'pcs', label: 'Piece (pcs)' }, { value: 'kg', label: 'Kilogram (kg)' }, { value: 'g', label: 'Gram (g)' }, { value: 'L', label: 'Litre (L)' }, { value: 'pack', label: 'Pack' }];
-const EMPTY = { name: '', sku: '', category: '', priceNum: '', costPrice: '', stock: '', reorderAt: '', supplierId: '', description: '', barcode: '', unit: 'pcs', tax: '' };
+const EMPTY = { 
+  product_name: '', 
+  sku: '', 
+  category_id: '', 
+  unit_price: '', 
+  supply_price: '', 
+  quantity_in_stock: '', 
+  reorder_level: '', 
+  supplier_id: '', 
+  description: '', 
+  barcode: '', 
+  unit_of_measure: 'pcs', 
+  tax_rate: '' 
+};
 
 export default function AddProduct() {
   const { setCurrentPage, editTarget, setEditTarget } = useAdmin();
   const { addProduct, updateProduct } = useApp();   // ← AppContext, not direct service call
   const isEdit = !!editTarget?.id;
 
-  const [form, setForm] = useState(isEdit ? { ...editTarget, priceNum: editTarget.priceNum || '', supplierId: editTarget.supplierId || '' } : EMPTY);
+  const [form, setForm] = useState(EMPTY);
   const [suppliers, setSuppliers] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loadingSuppliers, setLoadingSuppliers] = useState(false);
+  const [loadingCategories, setLoadingCategories] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
@@ -25,7 +40,11 @@ export default function AddProduct() {
   const showToast = (message, type = 'success') => { setToast({ visible: true, message, type }); setTimeout(() => setToast(t => ({ ...t, visible: false })), 2200); };
 
   useEffect(() => {
-    setForm(isEdit ? { ...editTarget, priceNum: editTarget.priceNum || '', supplierId: editTarget.supplierId || '' } : EMPTY);
+    if (isEdit) {
+      setForm({ ...EMPTY, ...editTarget });
+    } else {
+      setForm(EMPTY);
+    }
   }, [editTarget, isEdit]);
 
   useEffect(() => {
@@ -40,49 +59,66 @@ export default function AddProduct() {
       } catch {
         if (!active) return;
         setSuppliers([]);
-        showToast('Supplier list could not be loaded. You can still save product without a supplier.', 'error');
       } finally {
         if (active) setLoadingSuppliers(false);
       }
     }
 
+    async function loadCategories() {
+      setLoadingCategories(true);
+      try {
+        const res = await getCategories();
+        if (!active) return;
+        setCategories(Array.isArray(res?.data) ? res.data : []);
+      } catch {
+        if (!active) return;
+        setCategories([]);
+      } finally {
+        if (active) setLoadingCategories(false);
+      }
+    }
+
     loadSuppliers();
+    loadCategories();
     return () => {
       active = false;
     };
   }, []);
 
   useEffect(() => {
-    if (!isEdit || form.supplierId || !editTarget?.supplier) return;
-    const matchedSupplier = suppliers.find(s => s.name === editTarget.supplier);
+    if (!isEdit || form.supplier_id || !editTarget?.supplier_name) return;
+    const matchedSupplier = suppliers.find(s => s.supplier_name === editTarget.supplier_name);
     if (!matchedSupplier) return;
-    setForm(prev => ({ ...prev, supplierId: String(matchedSupplier.id) }));
-  }, [isEdit, editTarget, suppliers, form.supplierId]);
+    setForm(prev => ({ ...prev, supplier_id: String(matchedSupplier.id) }));
+  }, [isEdit, editTarget, suppliers, form.supplier_id]);
 
   const handleSubmit = async () => {
-    const name = form.name.trim();
-    const sku = form.sku.trim();
-    const category = form.category.trim();
-    const priceNum = Number(form.priceNum);
-    const stockNum = Number(form.stock || 0);
+    const product_name = (form.product_name || '').trim();
+    const sku = (form.sku || '').trim();
+    const category_id = form.category_id;
+    const unit_price = Number(form.unit_price);
+    const stockNum = Number(form.quantity_in_stock || 0);
 
-    if (!name || !sku || Number.isNaN(priceNum)) { showToast('Name, SKU and valid price are required.', 'error'); return; }
-    if (!category) { showToast('Category is required.', 'error'); return; }
-    if (priceNum < 0) { showToast('Price cannot be negative.', 'error'); return; }
+    if (!product_name || !sku || Number.isNaN(unit_price)) { showToast('Name, SKU and valid price are required.', 'error'); return; }
+    if (!category_id) { showToast('Category is required.', 'error'); return; }
+    if (unit_price < 0) { showToast('Price cannot be negative.', 'error'); return; }
     if (!Number.isInteger(stockNum) || stockNum < 0) { showToast('Stock must be a non-negative whole number.', 'error'); return; }
 
     setSaving(true);
     try {
       const payload = {
         ...form,
-        name,
+        product_name,
         sku,
-        category,
+        category_id: Number(category_id),
         barcode: (form.barcode || '').trim(),
         description: (form.description || '').trim(),
-        priceNum,
-        stock: stockNum,
-        supplierId: form.supplierId ? Number(form.supplierId) : undefined,
+        unit_price,
+        quantity_in_stock: stockNum,
+        supplier_id: form.supplier_id ? Number(form.supplier_id) : undefined,
+        tax_rate: Number(form.tax_rate || 0),
+        supply_price: Number(form.supply_price || 0),
+        reorder_level: Number(form.reorder_level || 0),
       };
       if (isEdit) {
         await updateProduct(editTarget.id, payload);
@@ -108,7 +144,7 @@ export default function AddProduct() {
     setCurrentPage('products');
   };
 
-  const margin = form.priceNum && form.costPrice ? (parseFloat(form.priceNum) - parseFloat(form.costPrice)).toFixed(2) : null;
+  const margin = form.unit_price && form.supply_price ? (parseFloat(form.unit_price) - parseFloat(form.supply_price)).toFixed(2) : null;
 
   return (
     <AdminLayout>
@@ -128,19 +164,19 @@ export default function AddProduct() {
           <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e2e8f0' }}>
             <h3 className="text-sm font-semibold text-[#0f172a] mb-4 pb-3 border-b" style={{ borderColor: '#e2e8f0' }}>Basic Information</h3>
             <div className="grid grid-cols-2 gap-4">
-              <Input label="Product Name *" value={form.name} onChange={set('name')} placeholder="e.g. Basmati Rice 5kg" className="col-span-2" />
+              <Input label="Product Name *" value={form.product_name} onChange={set('product_name')} placeholder="e.g. Basmati Rice 5kg" className="col-span-2" />
               <Input label="SKU *" value={form.sku} onChange={set('sku')} placeholder="e.g. RICE-5KG-001" />
               <Input label="Barcode" value={form.barcode} onChange={set('barcode')} placeholder="e.g. 8901030000001" />
               <div>
                 <label className="block text-xs text-[#94a3b8] mb-1.5 font-mono uppercase tracking-widest">Category *</label>
-                <select className="w-full px-3 py-2.5 text-sm bg-[#f8fafc] border border-[#e2e8f0] rounded-lg outline-none focus:border-[#1e3a5f]" value={form.category} onChange={set('category')}>
-                  <option value="">Select category</option>
-                  {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                <select className="w-full px-3 py-2.5 text-sm bg-[#f8fafc] border border-[#e2e8f0] rounded-lg outline-none focus:border-[#1e3a5f]" value={form.category_id} onChange={set('category_id')} disabled={loadingCategories}>
+                  <option value="">{loadingCategories ? 'Loading...' : 'Select category'}</option>
+                  {categories.map(c => <option key={c.category_id} value={c.category_id}>{c.category_name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs text-[#94a3b8] mb-1.5 font-mono uppercase tracking-widest">Unit</label>
-                <select className="w-full px-3 py-2.5 text-sm bg-[#f8fafc] border border-[#e2e8f0] rounded-lg outline-none focus:border-[#1e3a5f]" value={form.unit} onChange={set('unit')}>
+                <select className="w-full px-3 py-2.5 text-sm bg-[#f8fafc] border border-[#e2e8f0] rounded-lg outline-none focus:border-[#1e3a5f]" value={form.unit_of_measure} onChange={set('unit_of_measure')}>
                   {UNITS.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
                 </select>
               </div>
@@ -154,9 +190,9 @@ export default function AddProduct() {
           <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e2e8f0' }}>
             <h3 className="text-sm font-semibold text-[#0f172a] mb-4 pb-3 border-b" style={{ borderColor: '#e2e8f0' }}>Pricing</h3>
             <div className="grid grid-cols-3 gap-4">
-              <Input label="Selling Price (Rs) *" type="number" value={form.priceNum} onChange={set('priceNum')} placeholder="0.00" />
-              <Input label="Cost Price (Rs)" type="number" value={form.costPrice} onChange={set('costPrice')} placeholder="0.00" />
-              <Input label="Tax (%)" type="number" value={form.tax} onChange={set('tax')} placeholder="e.g. 13" />
+              <Input label="Selling Price (Rs) *" type="number" value={form.unit_price} onChange={set('unit_price')} placeholder="0.00" />
+              <Input label="Cost Price (Rs)" type="number" value={form.supply_price} onChange={set('supply_price')} placeholder="0.00" />
+              <Input label="Tax (%)" type="number" value={form.tax_rate} onChange={set('tax_rate')} placeholder="e.g. 13" />
             </div>
             {margin !== null && (
               <div className="mt-3 px-3 py-2 rounded-lg text-sm" style={{ background: '#eff6ff', color: '#1e3a5f' }}>
@@ -168,8 +204,8 @@ export default function AddProduct() {
           <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e2e8f0' }}>
             <h3 className="text-sm font-semibold text-[#0f172a] mb-4 pb-3 border-b" style={{ borderColor: '#e2e8f0' }}>Inventory</h3>
             <div className="grid grid-cols-2 gap-4">
-              <Input label="Opening Stock *" type="number" value={form.stock} onChange={set('stock')} placeholder="0" />
-              <Input label="Reorder At (units)" type="number" value={form.reorderAt} onChange={set('reorderAt')} placeholder="e.g. 20" />
+              <Input label="Opening Stock *" type="number" value={form.quantity_in_stock} onChange={set('quantity_in_stock')} placeholder="0" />
+              <Input label="Reorder At (units)" type="number" value={form.reorder_level} onChange={set('reorder_level')} placeholder="e.g. 20" />
             </div>
           </div>
         </div>
@@ -179,9 +215,9 @@ export default function AddProduct() {
             <h3 className="text-sm font-semibold text-[#0f172a] mb-4 pb-3 border-b" style={{ borderColor: '#e2e8f0' }}>Supplier</h3>
             <div>
               <label className="block text-xs text-[#94a3b8] mb-1.5 font-mono uppercase tracking-widest">Select Supplier</label>
-              <select className="w-full px-3 py-2.5 text-sm bg-[#f8fafc] border border-[#e2e8f0] rounded-lg outline-none focus:border-[#1e3a5f]" value={form.supplierId} onChange={set('supplierId')} disabled={loadingSuppliers}>
+              <select className="w-full px-3 py-2.5 text-sm bg-[#f8fafc] border border-[#e2e8f0] rounded-lg outline-none focus:border-[#1e3a5f]" value={form.supplier_id} onChange={set('supplier_id')} disabled={loadingSuppliers}>
                 <option value="">{loadingSuppliers ? 'Loading suppliers...' : 'Choose supplier...'}</option>
-                {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                {suppliers.map(s => <option key={s.supplier_id || s.id} value={s.supplier_id || s.id}>{s.supplier_name || s.name}</option>)}
               </select>
             </div>
           </div>
@@ -197,10 +233,10 @@ export default function AddProduct() {
 
           <div className="bg-white rounded-xl border p-4" style={{ borderColor: '#e2e8f0', background: '#f8fafc' }}>
             <p className="text-xs font-semibold text-[#0f172a] mb-1">Preview</p>
-            <p className="text-sm font-bold text-[#0f172a]">{form.name || 'Product Name'}</p>
+            <p className="text-sm font-bold text-[#0f172a]">{form.product_name || 'Product Name'}</p>
             <p className="text-xs text-[#94a3b8] font-mono">{form.sku || 'SKU-XXXXX'}</p>
-            <p className="text-sm font-semibold text-[#1e3a5f] mt-1">Rs {form.priceNum || '0'}</p>
-            <p className="text-xs text-[#94a3b8]">Stock: {form.stock || '0'} · {form.category || 'No category'}</p>
+            <p className="text-sm font-semibold text-[#1e3a5f] mt-1">Rs {form.unit_price || '0'}</p>
+            <p className="text-xs text-[#94a3b8]">Stock: {form.quantity_in_stock || '0'} · {categories.find(c => String(c.category_id) === String(form.category_id))?.category_name || 'No category'}</p>
           </div>
         </div>
       </div>
