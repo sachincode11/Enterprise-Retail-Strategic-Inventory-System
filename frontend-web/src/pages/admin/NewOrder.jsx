@@ -4,6 +4,9 @@ import AdminLayout from '../../layouts/AdminLayout';
 import { PageHeader, Button, Badge } from '../../components/common';
 import { useAdmin } from '../../context/AdminContext';
 import { useApp } from '../../context/AppContext';
+import { getSuppliers } from '../../services/supplierService';
+import { Toast } from '../../components/common';
+import { useEffect } from 'react';
 
 const TAX_RATE = 0.13;
 
@@ -19,8 +22,18 @@ export default function NewOrder() {
   const [submitted,  setSubmitted]  = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Derive suppliers from products
-  const suppliers = [...new Set(products.map(p => p.supplier).filter(Boolean))];
+  const [suppliers,   setSuppliers]   = useState([]);
+  const [toast,       setToast]       = useState({ visible: false, message: '', type: 'error' });
+
+  // Fetch real suppliers
+  useEffect(() => {
+    getSuppliers().then(res => setSuppliers(res.data || []));
+  }, []);
+
+  const showToast = (msg, type = 'error') => {
+    setToast({ visible: true, message: msg, type });
+    setTimeout(() => setToast({ visible: false, message: '', type }), 3000);
+  };
 
   const filtered = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -58,17 +71,23 @@ export default function NewOrder() {
     if (!orderItems.length) { setValidationMsg('Please add at least one product.'); return; }
     setValidationMsg('');
     setSubmitting(true);
-    await addOrder({
-      supplier,
-      items: orderItems.length,
-      value: `Rs ${Math.round(total).toLocaleString('en-IN')}`,
-      notes,
-      deliveryDate,
-      orderItems: orderItems.map(i => ({ productId: i.id, name: i.name, qty: i.qty, unitCost: i.unitCost })),
-    });
-    setSubmitted(true);
-    setSubmitting(false);
-    setTimeout(() => setCurrentPage('purchase-orders'), 1500);
+    
+    try {
+      await addOrder({
+        supplier,
+        items: orderItems.length,
+        value: `Rs ${Math.round(total).toLocaleString('en-IN')}`,
+        notes,
+        deliveryDate,
+        orderItems: orderItems.map(i => ({ productId: i.id, name: i.name, qty: i.qty, unitCost: i.unitCost })),
+      });
+      setSubmitted(true);
+      setTimeout(() => setCurrentPage('purchase-orders'), 1500);
+    } catch (err) {
+      showToast(err.message || 'Failed to submit order.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -87,6 +106,7 @@ export default function NewOrder() {
 
   return (
     <AdminLayout>
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} />
       <PageHeader
         breadcrumb="Purchase Orders"
         title="New Purchase Order"
@@ -182,7 +202,7 @@ export default function NewOrder() {
                 <select value={supplier} onChange={e => setSupplier(e.target.value)}
                   className="input-field text-sm w-full">
                   <option value="">Select supplier…</option>
-                  {suppliers.map(s => <option key={s}>{s}</option>)}
+                  {suppliers.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                 </select>
               </div>
               <div>

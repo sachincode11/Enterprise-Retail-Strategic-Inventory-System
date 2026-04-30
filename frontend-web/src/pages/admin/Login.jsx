@@ -11,7 +11,7 @@ const FEATURES = [
 ];
 
 export default function Login() {
-  const { login, loading } = useAuth();
+  const { login, loading, error: authError, setError: setAuthError } = useAuth();
   const { setCurrentPage } = useAdmin();
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
@@ -20,6 +20,7 @@ export default function Login() {
 
   const handleSubmit = async () => {
     setError('');
+    if (setAuthError) setAuthError(null);
     const safeEmail = email.trim().toLowerCase();
     if (!safeEmail || !password) { setError('Please enter your email and password.'); return; }
     try {
@@ -62,22 +63,22 @@ export default function Login() {
           </div>
         </div>
 
-        {error && (
+        {(error || authError) && (
           <div className="mb-4 px-4 py-3 rounded-lg text-sm font-medium" style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}>
-            {error}
+            {String(error || authError)}
           </div>
         )}
 
         <div className="mb-4">
           <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Email Address</label>
-          <input type="email" value={email} onChange={e => { setEmail(e.target.value); setError(''); }}
+          <input type="email" value={email} onChange={e => { setEmail(e.target.value); setError(''); if (setAuthError) setAuthError(null); }}
             placeholder="admin@store.np"
             className="w-full px-4 py-2.5 text-sm bg-[#f8fafc] border border-[#e2e8f0] rounded-lg outline-none text-[#0f172a] transition-all focus:border-[#1e3a5f] focus:shadow-[0_0_0_3px_rgba(30,58,95,0.1)]"
           />
         </div>
         <div className="mb-4">
           <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Password</label>
-          <input type="password" value={password} onChange={e => { setPassword(e.target.value); setError(''); }}
+          <input type="password" value={password} onChange={e => { setPassword(e.target.value); setError(''); if (setAuthError) setAuthError(null); }}
             placeholder="••••••••"
             onKeyDown={e => e.key === 'Enter' && handleSubmit()}
             className="w-full px-4 py-2.5 text-sm bg-[#f8fafc] border border-[#e2e8f0] rounded-lg outline-none text-[#0f172a] transition-all focus:border-[#1e3a5f] focus:shadow-[0_0_0_3px_rgba(30,58,95,0.1)]"

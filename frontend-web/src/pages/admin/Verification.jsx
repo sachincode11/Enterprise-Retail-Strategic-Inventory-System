@@ -6,7 +6,7 @@ import logo from '../../assets/Full logo.png';
 
 export default function Verification() {
   const { setCurrentPage } = useAdmin();
-  const { user, verifyOtp, loading } = useAuth();
+  const { user, verifyOtp, logout, loading } = useAuth();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
 
@@ -74,10 +74,14 @@ export default function Verification() {
             className="w-full py-3 rounded-lg text-sm font-semibold text-white mb-4 transition-all duration-150 hover:bg-[#16324f] hover:shadow-[0_4px_12px_rgba(30,58,95,0.35)]"
             style={{ background: '#1e3a5f' }}
           >{loading ? 'Verifying…' : 'Verify & Continue'}</button>
-          <div className="flex justify-between">
+          <div className="flex justify-between mb-8">
             <button className="text-xs text-[#94a3b8] hover:text-[#475569] transition-colors">Didn't receive code?</button>
             <button className="text-xs font-medium text-[#1e3a5f] hover:text-[#16324f] transition-colors">Resend OTP</button>
           </div>
+
+          <button onClick={() => logout()} className="w-full py-2 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors border-t border-gray-100 mt-4 pt-4">
+            ← Back to Login
+          </button>
           <div className="mt-8 p-3 rounded-lg" style={{ background: '#f0f9ff', border: '1px solid #bae6fd' }}>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-[#22c55e]" />

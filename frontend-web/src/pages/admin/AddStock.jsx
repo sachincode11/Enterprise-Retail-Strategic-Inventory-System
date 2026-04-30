@@ -24,7 +24,7 @@ export default function AddStock() {
     const qty = parseInt(form.quantity, 10);
     if (isNaN(qty) || qty <= 0) { showToast('Quantity must be a positive number.'); return; }
     setSubmitting(true);
-    await addStock(product.id, qty);
+    await addStock(product.id, form);
     setSubmitting(false);
     showToast(`Added ${qty} units to ${product.name}`);
     setTimeout(() => setCurrentPage('inventory'), 1200);

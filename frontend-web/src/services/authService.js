@@ -37,6 +37,21 @@ function mapBackendUser(user) {
   };
 }
 
+function verifyUserRole(user, expectedRole) {
+  if (!expectedRole) return;
+  const target = normalizeRole(expectedRole);
+  const actual = normalizeRole(user.role);
+  const roles = (user.roles || []).map(normalizeRole);
+
+  if (actual !== target && !roles.includes(target)) {
+    throw { 
+      status: 403, 
+      message: `Access Denied: Your account (${actual}) is not authorized for the ${target} terminal.`,
+      data: null 
+    };
+  }
+}
+
 async function resolveStaffRoleByEmail(email, storeId, accessToken) {
   if (!email || !storeId || !accessToken) return null;
   try {
@@ -108,6 +123,9 @@ export async function login({ email, password, expectedRole }) {
 
     const user = mapBackendUser(payload.user) || { email, role: 'customer', storeId: 1, pending2FA: true };
 
+    // Pre-validate role before sending OTP
+    verifyUserRole(user, expectedRole);
+
     if (payload.requires_otp) {
       const pending = {
         ...user,
@@ -125,6 +143,10 @@ export async function login({ email, password, expectedRole }) {
     }
 
     const enriched = (await resolveStaffRoleByEmail(user.email, user.storeId, payload.access_token)) || user;
+    
+    // Role validation
+    verifyUserRole(enriched, expectedRole);
+
     const session = persistSession(enriched, payload.access_token, payload.refresh_token);
     return toApiEnvelope(session, 200, 'Success');
   } catch (error) {
@@ -161,6 +183,10 @@ export async function verifyOtp({ otp }) {
 
     const user = mapBackendUser(payload.user) || pending;
     const resolvedUser = (await resolveStaffRoleByEmail(user.email, user.storeId || pending.storeId, payload.access_token)) || user;
+    
+    // Role validation
+    verifyUserRole(resolvedUser, pending.expectedRole);
+
     const finalUser = {
       ...resolvedUser,
       role: normalizeRole(resolvedUser.role || pending.expectedRole || user.role),
@@ -170,6 +196,32 @@ export async function verifyOtp({ otp }) {
     return toApiEnvelope(session, 200, 'Verified');
   } catch (error) {
     throw normalizeServiceError(error, 'OTP verification failed');
+  }
+}
+
+export async function refreshToken() {
+  const session = getSession();
+  if (!session?.refreshToken) {
+    throw new Error('No refresh token available');
+  }
+
+  if (USE_MOCK) {
+    const newSession = persistSession(session, `mock-at-${Date.now()}`, `mock-rt-${Date.now()}`);
+    return toApiEnvelope(newSession);
+  }
+
+  try {
+    const res = await apiRequest('/auth/refresh', {
+      method: 'POST',
+      body: { refresh_token: session.refreshToken },
+      withAuth: false,
+    });
+
+    const updated = persistSession(session, res.access_token, res.refresh_token);
+    return toApiEnvelope(updated);
+  } catch (error) {
+    lsDel(SESSION_KEY);
+    throw error;
   }
 }
 

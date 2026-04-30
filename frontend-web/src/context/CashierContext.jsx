@@ -1,5 +1,6 @@
 // src/context/CashierContext.jsx
 import { createContext, useContext, useEffect, useState } from 'react';
+import { lsGet, lsSet } from '../utils/storage';
 
 const CashierContext = createContext(null);
 
@@ -20,15 +21,20 @@ function setCashierHash(page) {
 
 export function CashierProvider({ children }) {
   const [currentPageState, setCurrentPageState] = useState(getCashierPageFromHash);
-  const [cart, setCart] = useState([]);
-  const [discount, setDiscount]               = useState(0);
+  const [cart, setCart] = useState(() => lsGet('invosix_pos_cart', []));
+  const [discount, setDiscount]               = useState(() => lsGet('invosix_pos_discount', 0));
   const [paymentMethod, setPaymentMethod]     = useState('Cash');
   const [tendered, setTendered]               = useState(0);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [selectedCustomer, setSelectedCustomer] = useState(() => lsGet('invosix_pos_customer', null));
   const [heldTransactions, setHeldTransactions] = useState([]);
   const [lastTransaction, setLastTransaction]   = useState(null);
   const [settingsTab, setSettingsTab]         = useState('general');
   const [postAuthPage, setPostAuthPage]       = useState('dashboard');
+
+  // Persistence Effects
+  useEffect(() => { lsSet('invosix_pos_cart', cart); }, [cart]);
+  useEffect(() => { lsSet('invosix_pos_discount', discount); }, [discount]);
+  useEffect(() => { lsSet('invosix_pos_customer', selectedCustomer); }, [selectedCustomer]);
 
   const addToCart = (product) => {
     const priceSource = product.priceNum ?? product.price;

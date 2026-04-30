@@ -13,10 +13,10 @@ const FEATURES = [
 export default function Login() {
   const { login, loading } = useAuth();
   const { currentPage, setCurrentPage, setPostAuthPage } = useCashier();
-  const [email,    setEmail]    = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
-  const [error,    setError]    = useState('');
+  const [error, setError] = useState('');
 
   const handleSubmit = async () => {
     setError('');
@@ -56,7 +56,7 @@ export default function Login() {
           </div>
         </div>
         {error && (
-          <div className="mb-4 px-4 py-3 rounded-lg text-sm font-medium" style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}>{error}</div>
+          <div className="mb-4 px-4 py-3 rounded-lg text-sm font-medium" style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}>{String(error)}</div>
         )}
         <div className="mb-4">
           <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Email Address</label>
@@ -87,7 +87,7 @@ export default function Login() {
         </p>
         <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-lg p-4 flex items-start gap-3">
           <div className="w-6 h-6 border border-[#bfdbfe] rounded flex items-center justify-center shrink-0 mt-0.5" style={{ background: '#eff6ff' }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1e3a5f" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1e3a5f" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" /></svg>
           </div>
           <div>
             <p className="text-xs font-medium text-[#0f172a] mb-0.5">Email OTP Required</p>

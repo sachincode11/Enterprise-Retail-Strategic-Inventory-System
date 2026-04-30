@@ -18,7 +18,7 @@ function saveStored(data) {
   lsSet(LS_KEY, data);
 }
 
-function stockStatus(stock) {
+export function stockStatus(stock) {
   if (stock <= 0) return 'Out of Stock';
   if (stock <= 10) return 'Low Stock';
   return 'Active';
@@ -317,5 +317,18 @@ export async function deleteProduct(id) {
     return toApiEnvelope({ deleted: id });
   } catch (error) {
     throw normalizeServiceError(error, 'Failed to delete product');
+  }
+}
+
+export async function adjustInventory(productId, adjustment) {
+  try {
+    const storeId = getStoreId();
+    const result = await apiRequest(`/stores/${storeId}/inventory/${productId}/adjust`, {
+      method: 'POST',
+      body: adjustment,
+    });
+    return toApiEnvelope(result);
+  } catch (error) {
+    throw normalizeServiceError(error, 'Failed to adjust inventory');
   }
 }

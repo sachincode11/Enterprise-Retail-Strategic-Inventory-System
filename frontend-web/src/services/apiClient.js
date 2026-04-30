@@ -5,6 +5,12 @@ const SESSION_KEY = 'invosix_session';
 const PENDING_KEY = 'invosix_pending_login';
 const DEFAULT_STORE_ID = Number(import.meta.env.VITE_DEFAULT_STORE_ID || 1);
 
+let authErrorHandler = null;
+let isRefreshing = false;
+let refreshQueue = [];
+
+export function onAuthError(handler) { authErrorHandler = handler; }
+
 function toErrorShape(message, status = 500, data = null) {
   return { data, status, message };
 }
@@ -43,11 +49,75 @@ export async function apiRequest(path, options = {}) {
 
   const contentType = response.headers.get('content-type') || '';
   const isJson = contentType.includes('application/json');
-  const payload = isJson ? await response.json() : await response.text();
+  let payload;
+  try {
+    payload = isJson ? await response.json() : await response.text();
+  } catch (err) {
+    payload = await response.text();
+  }
 
   if (!response.ok) {
-    const detail = (payload && typeof payload === 'object' && (payload.detail || payload.message)) || String(payload) || 'Request failed';
-    throw toErrorShape(detail, response.status, null);
+    // 401 Unauthorized -> Attempt Silent Refresh (Sliding Session)
+    if (response.status === 401 && !options._retry) {
+      const session = lsGet(SESSION_KEY, null);
+      
+      if (session?.refreshToken) {
+        if (isRefreshing) {
+          return new Promise((resolve, reject) => {
+            refreshQueue.push({ path, options, resolve, reject });
+          });
+        }
+
+        isRefreshing = true;
+        try {
+          const refreshRes = await fetch(`${API_ROOT}/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: session.refreshToken }),
+          });
+
+          if (refreshRes.ok) {
+            const tokens = await refreshRes.json();
+            const newSession = { 
+              ...session, 
+              accessToken: tokens.access_token, 
+              refreshToken: tokens.refresh_token,
+              token: tokens.access_token 
+            };
+            lsSet(SESSION_KEY, newSession);
+            
+            isRefreshing = false;
+            // Process queued requests
+            refreshQueue.forEach(q => apiRequest(q.path, q.options).then(q.resolve).catch(q.reject));
+            refreshQueue = [];
+
+            // Retry original request
+            return await apiRequest(path, { ...options, _retry: true });
+          }
+        } catch (err) {
+          console.error("Token refresh failed:", err);
+        } finally {
+          isRefreshing = false;
+        }
+      }
+
+      // If no refresh token or refresh failed -> Logout
+      // Only trigger this if the request was actually intended to be authenticated
+      if (authErrorHandler && withAuth) authErrorHandler();
+    }
+
+    let detail = (payload && typeof payload === 'object' && (payload.detail || payload.message)) || String(payload) || 'Request failed';
+    
+    let finalMessage = 'Request failed';
+    if (typeof detail === 'string') {
+      finalMessage = detail;
+    } else if (Array.isArray(detail)) {
+      finalMessage = detail.map(d => d.msg || String(d)).join(', ');
+    } else if (typeof detail === 'object' && detail !== null) {
+      finalMessage = detail.msg || detail.message || JSON.stringify(detail);
+    }
+    
+    throw toErrorShape(finalMessage, response.status, null);
   }
 
   return payload;

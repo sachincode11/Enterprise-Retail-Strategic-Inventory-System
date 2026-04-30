@@ -2,7 +2,8 @@
 // GLOBAL STATE — shared across Admin and Cashier.
 // Products, transactions, orders, discounts, staff, customers all live here.
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { getProducts, updateProduct, addProduct, deleteProduct } from '../services/productService';
+import { useAuth } from './AuthContext';
+import { getProducts, updateProduct, addProduct, deleteProduct, adjustInventory, stockStatus } from '../services/productService';
 import { getTransactions, addTransaction as addTxnService, voidTransaction, refundTransaction } from '../services/transactionService';
 import { getOrders, addOrder as addOrderService, updateOrderStatus } from '../services/orderService';
 import { getDiscounts, addDiscount as addDiscountService, updateDiscount, deleteDiscount } from '../services/discountService';
@@ -46,6 +47,7 @@ export function AppProvider({ children }) {
   const [staff, setStaff]               = useState([]);
   const [storeInfo, setStoreInfo]       = useState(null);
   const [loading, setLoading]           = useState(true);
+  const { user } = useAuth();
   const [liveNotificationReadIds, setLiveNotificationReadIds] = useState(
     () => new Set(lsGet(LIVE_NOTIFICATION_READS_KEY, []))
   );
@@ -59,7 +61,13 @@ export function AppProvider({ children }) {
 
   // Bootstrap all data
   useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     async function boot() {
+      setLoading(true);
       const [p, t, o, d, c, s, si] = await Promise.allSettled([
         getProducts(), getTransactions(), getOrders(), getDiscounts(),
         getCustomers(), getStaff(), getStoreInfo(),
@@ -75,7 +83,7 @@ export function AppProvider({ children }) {
       setLoading(false);
     }
     boot();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     lsSet(LIVE_NOTIFICATION_READS_KEY, [...liveNotificationReadIds]);
@@ -138,19 +146,37 @@ export function AppProvider({ children }) {
   }, []);
 
   // Update stock — used when PO is "Received" or stock is adjusted
-  const handleAddStock = useCallback(async (productId, qty) => {
-    const product = products.find(p => p.id === productId);
-    if (!product) return;
-    const newStock = product.stock + qty;
-    const result = await handleUpdateProduct(productId, { stock: newStock });
+  const handleAddStock = useCallback(async (productId, adjustmentData) => {
+    const { quantity, notes, supplier, invoiceNo } = adjustmentData;
+    const qty = parseInt(quantity, 10);
+    
+    // Construct notes with extra info if provided
+    let combinedNotes = notes || '';
+    if (supplier || invoiceNo) {
+      combinedNotes = `[Supplier: ${supplier || 'N/A'}, Invoice: ${invoiceNo || 'N/A'}] ${combinedNotes}`.trim();
+    }
+
+    const res = await adjustInventory(productId, {
+      quantity_change: qty,
+      movement_type: 'restock', // MovementType.restock
+      reference_type: 'manual',  // InventoryReferenceType.manual
+      notes: combinedNotes
+    });
+
     try {
       const fresh = await getProducts();
       setProducts(fresh.data);
     } catch {
-      // Keep the update result already applied if a refresh fails.
+      setProducts(prev => prev.map(p => {
+        if (p.id === productId) {
+          const newStock = p.stock + qty;
+          return { ...p, stock: newStock, quantity_in_stock: newStock, status: stockStatus(newStock) };
+        }
+        return p;
+      }));
     }
-    return result;
-  }, [products, handleUpdateProduct]);
+    return res.data;
+  }, [getProducts]);
 
   // ── Transactions ──────────────────────────────────────────────────────────
   const handleAddTransaction = useCallback(async (txn) => {
