@@ -15,6 +15,12 @@ from app.models import (
     Notification,
     User, UserRole as UserRoleModel, Role, StoreFAQ, StorePolicy,
 )
+from app.core.security import (
+    create_access_token, create_refresh_token, generate_otp,
+    hash_otp, hash_password, hash_token, otp_expiry,
+    verify_otp, verify_password,
+)
+from app.database import get_db
 from app.models.enums import (
     InventoryReferenceType,
     MovementType,
@@ -28,7 +34,7 @@ from app.schemas import (
     FAQCreate, FAQOut, MessageResponse,
     NotificationOut, PolicyCreate, PolicyOut,
     PurchaseOrderCreate, PurchaseOrderOut, PurchaseOrderStatusUpdate,
-    StaffOut, StoreOut, SupplierCreate, SupplierOut, SupplierUpdate, UserOut,
+    StaffCreate, StaffOut, StoreOut, SupplierCreate, SupplierOut, SupplierUpdate, UserOut, UserUpdate,
 )
 
 
@@ -206,6 +212,54 @@ user_router = APIRouter(prefix="/users", tags=["User Management"])
 @user_router.get("", response_model=list[UserOut])
 def list_users(db: Session = Depends(get_db), _: User = Depends(require_admin)):
     return db.query(User).all()
+
+
+@user_router.patch("/{user_id}", response_model=UserOut)
+def update_user_details(
+    user_id: int,
+    body: UserUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin)
+):
+    u = db.query(User).filter(User.user_id == user_id).first()
+    if not u:
+        raise HTTPException(404, "User not found.")
+
+    # Duplicate checks
+    if body.username and body.username != u.username:
+        if db.query(User).filter(User.username == body.username).first():
+            raise HTTPException(400, "Username already taken.")
+    if body.email and body.email != u.email:
+        if db.query(User).filter(User.email == body.email).first():
+            raise HTTPException(400, "Email already registered.")
+
+    # Update basic fields
+    if body.username is not None: u.username = body.username
+    if body.first_name is not None: u.first_name = body.first_name
+    if body.last_name is not None: u.last_name = body.last_name
+    if body.email is not None: u.email = body.email
+    if body.phone is not None: u.phone = body.phone
+    if body.password is not None: u.password_hash = hash_password(body.password)
+
+    # Update role if provided
+    if body.role:
+        from app.utils import _get_role
+        role_obj = _get_role(db, body.role)
+        if role_obj:
+            # We assume updating staff happens in context of a store
+            # For simplicity, we update the first role for this user or create one
+            # Ideally we'd need store_id here, but staff update usually implies current store
+            # For now, let's just find their UserRole record and update it
+            ur = db.query(UserRoleModel).filter(UserRoleModel.user_id == user_id).first()
+            if ur:
+                ur.role_id = role_obj.role_id
+            else:
+                # Fallback: assign to store 1 or similar if missing
+                db.add(UserRoleModel(user_id=user_id, role_id=role_obj.role_id, store_id=1))
+
+    db.commit()
+    db.refresh(u)
+    return u
 
 
 @user_router.patch("/{user_id}/deactivate", response_model=MessageResponse)
@@ -436,6 +490,7 @@ def list_staff(
             StaffOut(
                 user_id=user.user_id,
                 name=full_name,
+                username=user.username,
                 email=user.email,
                 phone=user.phone,
                 role=str(role.role_name),
@@ -445,6 +500,133 @@ def list_staff(
             )
         )
     return result
+@staff_router.post("", response_model=StaffOut, status_code=201)
+def create_staff(
+    store_id: int,
+    body: StaffCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """Create a new staff user and assign them a role for this store."""
+    # Check duplicate email
+    if db.query(User).filter(User.email == body.email).first():
+        raise HTTPException(status_code=400, detail="Email already registered.")
+    
+    # Check duplicate username
+    if db.query(User).filter(User.username == body.username).first():
+        raise HTTPException(status_code=400, detail="Username already taken.")
+
+    # 1. Create user
+    user = User(
+        username=body.username,
+        email=body.email,
+        password_hash=hash_password(body.password),
+        first_name=body.first_name,
+        last_name=body.last_name,
+        phone=body.phone,
+        is_active=True
+    )
+    db.add(user)
+    db.flush()
+
+    # 2. Get role
+    from app.utils import _get_role
+    role_obj = _get_role(db, body.role)
+    if not role_obj:
+        raise HTTPException(404, f"Role '{body.role}' not found.")
+
+    # 3. Assign role
+    db.add(UserRoleModel(
+        user_id=user.user_id,
+        role_id=role_obj.role_id,
+        store_id=store_id,
+        is_active=True
+    ))
+    
+    db.commit()
+    db.refresh(user)
+    
+    full_name = " ".join(filter(None, [user.first_name, user.last_name]))
+    return StaffOut(
+        user_id=user.user_id,
+        name=full_name,
+        username=user.username,
+        email=user.email,
+        phone=user.phone,
+        role=str(role_obj.role_name),
+        store_id=store_id,
+        is_active=user.is_active,
+        created_at=user.created_at,
+    )
+
+
+@staff_router.patch("/{user_id}", response_model=StaffOut)
+def update_staff(
+    store_id: int,
+    user_id: int,
+    body: UserUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """Update a staff member's profile and role."""
+    u = db.query(User).filter(User.user_id == user_id).first()
+    if not u:
+        raise HTTPException(404, "User not found.")
+
+    # Duplicate checks
+    if body.username and body.username != u.username:
+        if db.query(User).filter(User.username == body.username).first():
+            raise HTTPException(400, "Username already taken.")
+    if body.email and body.email != u.email:
+        if db.query(User).filter(User.email == body.email).first():
+            raise HTTPException(400, "Email already registered.")
+
+    # Update basic fields
+    if body.username is not None: u.username = body.username
+    if body.first_name is not None: u.first_name = body.first_name
+    if body.last_name is not None: u.last_name = body.last_name
+    if body.email is not None: u.email = body.email
+    if body.phone is not None: u.phone = body.phone
+    if body.password is not None: u.password_hash = hash_password(body.password)
+
+    # Update role for this specific store
+    role_obj = None
+    if body.role:
+        from app.utils import _get_role
+        role_obj = _get_role(db, body.role)
+        if role_obj:
+            ur = db.query(UserRoleModel).filter(
+                UserRoleModel.user_id == user_id,
+                UserRoleModel.store_id == store_id
+            ).first()
+            if ur:
+                ur.role_id = role_obj.role_id
+            else:
+                db.add(UserRoleModel(user_id=user_id, role_id=role_obj.role_id, store_id=store_id))
+    
+    db.commit()
+    db.refresh(u)
+
+    # Get effective role
+    if not role_obj:
+        ur = db.query(UserRoleModel).filter(
+            UserRoleModel.user_id == user_id,
+            UserRoleModel.store_id == store_id
+        ).first()
+        if ur: role_obj = ur.role
+
+    full_name = " ".join(filter(None, [u.first_name, u.last_name]))
+    return StaffOut(
+        user_id=u.user_id,
+        name=full_name,
+        username=u.username,
+        email=u.email,
+        phone=u.phone,
+        role=str(role_obj.role_name) if role_obj else "Staff",
+        store_id=store_id,
+        is_active=u.is_active,
+        created_at=u.created_at,
+    )
 
 
 # ── Customers (registered users with customer role) ───────────────────────────

@@ -76,7 +76,7 @@ export default function Staff() {
                     <td className="text-sm" style={{ color: '#475569' }}>{s.lastLogin}</td>
                     <td>
                       <div className="flex gap-1">
-                        <button className="btn-outline" onClick={() => navigateTo('add-staff', s)}>Edit</button>
+                        <button className="btn-outline" onClick={() => navigateTo('edit-staff', s)}>Edit</button>
                         <button className="btn-outline" style={{ color: '#ef4444', borderColor: '#fecaca' }} onClick={() => setDeleteId(s.id)}>Remove</button>
                       </div>
                     </td>

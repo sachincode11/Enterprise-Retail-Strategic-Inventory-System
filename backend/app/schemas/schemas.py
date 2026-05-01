@@ -37,6 +37,23 @@ class RegisterRequest(BaseModel):
         return v
 
 
+class StaffCreate(BaseModel):
+    username: str
+    first_name: str
+    last_name: Optional[str] = None
+    email: EmailStr
+    password: str
+    phone: Optional[str] = None
+    role: UserRole
+
+    @field_validator("password")
+    @classmethod
+    def strong_password(cls, v: str) -> str:
+        if len(v) < 8 or not any(c.isdigit() for c in v):
+            raise ValueError("Password must be ≥8 chars and contain at least one digit.")
+        return v
+
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
@@ -75,6 +92,7 @@ class UserOut(BaseModel):
 class StaffOut(BaseModel):
     user_id: int
     name: str
+    username: str
     email: str
     phone: Optional[str]
     role: str
@@ -86,8 +104,21 @@ class StaffOut(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    full_name: Optional[str] = None
+    username: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
     phone: Optional[str] = None
+    role: Optional[UserRole] = None
+
+    @field_validator("password")
+    @classmethod
+    def strong_password(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            if len(v) < 8 or not any(c.isdigit() for c in v):
+                raise ValueError("Password must be ≥8 chars and contain at least one digit.")
+        return v
 
 
 class UserProfileUpdate(BaseModel):

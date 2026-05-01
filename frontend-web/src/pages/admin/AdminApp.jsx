@@ -55,6 +55,7 @@ const pageMap = {
   'add-supplier':        AddSupplier,
   'view-customer':       ViewCustomer,
   'add-staff':           AddStaff,
+  'edit-staff':          AddStaff,
   'add-discount':        AddDiscount,
   'audit-log-snapshot':  AuditLogSnapshot,
   notifications:         Notifications,

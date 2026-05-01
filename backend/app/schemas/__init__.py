@@ -5,6 +5,7 @@ from .schemas import (
     OTPVerifyRequest,
     TokenResponse,
     RefreshRequest,
+    StaffCreate,
 
     # User
     UserOut,
@@ -82,6 +83,7 @@ __all__ = [
     "OTPVerifyRequest",
     "TokenResponse",
     "RefreshRequest",
+    "StaffCreate",
 
     # User
     "UserOut",

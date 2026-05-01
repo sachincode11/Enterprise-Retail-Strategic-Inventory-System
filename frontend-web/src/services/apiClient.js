@@ -57,6 +57,7 @@ export async function apiRequest(path, options = {}) {
   }
 
   if (!response.ok) {
+    if (response.status === 422) console.error('[Validation Error]', payload);
     // 401 Unauthorized -> Attempt Silent Refresh (Sliding Session)
     if (response.status === 401 && !options._retry) {
       const session = lsGet(SESSION_KEY, null);

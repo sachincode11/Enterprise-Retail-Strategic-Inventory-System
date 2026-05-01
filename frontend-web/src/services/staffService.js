@@ -18,6 +18,7 @@ function mapStaffFromBackend(s) {
     id: s.user_id,
     initials,
     name,
+    username: s.username,
     email: s.email,
     phone: s.phone || '—',
     role: roleName || 'Staff',
@@ -49,34 +50,24 @@ export async function getStaff() {
 
 export async function addStaff(member) {
   try {
-    // Register the new user account then assign a role
     const storeId = getStoreId();
-    const created = await apiRequest('/auth/register', {
+    const payload = {
+      username: (member.username || '').trim(),
+      first_name: (member.first_name || '').trim(),
+      last_name: member.last_name ? member.last_name.trim() : null,
+      email: (member.email || '').trim().toLowerCase(),
+      password: member.password,
+      phone: member.phone ? member.phone.trim() : null,
+      role: member.role || 'Cashier',
+    };
+
+    const response = await apiRequest(`/stores/${storeId}/staff`, {
       method: 'POST',
-      withAuth: false,
-      body: {
-        username: member.email.split('@')[0] + Date.now(),
-        first_name: member.name.split(' ')[0],
-        last_name: member.name.split(' ').slice(1).join(' ') || null,
-        email: member.email,
-        password: member.password || 'Temp@1234',
-        phone: member.phone || null,
-      },
+      body: payload,
     });
 
-    // Assign the chosen role (cashier / admin) to the new user for this store
-    await apiRequest('/users/assign-role', {
-      method: 'POST',
-      body: {
-        user_id: created.user_id,
-        role: member.role || 'Cashier',
-        store_id: Number(storeId),
-      },
-    });
-
-    // Refresh staff list
-    const fresh = await getStaff();
-    return toApiEnvelope(fresh.data.find((s) => s.email === member.email) || fresh.data[0], 201, 'Created');
+    // The backend now handles role assignment atomically without adding a 'Customer' role.
+    return toApiEnvelope(mapStaffFromBackend(response), 201, 'Created');
   } catch (error) {
     throw normalizeServiceError(error, 'Failed to add staff member');
   }
@@ -84,18 +75,38 @@ export async function addStaff(member) {
 
 export async function updateStaff(id, updates) {
   try {
-    // Backend user update endpoint is /users/{id} (deactivate / activate)
+    // 1. Update basic details (username, name, email, role, etc.)
+    const profilePayload = {
+      username: updates.username?.trim(),
+      first_name: updates.first_name?.trim(),
+      last_name: updates.last_name?.trim(),
+      email: updates.email?.trim().toLowerCase(),
+      password: updates.password ? updates.password : undefined,
+      phone: updates.phone?.trim(),
+      role: updates.role,
+    };
+
+    // Remove undefined fields to avoid overwriting with nulls if not intentional
+    Object.keys(profilePayload).forEach(key => profilePayload[key] === undefined && delete profilePayload[key]);
+
     const storeId = getStoreId();
+    await apiRequest(`/stores/${storeId}/staff/${id}`, {
+      method: 'PATCH',
+      body: profilePayload,
+    });
+
+    // 2. Update status if changed
     if (updates.status === 'Inactive') {
       await apiRequest(`/users/${id}/deactivate`, { method: 'PATCH' });
     } else if (updates.status === 'Active') {
       await apiRequest(`/users/${id}/activate`, { method: 'PATCH' });
     }
+
     const fresh = await getStaff();
     const updated = fresh.data.find((s) => s.id === id);
     return toApiEnvelope(updated || { id, ...updates });
   } catch (error) {
-    // Fall back: update local cache only
+    // Fall back: update local cache only if API fails (e.g. offline dev)
     const stored = getStored();
     const updated = stored.map((s) => (s.id === id ? { ...s, ...updates } : s));
     saveStored(updated);
