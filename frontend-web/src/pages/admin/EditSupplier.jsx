@@ -1,16 +1,16 @@
-// src/pages/admin/AddSupplier.jsx
+// src/pages/admin/EditSupplier.jsx
 // STATUS FIELD REMOVED as per requirements.
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { PageHeader, Button, Input, Toast } from '../../components/common';
 import { useAdmin } from '../../context/AdminContext';
 import { useAction } from '../../hooks/useService';
-import { addSupplier, updateSupplier } from '../../services/supplierService';
+import { updateSupplier } from '../../services/supplierService';
 
 const EMPTY = { name: '', contact: '', email: '', phone: '', address: '' };
 
-export default function AddSupplier() {
-  const { setCurrentPage } = useAdmin();
+export default function EditSupplier() {
+  const { setCurrentPage, editTarget } = useAdmin();
   const { execute, loading } = useAction();
 
   const [form, setForm] = useState(EMPTY);
@@ -19,11 +19,19 @@ export default function AddSupplier() {
 
   const showToast = (msg) => { setToast({ visible: true, message: msg }); setTimeout(() => setToast({ visible: false, message: '' }), 2000); };
 
+  useEffect(() => {
+    if (!editTarget?.id) {
+      setCurrentPage('suppliers');
+      return;
+    }
+    setForm({ ...EMPTY, ...editTarget });
+  }, [editTarget, setCurrentPage]);
+
   const handleSubmit = async () => {
     if (!form.name || !form.contact) { showToast('Name and contact are required.'); return; }
     await execute(
-      () => addSupplier(form),
-      () => { showToast('Supplier added!'); setTimeout(() => setCurrentPage('suppliers'), 800); }
+      () => updateSupplier(editTarget.id, form),
+      () => { showToast('Supplier updated!'); setTimeout(() => setCurrentPage('suppliers'), 800); }
     );
   };
 
@@ -31,11 +39,11 @@ export default function AddSupplier() {
     <AdminLayout>
       <PageHeader
         breadcrumb={<span className="cursor-pointer hover:text-[#1e3a5f]" onClick={() => setCurrentPage('suppliers')}>← Back to Suppliers</span>}
-        title="Add New Supplier"
+        title="Edit Supplier"
         actions={
           <>
             <Button variant="secondary" onClick={() => setCurrentPage('suppliers')}>Cancel</Button>
-            <Button variant="primary" onClick={handleSubmit} disabled={loading}>{loading ? 'Saving…' : 'Save Supplier'}</Button>
+            <Button variant="primary" onClick={handleSubmit} disabled={loading}>{loading ? 'Saving…' : 'Update Supplier'}</Button>
           </>
         }
       />
@@ -72,4 +80,3 @@ export default function AddSupplier() {
     </AdminLayout>
   );
 }
-

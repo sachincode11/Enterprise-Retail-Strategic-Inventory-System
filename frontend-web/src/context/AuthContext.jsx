@@ -5,6 +5,7 @@ import {
   login as loginService,
   logout as logoutService,
   verifyOtp as verifyOtpService,
+  resendOtp as resendOtpService,
   updateProfile as updateProfileService,
   getSession,
   getPendingLogin,
@@ -50,6 +51,22 @@ export function AuthProvider({ children }) {
       return res.data;
     } catch (err) {
       setError(err?.message || 'OTP verification failed');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const resendOtp = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await resendOtpService();
+      // Reload pending user to show updated debugOtp if needed
+      setUser(getPendingLogin());
+      return res;
+    } catch (err) {
+      setError(err?.message || 'Failed to resend OTP');
       throw err;
     } finally {
       setLoading(false);
@@ -125,7 +142,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{ 
-      user, login, logout, verifyOtp, updateProfile, 
+      user, login, logout, verifyOtp, resendOtp, updateProfile, 
       loading, error, setError, 
       showWarning, stayLoggedIn 
     }}>

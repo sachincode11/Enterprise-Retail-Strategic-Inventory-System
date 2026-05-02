@@ -115,7 +115,7 @@ export default function Suppliers() {
 
                       <td>
                         <div className="flex gap-2">
-                          <button className="btn-outline" onClick={() => navigateTo('add-supplier', s)}>Edit</button>
+                          <button className="btn-outline" onClick={() => navigateTo('edit-supplier', s)}>Edit</button>
                           <button className="btn-outline" onClick={() => navigateTo('new-order', s)}>New PO</button>
                           <button className="btn-outline" style={{ color: '#ef4444', borderColor: '#fecaca' }} onClick={() => setDeleteId(s.id)}>Delete</button>
                         </div>

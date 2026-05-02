@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -11,7 +12,7 @@ from app.models.enums import (
 from app.models import (
     Inventory, InventoryLog, Product,
     Payment, RefundItem, Transaction, TransactionDiscount, TransactionItem,
-    User
+    User, GuestCustomer, Discount
     )
 from app.schemas import (
     MessageResponse, RefundCreate, TransactionCreate, TransactionOut,
@@ -106,16 +107,43 @@ def create_transaction(
         tax_total += tax
         item_rows.append((product, inv, item_in, unit_price, line_discount, line_total))
 
-    # Session-level discount total
+    # Session-level discount calculation
     session_discount = 0.0
+    
+    # 1. Predefined discounts from DB
+    applied_predefined = []
+    if body.discount_ids:
+        for d_id in body.discount_ids:
+            disc = db.query(Discount).filter(Discount.discount_id == d_id).first()
+            if disc and disc.is_active:
+                amt = 0.0
+                if disc.discount_type == 'percentage':
+                    amt = subtotal * float(disc.discount_value) / 100
+                else:
+                    amt = float(disc.discount_value)
+                session_discount += amt
+                applied_predefined.append((disc, amt))
+                
+    # 2. Manual override (only if no predefined applied, or as addition?)
+    # Usually manual overrides are separate. Let's add it.
+    if body.manual_discount_percent:
+        session_discount += subtotal * float(body.manual_discount_percent) / 100
 
     total = subtotal + tax_total - session_discount
+
+    guest_id = None
+    if not body.customer_id and (body.guest_name or body.guest_phone):
+        guest = GuestCustomer(name=body.guest_name, phone=body.guest_phone)
+        db.add(guest)
+        db.flush()
+        guest_id = guest.guest_id
 
     txn = Transaction(
         invoice_number=_next_invoice(store_id, db),
         store_id=store_id,
         cashier_id=cashier.user_id,
         customer_id=body.customer_id,
+        guest_customer_id=guest_id,
         subtotal=subtotal,
         tax_amount=tax_total,
         discount_amount=session_discount,
@@ -149,6 +177,13 @@ def create_transaction(
             reference_type=InventoryReferenceType.transaction,
             reference_id=txn.transaction_id,
             performed_by=cashier.user_id,
+        ))
+
+    for disc_obj, amt in applied_predefined:
+        db.add(TransactionDiscount(
+            transaction_id=txn.transaction_id,
+            discount_id=disc_obj.discount_id,
+            applied_amount=amt
         ))
 
     db.add(Payment(

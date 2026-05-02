@@ -6,7 +6,7 @@ import { useApp } from '../context/AppContext';
 export default function AdminNavbar() {
   const { setCurrentPage } = useAdmin();
   const { user }           = useAuth();
-  const { nowNP, storeInfo, unreadLiveNotificationCount } = useApp();
+  const { storeInfo, unreadLiveNotificationCount, nowNP } = useApp();
 
   const name     = user?.name?.split(' ').map((n, i) => i === 0 ? n : n[0] + '.').join(' ') || 'Admin';
   const initials = user?.initials || 'AD';

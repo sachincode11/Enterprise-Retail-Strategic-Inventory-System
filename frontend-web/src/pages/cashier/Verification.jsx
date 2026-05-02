@@ -6,9 +6,10 @@ import logo from '../../assets/Full logo.png';
 
 export default function Verification() {
   const { setCurrentPage, postAuthPage } = useCashier();
-  const { user, verifyOtp, logout, loading } = useAuth();
+  const { user, verifyOtp, resendOtp, logout, loading } = useAuth();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   function handleChange(i, val) {
     if (val.length > 1 || !/^\d?$/.test(val)) return;
@@ -35,6 +36,18 @@ export default function Verification() {
       setCurrentPage(postAuthPage || 'dashboard');
     } catch (err) {
       setError(err?.message || 'OTP verification failed.');
+    }
+  }
+
+  async function handleResend() {
+    setError('');
+    setSuccessMsg('');
+    try {
+      await resendOtp();
+      setSuccessMsg('A new OTP has been sent to your email.');
+      setOtp(['', '', '', '', '', '']);
+    } catch (err) {
+      setError(err?.message || 'Failed to resend OTP.');
     }
   }
 
@@ -67,6 +80,7 @@ export default function Verification() {
             ))}
           </div>
           {error && <p className="text-xs text-[#dc2626] mb-3 text-center">{error}</p>}
+          {successMsg && <p className="text-xs text-[#22c55e] mb-3 text-center">{successMsg}</p>}
           <p className="text-xs text-[#94a3b8] mb-5 text-center">
             {user?.debugOtp ? `Dev OTP code: ${user.debugOtp}` : 'Enter the 6-digit OTP from your email'}
           </p>
@@ -76,7 +90,7 @@ export default function Verification() {
           >{loading ? 'Verifying…' : 'Verify & Continue'}</button>
           <div className="flex justify-between mb-8">
             <button className="text-xs text-[#94a3b8] hover:text-[#475569]">Didn't receive code?</button>
-            <button className="text-xs font-medium text-[#1e3a5f] hover:text-[#16324f]">Resend OTP</button>
+            <button onClick={handleResend} disabled={loading} className="text-xs font-medium text-[#1e3a5f] hover:text-[#16324f] disabled:opacity-50">Resend OTP</button>
           </div>
 
           <button onClick={() => logout()} className="w-full py-2 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors border-t border-gray-100 mt-4 pt-4">

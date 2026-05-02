@@ -51,6 +51,7 @@ class TransactionStatus(str, enum.Enum):
 class PaymentMethod(str, enum.Enum):
     cash = "cash"
     card = "card"
+    qr = "qr"
 
 
 class PaymentStatus(str, enum.Enum):

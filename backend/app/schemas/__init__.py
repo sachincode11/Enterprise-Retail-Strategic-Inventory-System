@@ -2,6 +2,7 @@ from .schemas import (
     # Auth
     RegisterRequest,
     LoginRequest,
+    ResendOTPRequest,
     OTPVerifyRequest,
     TokenResponse,
     RefreshRequest,
@@ -80,6 +81,7 @@ __all__ = [
     # Auth
     "RegisterRequest",
     "LoginRequest",
+    "ResendOTPRequest",
     "OTPVerifyRequest",
     "TokenResponse",
     "RefreshRequest",

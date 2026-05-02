@@ -1,6 +1,6 @@
-// src/pages/cashier/Receipt.jsx — IMPROVED: email removed, print + download only, uses lastTransaction
 import { useCashier } from '../../context/CashierContext';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Receipt() {
   const {
@@ -8,7 +8,8 @@ export default function Receipt() {
     paymentMethod, selectedCustomer, setCurrentPage, clearCart,
     lastTransaction,
   } = useCashier();
-  const { nowNP } = useApp();
+  const { storeInfo, nowNP } = useApp();
+  const { user } = useAuth();
 
   // Use lastTransaction snapshot if available (survives cart clear)
   const snap = lastTransaction || {};
@@ -21,19 +22,29 @@ export default function Receipt() {
   const snapChange    = snap.change    ?? change;
   const snapMethod    = snap.paymentMethod ?? paymentMethod;
   const snapCustomer  = snap.selectedCustomer ?? selectedCustomer;
+  const snapDiscountObj = snap.selectedDiscount || null;
   const txnId         = snap.id || `#TXN-${Date.now().toString().slice(-6)}`;
+  
+  const cashierName   = user?.name || user?.username || 'Staff';
+  const storeName     = storeInfo?.name || 'ERSIS STORE';
+  const storeAddr     = storeInfo?.address || 'Kathmandu, Nepal';
+  const storePhone    = storeInfo?.phone || '+977-1-0000000';
 
-  const txnDate = nowNP.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kathmandu' });
-  const txnTime = nowNP.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kathmandu' });
+  // Use the date from the transaction if it exists, otherwise now
+  const displayDate = snap.datetime || nowNP;
+  const dateObj = typeof displayDate === 'string' ? new Date(displayDate) : displayDate;
+  
+  const txnDate = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kathmandu' });
+  const txnTime = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kathmandu' });
 
   const handleNewTxn = () => { clearCart(); setCurrentPage('pos'); };
 
   const handleDownload = () => {
     const lines = [
       '================================',
-      '         INVO STORE',
-      '  New Baneshwor, Kathmandu',
-      '  Tel: +977-1-441-0000',
+      `         ${storeName.toUpperCase()}`,
+      `  ${storeAddr}`,
+      `  Tel: ${storePhone}`,
       '================================',
       `TXN: ${txnId}`,
       `Date: ${txnDate}   Time: ${txnTime}`,
@@ -82,9 +93,9 @@ export default function Receipt() {
       <div className="w-[380px] bg-white rounded-lg shadow-xl overflow-hidden border border-[#e2e8f0]">
         {/* Header */}
         <div className="border-b-2 border-dashed border-[#e2e8f0] p-8 pb-6 text-center">
-          <h1 className="text-2xl font-black tracking-wider text-[#0f172a] mb-1">INVO STORE</h1>
+          <h1 className="text-2xl font-black tracking-wider text-[#0f172a] mb-1">{storeName.toUpperCase()}</h1>
           <p className="text-xs text-[#94a3b8] font-mono leading-relaxed">
-            New Baneshwor, Kathmandu<br />Tel: +977-1-441-0000<br />PAN: PAN-00112233
+            {storeAddr}<br />Tel: {storePhone}
           </p>
         </div>
 
@@ -92,7 +103,7 @@ export default function Receipt() {
         <div className="px-8 py-4 border-b border-dashed border-[#e2e8f0] text-center">
           <p className="text-xs font-mono text-[#94a3b8]">TXN: {txnId}</p>
           <p className="text-xs font-mono text-[#94a3b8]">Date: {txnDate} &nbsp; Time: {txnTime}</p>
-          <p className="text-xs font-mono text-[#94a3b8]">Cashier: Kasim R. &nbsp; Shift: #0842</p>
+          <p className="text-xs font-mono text-[#94a3b8]">Cashier: {cashierName}</p>
         </div>
 
         {/* Customer */}
@@ -126,7 +137,12 @@ export default function Receipt() {
         {/* Totals */}
         <div className="px-8 pb-4 border-t border-dashed border-[#e2e8f0] pt-3 space-y-1.5">
           <div className="flex justify-between text-xs text-[#94a3b8]"><span>Subtotal</span><span>Rs {Math.round(snapSubtotal).toLocaleString()}</span></div>
-          {snapDiscount > 0 && <div className="flex justify-between text-xs text-green-600"><span>Discount</span><span>-Rs {Math.round(snapDiscount).toLocaleString()}</span></div>}
+          {snapDiscount > 0 && (
+            <div className="flex justify-between text-xs text-green-600">
+              <span>Discount {snapDiscountObj ? `(${snapDiscountObj.name || snapDiscountObj.discount_name})` : ''}</span>
+              <span>-Rs {Math.round(snapDiscount).toLocaleString()}</span>
+            </div>
+          )}
           <div className="flex justify-between text-xs text-[#94a3b8]"><span>Tax (13%)</span><span>Rs {Math.round(snapTax).toLocaleString()}</span></div>
           <div className="flex justify-between font-black text-base border-t border-[#e2e8f0] pt-2 mt-2"><span>TOTAL</span><span>Rs {Math.round(snapTotal).toLocaleString()}</span></div>
           <div className="flex justify-between text-xs text-[#94a3b8]"><span>Payment</span><span>{snapMethod}</span></div>

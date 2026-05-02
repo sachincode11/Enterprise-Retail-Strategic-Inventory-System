@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useCashier } from '../../context/CashierContext';
+import { lsGet, lsSet } from '../../utils/storage';
 import logo from '../../assets/Full logo.png';
 
 const FEATURES = [
@@ -13,9 +14,10 @@ const FEATURES = [
 export default function Login() {
   const { login, loading } = useAuth();
   const { currentPage, setCurrentPage, setPostAuthPage } = useCashier();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => lsGet('invosix_remember_cashier_email', ''));
   const [password, setPassword] = useState('');
-  const [remember, setRemember] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(!!lsGet('invosix_remember_cashier_email', ''));
   const [error, setError] = useState('');
 
   const handleSubmit = async () => {
@@ -24,6 +26,14 @@ export default function Login() {
     try {
       const user = await login({ email, password, expectedRole: 'cashier' });
       if (user.role !== 'cashier') { setError('This terminal is for cashier accounts only.'); return; }
+      
+      // Handle Remember Me
+      if (remember) {
+        lsSet('invosix_remember_cashier_email', email);
+      } else {
+        localStorage.removeItem('invosix_remember_cashier_email');
+      }
+
       setPostAuthPage(currentPage === 'verification' ? 'dashboard' : currentPage || 'dashboard');
       setCurrentPage('verification');
     } catch (err) {
@@ -47,8 +57,16 @@ export default function Login() {
           </div>
         </div>
       </div>
-      <div className="w-[420px] bg-white flex flex-col justify-center px-12">
-        <p className="text-[#94a3b8] text-sm mb-1">Welcome back</p>
+      <div className="w-[420px] bg-white flex flex-col justify-center px-12 relative">
+        <button onClick={() => window.location.hash = ''} 
+          className="absolute top-8 left-8 flex items-center gap-2 text-xs font-medium text-[#94a3b8] hover:text-[#1e3a5f] transition-colors group">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="transition-transform group-hover:-translate-x-0.5">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Back
+        </button>
+
+        <p className="text-[#94a3b8] text-sm mb-1 mt-8">Welcome back</p>
         <h1 className="text-2xl font-bold text-[#0f172a] mb-7">Sign In</h1>
         <div className="mb-6">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium" style={{ background: '#eff6ff', color: '#1e3a5f', border: '1px solid #bfdbfe' }}>
@@ -67,10 +85,19 @@ export default function Login() {
         </div>
         <div className="mb-4">
           <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Password</label>
-          <input type="password" value={password} onChange={e => { setPassword(e.target.value); setError(''); }}
-            placeholder="••••••••" onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-            className="w-full px-4 py-2.5 text-sm bg-[#f8fafc] border border-[#e2e8f0] rounded-lg outline-none text-[#0f172a] transition-all focus:border-[#1e3a5f] focus:shadow-[0_0_0_3px_rgba(30,58,95,0.1)]"
-          />
+          <div className="relative">
+            <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => { setPassword(e.target.value); setError(''); }}
+              placeholder="••••••••" onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+              className="w-full px-4 py-2.5 text-sm bg-[#f8fafc] border border-[#e2e8f0] rounded-lg outline-none text-[#0f172a] transition-all focus:border-[#1e3a5f] focus:shadow-[0_0_0_3px_rgba(30,58,95,0.1)] pr-10"
+            />
+            <button 
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#1e3a5f] transition-colors"
+            >
+              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+            </button>
+          </div>
         </div>
         <div className="flex items-center justify-between mb-6">
           <label className="flex items-center gap-2 cursor-pointer">
@@ -79,22 +106,13 @@ export default function Login() {
           </label>
         </div>
         <button onClick={handleSubmit} disabled={loading}
-          className="w-full py-3 rounded-lg font-semibold text-sm text-white mb-6 transition-all hover:bg-[#16324f] hover:shadow-[0_4px_12px_rgba(30,58,95,0.35)] disabled:opacity-60"
+          className="w-full py-4 rounded-xl font-bold text-sm text-white mb-8 transition-all duration-200 hover:bg-[#16324f] hover:shadow-xl disabled:opacity-60 shadow-lg shadow-blue-900/20"
           style={{ background: '#1e3a5f' }}
         >{loading ? 'Signing in…' : 'Sign In to Terminal'}</button>
-        <p className="text-center text-xs text-[#94a3b8] mb-3">
-          Use: <span className="font-mono text-[#1e3a5f]">kasim@store.np</span> / <span className="font-mono text-[#1e3a5f]">cashier123</span>
-        </p>
-        <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-lg p-4 flex items-start gap-3">
-          <div className="w-6 h-6 border border-[#bfdbfe] rounded flex items-center justify-center shrink-0 mt-0.5" style={{ background: '#eff6ff' }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1e3a5f" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" /></svg>
-          </div>
-          <div>
-            <p className="text-xs font-medium text-[#0f172a] mb-0.5">Email OTP Required</p>
-            <p className="text-xs text-[#94a3b8] leading-relaxed">A 6-digit code will be sent to your registered email address.</p>
-          </div>
-        </div>
       </div>
     </div>
   );
 }
+
+function EyeIcon()    { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>; }
+function EyeOffIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 011.82-3.35M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>; }

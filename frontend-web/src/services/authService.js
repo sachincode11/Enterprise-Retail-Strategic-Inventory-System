@@ -199,6 +199,39 @@ export async function verifyOtp({ otp }) {
   }
 }
 
+export async function resendOtp() {
+  const pending = getPendingLogin();
+  if (!pending?.email) {
+    throw { status: 400, message: 'No pending login found.', data: null };
+  }
+
+  if (USE_MOCK) {
+    return new Promise(resolve => 
+      setTimeout(() => resolve(toApiEnvelope({ sent: true }, 200, 'Mock OTP sent')), 400)
+    );
+  }
+
+  try {
+    const payload = await apiRequest('/auth/resend-otp', {
+      method: 'POST',
+      withAuth: false,
+      body: {
+        email: pending.email,
+        purpose: pending.otpPurpose || 'login_2fa'
+      }
+    });
+    
+    // Update pending login with new debug otp if available
+    if (payload.debug_otp) {
+      lsSet(PENDING_KEY, { ...pending, debugOtp: payload.debug_otp });
+    }
+
+    return toApiEnvelope(payload, 200, payload.message || 'OTP resent');
+  } catch (error) {
+    throw normalizeServiceError(error, 'Failed to resend OTP');
+  }
+}
+
 export async function refreshToken() {
   const session = getSession();
   if (!session?.refreshToken) {

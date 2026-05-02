@@ -4,15 +4,16 @@ import CashierLayout from '../../layouts/CashierLayout';
 import { useCashier } from '../../context/CashierContext';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../../components/common';
-import PinModal from './PinModal';
 
 function CustomerPanel({ selectedCustomer, setSelectedCustomer }) {
   const [tab, setTab]       = useState('Registered');
   const [search, setSearch] = useState('');
   const { customers } = useApp();
   const registered = customers.filter(c => c.type === 'Registered');
+  const [guestInfo, setGuestInfo] = useState({ name: 'Walk-in Guest', phone: '' });
+
   const shown = tab === 'Guest'
-    ? [{ id: 'guest', name: 'Walk-in Guest', phone: '—', orders: 0 }]
+    ? []
     : registered.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
@@ -30,7 +31,21 @@ function CustomerPanel({ selectedCustomer, setSelectedCustomer }) {
             className="flex-1 px-3 py-2 text-xs bg-[#f1f5f9] border border-[#e2e8f0] rounded-lg outline-none focus:border-[#1e3a5f]" />
         </div>
       )}
-      {!selectedCustomer && (
+      {tab === 'Guest' && !selectedCustomer && (
+        <div className="space-y-2 p-1">
+          <input value={guestInfo.name} onChange={e => setGuestInfo({...guestInfo, name: e.target.value})}
+            placeholder="Guest Name (Optional)"
+            className="w-full px-3 py-2 text-xs bg-[#f1f5f9] border border-[#e2e8f0] rounded-lg outline-none" />
+          <input value={guestInfo.phone} onChange={e => setGuestInfo({...guestInfo, phone: e.target.value})}
+            placeholder="Phone Number (Optional)"
+            className="w-full px-3 py-2 text-xs bg-[#f1f5f9] border border-[#e2e8f0] rounded-lg outline-none" />
+          <button onClick={() => setSelectedCustomer({ id: 'guest', ...guestInfo })}
+            className="w-full py-2 bg-[#1e3a5f] text-white text-xs font-medium rounded-lg">
+            Use Guest Details
+          </button>
+        </div>
+      )}
+      {tab === 'Registered' && !selectedCustomer && (
         <div className="space-y-1 max-h-28 overflow-y-auto">
           {shown.map((c) => (
             <button key={c.id} onClick={() => setSelectedCustomer(c)}
@@ -57,37 +72,81 @@ function CustomerPanel({ selectedCustomer, setSelectedCustomer }) {
   );
 }
 
-function DiscountModal({ isOpen, onClose, onApply }) {
+function DiscountModal({ isOpen, onClose, onApply, onSelectPredefined }) {
+  const { discounts } = useApp();
   const [type,  setType]  = useState('percent');
   const [value, setValue] = useState('');
-  const apply = () => {
+  
+  const activeTxnDiscounts = discounts.filter(d => 
+    d.is_active && d.applies_to === 'transaction'
+  );
+
+  const applyManual = () => {
     const num = parseFloat(value);
     if (!num || num <= 0) return;
     onApply(num);
+    onSelectPredefined(null);
     onClose();
   };
+
+  const applyPredefined = (d) => {
+    onSelectPredefined(d);
+    onApply(0); // Clear manual discount if picking predefined
+    onClose();
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Apply Discount">
-      <div className="space-y-4">
-        <div className="flex gap-2">
-          {['percent', 'flat'].map(t => (
-            <button key={t} onClick={() => setType(t)}
-              className={`flex-1 py-2 text-sm rounded-lg border transition-all ${type === t ? 'bg-[#1e3a5f] text-white border-[#1e3a5f]' : 'border-[#e2e8f0] text-[#475569]'}`}>
-              {t === 'percent' ? 'Percentage (%)' : 'Flat Amount (Rs)'}
-            </button>
-          ))}
+      <div className="space-y-6">
+        {/* Predefined Discounts from DB */}
+        {activeTxnDiscounts.length > 0 && (
+          <div>
+            <label className="block text-[10px] font-mono text-[#94a3b8] uppercase tracking-widest mb-3">Predefined Discounts</label>
+            <div className="grid grid-cols-1 gap-2">
+              {activeTxnDiscounts.map(d => (
+                <button key={d.id} onClick={() => applyPredefined(d)}
+                  className="flex items-center justify-between p-3 rounded-xl border border-[#e2e8f0] hover:border-[#1e3a5f] hover:bg-[#f8fafc] transition-all group">
+                  <div className="text-left">
+                    <p className="text-sm font-semibold text-[#0f172a] group-hover:text-[#1e3a5f]">{d.name || d.discount_name}</p>
+                    <p className="text-[10px] text-[#94a3b8] font-mono">
+                      {d.discount_type === 'percentage' ? `${d.discount_value}% OFF` : `Rs ${d.discount_value} OFF`}
+                    </p>
+                  </div>
+                  <div className="w-6 h-6 rounded-full bg-[#f1f5f9] flex items-center justify-center text-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity">
+                    →
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-[#e2e8f0]"></span></div>
+          <div className="relative flex justify-center text-[10px] uppercase font-mono text-[#94a3b8]"><span className="bg-white px-2">Or Manual Override</span></div>
         </div>
-        <div>
-          <label className="block text-xs text-[#94a3b8] mb-1.5 font-mono uppercase tracking-widest">
-            {type === 'percent' ? 'Discount %' : 'Amount (Rs)'}
-          </label>
-          <input type="number" value={value} onChange={e => setValue(e.target.value)}
-            placeholder={type === 'percent' ? 'e.g. 10' : 'e.g. 100'}
-            className="w-full px-3 py-2.5 text-sm bg-[#f8fafc] border border-[#e2e8f0] rounded-lg outline-none focus:border-[#1e3a5f]" />
-        </div>
-        <div className="flex gap-2 justify-end">
-          <button onClick={onClose} className="btn-secondary">Cancel</button>
-          <button onClick={apply} className="btn-primary">Apply Discount</button>
+
+        <div className="space-y-4">
+          <div className="flex gap-2 bg-[#f1f5f9] p-1 rounded-lg">
+            {['percent', 'flat'].map(t => (
+              <button key={t} onClick={() => setType(t)}
+                className={`flex-1 py-2 text-xs font-medium rounded-md transition-all ${type === t ? 'bg-white text-[#0f172a] shadow-sm' : 'text-[#94a3b8] hover:text-[#475569]'}`}>
+                {t === 'percent' ? 'Percentage' : 'Flat Amount'}
+              </button>
+            ))}
+          </div>
+          <div>
+            <label className="block text-[10px] font-mono text-[#94a3b8] uppercase tracking-widest mb-1.5">
+              {type === 'percent' ? 'Discount %' : 'Amount (Rs)'}
+            </label>
+            <input type="number" value={value} onChange={e => setValue(e.target.value)}
+              placeholder={type === 'percent' ? 'e.g. 10' : 'e.g. 100'}
+              className="w-full px-4 py-2.5 text-sm font-mono bg-white border border-[#e2e8f0] rounded-xl outline-none focus:border-[#1e3a5f] transition-all" />
+          </div>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="flex-1 py-2.5 text-sm font-medium text-[#475569] hover:bg-[#f8fafc] rounded-xl transition-colors">Cancel</button>
+            <button onClick={applyManual} className="flex-1 py-2.5 bg-[#1e3a5f] text-white text-sm font-bold rounded-xl hover:bg-[#16324f] transition-all">Apply</button>
+          </div>
         </div>
       </div>
     </Modal>
@@ -128,6 +187,7 @@ export default function POS() {
   const {
     cart, addToCart, updateQty, removeFromCart, clearCart,
     discount, setDiscount,
+    selectedDiscount, setSelectedDiscount,
     paymentMethod, setPaymentMethod,
     tendered, setTendered,
     selectedCustomer, setSelectedCustomer,
@@ -143,7 +203,6 @@ export default function POS() {
   const [searchQuery, setSearchQuery]   = useState('');
   const [discountOpen, setDiscountOpen] = useState(false);
   const [qrOpen, setQrOpen]             = useState(false);
-  const [pinOpen, setPinOpen]           = useState(false);
   const [processing, setProcessing]     = useState(false);
   const [browseOpen, setBrowseOpen]     = useState(false);
 
@@ -151,26 +210,48 @@ export default function POS() {
 
   // Search products from live catalogue
   const productResults = searchQuery.length > 1
-    ? products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku.toLowerCase().includes(searchQuery.toLowerCase()))
+    ? products.filter(p => 
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        p.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.barcode === searchQuery
+      )
     : [];
+
+  const handleSearchKeyPress = (e) => {
+    if (e.key === 'Enter' && searchQuery) {
+      // If exact barcode match, add it immediately
+      const exactMatch = products.find(p => p.barcode === searchQuery);
+      if (exactMatch && exactMatch.stock > 0) {
+        addToCart(exactMatch);
+        setSearchQuery('');
+      } else if (productResults.length === 1 && productResults[0].stock > 0) {
+        // If only one result, add it
+        addToCart(productResults[0]);
+        setSearchQuery('');
+      }
+    }
+  };
 
   const handleCharge = () => {
     if (!cart.length) return;
     if (paymentMethod === 'QR') { setQrOpen(true); return; }
-    // PIN required for transactions
-    setPinOpen(true);
+    processPayment();
   };
 
   const processPayment = async () => {
     setProcessing(true);
+    const isGuest = selectedCustomer?.id === 'guest';
     const txnData = {
-      customer: selectedCustomer?.name || 'Walk-in Guest',
+      customer_id: isGuest ? null : selectedCustomer?.id,
+      guest_name: isGuest ? selectedCustomer.name : null,
+      guest_phone: isGuest ? selectedCustomer.phone : null,
+      customerName: selectedCustomer?.name || 'Walk-in Guest',
       cashier: 'Kasim R.',
-      items: cart.length,
-      itemDetails: cart.map(i => ({ id: i.id, qty: i.qty })),
+      items: cart.map(i => ({ product_id: i.id, quantity: i.qty })),
       method: paymentMethod,
-      amount: `Rs ${Math.round(total).toLocaleString('en-IN')}`,
-      discount: discount > 0 ? `${discount}%` : null,
+      total_amount: total,
+      discount_ids: selectedDiscount ? [selectedDiscount.id || selectedDiscount.discount_id] : [],
+      manual_discount_percent: selectedDiscount ? 0 : discount,
     };
     const saved = await addTransaction(txnData);
     setLastTransaction({
@@ -181,6 +262,7 @@ export default function POS() {
       tendered, change,
       paymentMethod,
       selectedCustomer,
+      selectedDiscount,
     });
     setProcessing(false);
     clearCart();
@@ -217,6 +299,7 @@ export default function POS() {
           <div className="px-6 py-3 bg-[#f8fafc] border-b border-[#e2e8f0] flex gap-3 shrink-0 relative">
             <div className="flex-1 relative">
               <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyPress}
                 placeholder="Search product or scan barcode..."
                 className="w-full px-4 py-2 text-sm bg-white border border-[#e2e8f0] rounded-lg outline-none focus:border-[#1e3a5f] transition-colors" />
               {/* Live search dropdown */}
@@ -377,19 +460,14 @@ export default function POS() {
         </div>
       </div>
 
-      <DiscountModal isOpen={discountOpen} onClose={() => setDiscountOpen(false)} onApply={setDiscount} />
-      <QRModal isOpen={qrOpen} onClose={() => setQrOpen(false)} total={total}
-        onConfirm={() => { setQrOpen(false); setPinOpen(true); }} />
-      <PinModal
-        isOpen={pinOpen}
-        onClose={() => setPinOpen(false)}
-        title="Confirm Transaction"
-        subtitle="Enter your PIN to process this payment"
-        onSuccess={async () => {
-          setPinOpen(false);
-          await processPayment();
-        }}
+      <DiscountModal 
+        isOpen={discountOpen} 
+        onClose={() => setDiscountOpen(false)} 
+        onApply={setDiscount} 
+        onSelectPredefined={setSelectedDiscount} 
       />
+      <QRModal isOpen={qrOpen} onClose={() => setQrOpen(false)} total={total}
+        onConfirm={() => { setQrOpen(false); processPayment(); }} />
     </CashierLayout>
   );
 }

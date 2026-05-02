@@ -1,21 +1,35 @@
 // src/pages/admin/AddDiscount.jsx — IMPROVED: wired to AppContext addDiscount, no alert()
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { PageHeader, Button, Input, Toggle, Toast } from '../../components/common';
 import { useAdmin } from '../../context/AdminContext';
 import { useApp } from '../../context/AppContext';
+import { getCategories } from '../../services/productService';
 
-const EMPTY = { name: '', code: '', type: 'Percentage', value: '', appliesTo: 'Entire cart', minOrder: '', maxUses: '', startDate: '', endDate: '', status: 'Active', stackable: false, onePerCustomer: true, notes: '' };
+const EMPTY = { name: '', code: '', type: 'Percentage', value: '', appliesTo: 'Entire cart', minOrder: '', maxUses: '', startDate: '', endDate: '', status: 'Active', stackable: false, onePerCustomer: true, notes: '', productId: '', categoryId: '' };
 
 export default function AddDiscount() {
   const { setCurrentPage } = useAdmin();
-  const { addDiscount }    = useApp();
+  const { addDiscount, products } = useApp();
 
-  const [form,    setForm]    = useState(EMPTY);
-  const [saving,  setSaving]  = useState(false);
-  const [toast,   setToast]   = useState({ visible: false, message: '', type: 'success' });
+  const [form, setForm] = useState(EMPTY);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+  const [categories, setCategories] = useState([]);
 
-  const set    = key => e => setForm(prev => ({ ...prev, [key]: e.target.value }));
+  useEffect(() => {
+    window.pauseGlobalClock = true;
+    let active = true;
+    getCategories().then(res => {
+      if (active) setCategories(Array.isArray(res?.data) ? res.data : []);
+    }).catch(() => { });
+    return () => {
+      active = false;
+      window.pauseGlobalClock = false;
+    };
+  }, []);
+
+  const set = key => e => setForm(prev => ({ ...prev, [key]: e.target.value }));
   const toggle = key => setForm(prev => ({ ...prev, [key]: !prev[key] }));
 
   const showToast = (message, type = 'success') => {
@@ -25,16 +39,18 @@ export default function AddDiscount() {
 
   const generateCode = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    const code  = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    const code = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
     setForm(prev => ({ ...prev, code }));
   };
 
   const handleSubmit = async () => {
     if (!form.name || !form.value) { showToast('Name and value are required.', 'error'); return; }
     if (!form.code) { showToast('Discount code is required.', 'error'); return; }
+    if (form.appliesTo === 'Specific category' && !form.categoryId) { showToast('Please select a category.', 'error'); return; }
+    if (form.appliesTo === 'Specific product' && !form.productId) { showToast('Please select a product.', 'error'); return; }
     setSaving(true);
     const valueStr = form.type === 'Percentage' ? `${form.value}%` : `Rs ${form.value}`;
-    const period   = form.startDate && form.endDate ? `${form.startDate} – ${form.endDate}` : 'Ongoing';
+    const period = form.startDate && form.endDate ? `${form.startDate} – ${form.endDate}` : 'Ongoing';
     await addDiscount({ ...form, value: valueStr, period });
     setSaving(false);
     showToast('Discount created successfully.');
@@ -77,17 +93,35 @@ export default function AddDiscount() {
               <div>
                 <label className="block text-xs text-[#94a3b8] mb-1.5 font-mono uppercase tracking-widest">Applies To</label>
                 <select className="w-full px-3 py-2.5 text-sm bg-[#f8fafc] border border-[#e2e8f0] rounded-lg outline-none focus:border-[#1e3a5f]" value={form.appliesTo} onChange={set('appliesTo')}>
-                  <option>Entire cart</option><option>Registered customers</option><option>Orders &gt; Rs 1,000</option><option>Specific category</option>
+                  <option>Entire cart</option><option>Registered customers</option><option>Orders &gt; Rs 1,000</option><option>Specific category</option><option>Specific product</option>
                 </select>
               </div>
-              <Input label="Min. Order Value (Rs)" type="number" value={form.minOrder}  onChange={set('minOrder')}  placeholder="0" />
-              <Input label="Max Uses"              type="number" value={form.maxUses}   onChange={set('maxUses')}   placeholder="Unlimited" />
-              <Input label="Start Date"            type="date"   value={form.startDate} onChange={set('startDate')} />
-              <Input label="End Date"              type="date"   value={form.endDate}   onChange={set('endDate')} />
+              {form.appliesTo === 'Specific category' && (
+                <div>
+                  <label className="block text-xs text-[#94a3b8] mb-1.5 font-mono uppercase tracking-widest">Select Category *</label>
+                  <select className="w-full px-3 py-2.5 text-sm bg-[#f8fafc] border border-[#e2e8f0] rounded-lg outline-none focus:border-[#1e3a5f]" value={form.categoryId} onChange={set('categoryId')}>
+                    <option value="">Choose category...</option>
+                    {categories.map(c => <option key={c.category_id} value={c.category_id}>{c.category_name}</option>)}
+                  </select>
+                </div>
+              )}
+              {form.appliesTo === 'Specific product' && (
+                <div>
+                  <label className="block text-xs text-[#94a3b8] mb-1.5 font-mono uppercase tracking-widest">Select Product *</label>
+                  <select className="w-full px-3 py-2.5 text-sm bg-[#f8fafc] border border-[#e2e8f0] rounded-lg outline-none focus:border-[#1e3a5f]" value={form.productId} onChange={set('productId')}>
+                    <option value="">Choose product...</option>
+                    {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>)}
+                  </select>
+                </div>
+              )}
+              <Input label="Min. Order Value (Rs)" type="number" value={form.minOrder} onChange={set('minOrder')} placeholder="0" />
+              <Input label="Max Uses" type="number" value={form.maxUses} onChange={set('maxUses')} placeholder="Unlimited" />
+              <Input label="Start Date" type="date" value={form.startDate} onChange={set('startDate')} />
+              <Input label="End Date" type="date" value={form.endDate} onChange={set('endDate')} />
               <div className="col-span-2 space-y-4 pt-2">
                 {[
-                  { key: 'stackable',       label: 'Stackable',          sub: 'Allow combined with other discounts' },
-                  { key: 'onePerCustomer',  label: 'One Per Customer',   sub: 'Limit to one use per registered customer' },
+                  { key: 'stackable', label: 'Stackable', sub: 'Allow combined with other discounts' },
+                  { key: 'onePerCustomer', label: 'One Per Customer', sub: 'Limit to one use per registered customer' },
                 ].map(item => (
                   <div key={item.key} className="flex items-center justify-between">
                     <div><p className="text-sm font-medium text-[#0f172a]">{item.label}</p><p className="text-xs text-[#94a3b8]">{item.sub}</p></div>

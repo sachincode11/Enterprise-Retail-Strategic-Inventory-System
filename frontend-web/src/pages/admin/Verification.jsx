@@ -1,14 +1,36 @@
 // src/pages/admin/Verification.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAdmin } from '../../context/AdminContext';
 import { useAuth } from '../../context/AuthContext';
 import logo from '../../assets/Full logo.png';
 
 export default function Verification() {
   const { setCurrentPage } = useAdmin();
-  const { user, verifyOtp, logout, loading } = useAuth();
+  const { user, verifyOtp, resendOtp, logout, loading } = useAuth();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [timeLeft, setTimeLeft] = useState(300);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          logout();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [logout]);
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
 
   function handleChange(i, val) {
     if (val.length > 1 || !/^\d?$/.test(val)) return;
@@ -35,6 +57,19 @@ export default function Verification() {
       setCurrentPage('dashboard');
     } catch (err) {
       setError(err?.message || 'OTP verification failed.');
+    }
+  }
+
+  async function handleResend() {
+    setError('');
+    setSuccessMsg('');
+    try {
+      await resendOtp();
+      setSuccessMsg('A new OTP has been sent to your email.');
+      setTimeLeft(300); // Reset the timer
+      setOtp(['', '', '', '', '', '']); // Clear the inputs
+    } catch (err) {
+      setError(err?.message || 'Failed to resend OTP.');
     }
   }
 
@@ -67,6 +102,7 @@ export default function Verification() {
             ))}
           </div>
           {error && <p className="text-xs text-[#dc2626] mb-3 text-center">{error}</p>}
+          {successMsg && <p className="text-xs text-[#22c55e] mb-3 text-center">{successMsg}</p>}
           <p className="text-xs text-[#94a3b8] mb-4 text-center">
             {user?.debugOtp ? `Dev OTP code: ${user.debugOtp}` : 'Enter the 6-digit OTP from your email'}
           </p>
@@ -76,16 +112,16 @@ export default function Verification() {
           >{loading ? 'Verifying…' : 'Verify & Continue'}</button>
           <div className="flex justify-between mb-8">
             <button className="text-xs text-[#94a3b8] hover:text-[#475569] transition-colors">Didn't receive code?</button>
-            <button className="text-xs font-medium text-[#1e3a5f] hover:text-[#16324f] transition-colors">Resend OTP</button>
+            <button onClick={handleResend} disabled={loading} className="text-xs font-medium text-[#1e3a5f] hover:text-[#16324f] transition-colors disabled:opacity-50">Resend OTP</button>
           </div>
 
           <button onClick={() => logout()} className="w-full py-2 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors border-t border-gray-100 mt-4 pt-4">
             ← Back to Login
           </button>
           <div className="mt-8 p-3 rounded-lg" style={{ background: '#f0f9ff', border: '1px solid #bae6fd' }}>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center gap-2">
               <div className="w-2 h-2 rounded-full bg-[#22c55e]" />
-              <p className="text-xs text-[#475569]">Session expires in <strong className="text-[#0f172a]">10:00</strong> minutes</p>
+              <p className="text-xs text-[#475569]">Session expires in <strong className="text-[#0f172a]">{formatTime(timeLeft)}</strong> minutes</p>
             </div>
           </div>
         </div>

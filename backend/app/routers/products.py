@@ -223,7 +223,7 @@ def update_product(
         raise HTTPException(404, "Product not found.")
 
     old_price = p.unit_price
-    update_data = body.model_dump(exclude_none=True)
+    update_data = body.model_dump(exclude_unset=True)
     
     if "barcode" in update_data:
         existing = db.query(Product).filter(
@@ -234,20 +234,19 @@ def update_product(
         if existing:
             raise HTTPException(400, "Barcode already exists in this store.")
 
-    supplier_id = update_data.pop("supplier_id", None)
-    supply_price = update_data.pop("supply_price", None)
-    reorder_level = update_data.pop("reorder_level", None)
-    
-    for field, value in update_data.items():
-        setattr(p, field, value)
-
-    if supplier_id is not None:
+    if "supplier_id" in update_data or "supply_price" in update_data:
+        supplier_id = update_data.pop("supplier_id", _get_product_supplier_id(db, p.product_id))
+        supply_price = update_data.pop("supply_price", _get_product_supply_price(db, p.product_id))
         _sync_product_supplier(db, store_id, p.product_id, supplier_id, supply_price)
 
-    if reorder_level is not None:
+    if "reorder_level" in update_data:
+        reorder_level = update_data.pop("reorder_level")
         inv = db.query(Inventory).filter(Inventory.product_id == product_id, Inventory.store_id == store_id).first()
         if inv:
             inv.reorder_level = reorder_level
+            
+    for field, value in update_data.items():
+        setattr(p, field, value)
 
     # Record price history if price changed
     if body.unit_price and body.unit_price != old_price:

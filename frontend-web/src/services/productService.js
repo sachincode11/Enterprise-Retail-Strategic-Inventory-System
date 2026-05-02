@@ -254,18 +254,20 @@ export async function updateProduct(id, updates) {
   try {
     const storeId = getStoreId();
     const patchBody = {
-      barcode: updates.barcode,
-      product_name: updates.product_name || updates.name,
-      description: updates.description,
+      barcode: updates.barcode !== undefined ? updates.barcode : undefined,
+      product_name: updates.product_name !== undefined ? updates.product_name : updates.name,
+      description: updates.description !== undefined ? updates.description : undefined,
       unit_price: updates.unit_price !== undefined ? Number(updates.unit_price) : (updates.priceNum !== undefined ? Number(updates.priceNum) : undefined),
       tax_rate: updates.tax_rate !== undefined ? Number(updates.tax_rate) : (updates.tax !== undefined ? Number(updates.tax) : undefined),
-      unit_of_measure: updates.unit_of_measure || updates.unit,
-      sku: updates.sku,
+      unit_of_measure: updates.unit_of_measure !== undefined ? updates.unit_of_measure : updates.unit,
+      sku: updates.sku !== undefined ? updates.sku : undefined,
       reorder_level: updates.reorder_level !== undefined ? Number(updates.reorder_level) : (updates.reorderAt !== undefined ? Number(updates.reorderAt) : undefined),
       supply_price: updates.supply_price !== undefined ? Number(updates.supply_price) : (updates.costPrice !== undefined ? Number(updates.costPrice) : undefined),
       category_id: updates.category_id ? Number(updates.category_id) : undefined,
-      supplier_id: updates.supplier_id ? Number(updates.supplier_id) : (updates.supplierId !== undefined ? (updates.supplierId ? Number(updates.supplierId) : null) : undefined),
+      supplier_id: updates.supplier_id !== undefined ? (updates.supplier_id !== null ? Number(updates.supplier_id) : null) : (updates.supplierId !== undefined ? (updates.supplierId ? Number(updates.supplierId) : null) : undefined),
     };
+
+    Object.keys(patchBody).forEach(key => patchBody[key] === undefined && delete patchBody[key]);
 
     const updatedProduct = await apiRequest(`/stores/${storeId}/products/${id}`, {
       method: 'PATCH',

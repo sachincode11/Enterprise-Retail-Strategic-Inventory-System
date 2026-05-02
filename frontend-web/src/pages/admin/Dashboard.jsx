@@ -5,39 +5,39 @@ import { useAdmin } from '../../context/AdminContext';
 import { useApp } from '../../context/AppContext';
 
 // BAR GRAPH replacing the old line graph
-// function BarGraph({ data }) {
-//   const max = Math.max(...data.map(d => d.value || 0), 1);
-//   const spacing = 68;
-//   const height = 140;
-//   return (
-//     <div className="w-full overflow-x-auto pb-2">
-//       <div className="flex items-end gap-1.5 px-1" style={{ width: data.length * spacing, height }}>
-//         {data.map((d, i) => {
-//           const pct = (d.value / max) * 100;
-//           const isToday = i === data.length - 1;
-//           return (
-//             <div key={i} className="flex flex-col items-center gap-1 flex-1" style={{ height: '100%', justifyContent: 'flex-end' }}>
-//               <span className="text-[9px] font-mono text-[#94a3b8]">
-//                 {d.value >= 100000 ? `${(d.value / 100000).toFixed(1)}L` : `${(d.value / 1000).toFixed(0)}k`}
-//               </span>
-//               <div
-//                 className="w-full rounded-t transition-all duration-300"
-//                 style={{
-//                   height: `${pct}%`,
-//                   minHeight: 4,
-//                   background: isToday ? '#1e3a5f' : '#bfdbfe',
-//                 }}
-//               />
-//               <span className={`text-[9px] font-mono ${isToday ? 'text-[#1e3a5f] font-bold' : 'text-[#94a3b8]'}`}>
-//                 {d.label}
-//               </span>
-//             </div>
-//           );
-//         })}
-//       </div>
-//     </div>
-//   );
-// }
+function BarGraph({ data }) {
+  const max = Math.max(...data.map(d => d.value || 0), 1);
+  const spacing = 68;
+  const height = 140;
+  return (
+    <div className="w-full overflow-x-auto pb-2">
+      <div className="flex items-end gap-1.5 px-1" style={{ width: data.length * spacing, height }}>
+        {data.map((d, i) => {
+          const pct = (d.value / max) * 100;
+          const isToday = i === data.length - 1;
+          return (
+            <div key={i} className="flex flex-col items-center gap-1 flex-1" style={{ height: '100%', justifyContent: 'flex-end' }}>
+              <span className="text-[9px] font-mono text-[#94a3b8]">
+                {d.value >= 100000 ? `${(d.value / 100000).toFixed(1)}L` : `${(d.value / 1000).toFixed(0)}k`}
+              </span>
+              <div
+                className="w-full rounded-t transition-all duration-300"
+                style={{
+                  height: `${pct}%`,
+                  minHeight: 4,
+                  background: isToday ? '#1e3a5f' : '#bfdbfe',
+                }}
+              />
+              <span className={`text-[9px] font-mono ${isToday ? 'text-[#1e3a5f] font-bold' : 'text-[#94a3b8]'}`}>
+                {d.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { setCurrentPage } = useAdmin();
@@ -167,7 +167,7 @@ export default function Dashboard() {
           className="col-span-2"
         >
           <div className="px-5 pt-4 pb-4">
-            {/* <BarGraph data={revenueData} /> */}
+            <BarGraph data={revenueData} />
             <div className="flex justify-between mt-4">
               <div><p className="text-[10px] text-[#94a3b8] uppercase">Avg Daily</p><p className="text-sm font-semibold text-[#0f172a]">Rs {avgDaily.toLocaleString('en-IN')}</p></div>
               <div><p className="text-[10px] text-[#94a3b8] uppercase">Peak Day</p><p className="text-sm font-semibold text-[#0f172a]">Rs {peakDay.value.toLocaleString('en-IN')}</p></div>

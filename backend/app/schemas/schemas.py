@@ -65,6 +65,11 @@ class OTPVerifyRequest(BaseModel):
     purpose: OTPPurpose = OTPPurpose.login_2fa
 
 
+class ResendOTPRequest(BaseModel):
+    email: EmailStr
+    purpose: OTPPurpose = OTPPurpose.login_2fa
+
+
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
@@ -294,9 +299,12 @@ class TransactionItemIn(BaseModel):
 
 class TransactionCreate(BaseModel):
     customer_id: Optional[int] = None        # None = guest checkout
+    guest_name: Optional[str] = None
+    guest_phone: Optional[str] = None
     items: list[TransactionItemIn]
     payment_method: PaymentMethod
     discount_ids: list[int] = []             # session-level discounts
+    manual_discount_percent: Optional[float] = 0.0
 
 
 class TransactionItemOut(BaseModel):

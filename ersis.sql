@@ -432,7 +432,7 @@ CREATE TABLE refund_items (
 CREATE TABLE payments (
     payment_id        INT           NOT NULL AUTO_INCREMENT,
     transaction_id    INT           NOT NULL,
-    payment_method    ENUM('cash', 'card') NOT NULL,
+    payment_method    ENUM('cash', 'card', 'qr') NOT NULL,
     amount            DECIMAL(12,2) NOT NULL,
     payment_status    ENUM('pending', 'completed', 'failed', 'refunded') NOT NULL DEFAULT 'pending',
     payment_reference VARCHAR(100)  NULL,   -- card terminal receipt number etc.

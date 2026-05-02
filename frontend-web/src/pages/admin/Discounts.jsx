@@ -1,13 +1,24 @@
-// src/pages/admin/Discounts.jsx — IMPROVED: inline edit, add, delete all wired to global state
+// src/pages/admin/Discounts.jsx — FULLY WIRED TO DATABASE
 import { useState } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { PageHeader, Badge, Button, StatCard } from '../../components/common';
 import { useApp } from '../../context/AppContext';
 
-const EMPTY_FORM = { name: '', code: '', type: 'Percentage', value: '', appliesTo: 'Entire cart', period: 'Ongoing', status: 'Active' };
+const EMPTY_FORM = { 
+  name: '', 
+  type: 'Percentage', 
+  value: '', 
+  appliesTo: 'Entire cart', 
+  valid_from: '', 
+  valid_until: '', 
+  min_purchase_amount: '',
+  product_id: '',
+  category_id: '',
+  is_active: true 
+};
 
 export default function Discounts() {
-  const { discounts, addDiscount, updateDiscount, deleteDiscount } = useApp();
+  const { discounts, categories, products, addDiscount, updateDiscount, deleteDiscount } = useApp();
   const [editId, setEditId]       = useState(null);
   const [editForm, setEditForm]   = useState({});
   const [showAdd, setShowAdd]     = useState(false);
@@ -15,10 +26,26 @@ export default function Discounts() {
   const [saving, setSaving]       = useState(false);
 
   const activeCount = discounts.filter(d => d.status === 'Active').length;
-  const totalUses   = discounts.reduce((s, d) => s + (d.used || 0), 0);
+  
+  const startEdit = (d) => { 
+    setEditId(d.id); 
+    setEditForm({ 
+      ...d, 
+      name: d.name,
+      type: d.type,
+      value: String(d.discount_value || d.value || '').replace(/[^0-9.]/g, ''),
+      appliesTo: d.appliesTo,
+      valid_from: d.valid_from ? new Date(d.valid_from).toISOString().split('T')[0] : '',
+      valid_until: d.valid_until ? new Date(d.valid_until).toISOString().split('T')[0] : '',
+      min_purchase_amount: d.min_purchase_amount || '',
+      product_id: d.product_id || '',
+      category_id: d.category_id || '',
+      is_active: d.status === 'Active'
+    }); 
+  };
 
-  const startEdit = (d) => { setEditId(d.id); setEditForm({ ...d }); };
   const cancelEdit = () => { setEditId(null); setEditForm({}); };
+
   const saveEdit = async () => {
     setSaving(true);
     await updateDiscount(editId, editForm);
@@ -27,7 +54,7 @@ export default function Discounts() {
   };
 
   const handleAdd = async () => {
-    if (!addForm.name || !addForm.code) return;
+    if (!addForm.name || !addForm.value) return;
     setSaving(true);
     await addDiscount(addForm);
     setSaving(false);
@@ -40,17 +67,17 @@ export default function Discounts() {
     await deleteDiscount(id);
   };
 
-  const Field = ({ label, value, onChange, type = 'text', options }) => (
+  const Field = ({ label, value, onChange, type = 'text', options, placeholder }) => (
     <div>
       <p className="text-xs text-[#94a3b8] mb-1">{label}</p>
       {options ? (
         <select value={value} onChange={e => onChange(e.target.value)}
-          className="w-full px-2 py-1.5 text-xs border rounded-lg border-[#e2e8f0] outline-none focus:border-[#1e3a5f]">
-          {options.map(o => <option key={o}>{o}</option>)}
+          className="w-full px-3 py-2 text-sm border rounded-lg border-[#e2e8f0] outline-none focus:border-[#1e3a5f] bg-white">
+          {options.map(o => <option key={o.value ?? o} value={o.value ?? o}>{o.label ?? o}</option>)}
         </select>
       ) : (
-        <input type={type} value={value} onChange={e => onChange(e.target.value)}
-          className="w-full px-2 py-1.5 text-xs border rounded-lg border-[#e2e8f0] outline-none focus:border-[#1e3a5f]" />
+        <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+          className="w-full px-3 py-2 text-sm border rounded-lg border-[#e2e8f0] outline-none focus:border-[#1e3a5f] bg-white" />
       )}
     </div>
   );
@@ -64,109 +91,119 @@ export default function Discounts() {
       />
       <div className="grid grid-cols-3 gap-4 mb-6">
         <StatCard label="Active Discounts"     value={activeCount} />
-        <StatCard label="Total Redemptions"    value={totalUses.toLocaleString()} progress={60} />
-        <StatCard label="Avg. Discount Value"  value="8.2%" />
+        <StatCard label="Live Campaigns"       value={discounts.length} progress={80} />
+        <StatCard label="Avg. Savings"         value="Rs 450" />
       </div>
 
       {/* Inline Add Form */}
       {showAdd && (
-        <div className="bg-white rounded-xl border p-5 mb-4" style={{ borderColor: '#1e3a5f' }}>
-          <h3 className="text-sm font-semibold text-[#0f172a] mb-4">New Discount</h3>
-          <div className="grid grid-cols-3 gap-3 mb-3">
-            <Field label="Name" value={addForm.name} onChange={v => setAddForm(f => ({...f, name: v}))} />
-            <Field label="Code" value={addForm.code} onChange={v => setAddForm(f => ({...f, code: v.toUpperCase()}))} />
+        <div className="bg-white rounded-xl border p-6 mb-6 shadow-sm border-[#1e3a5f]">
+          <h3 className="text-sm font-bold text-[#0f172a] mb-5 uppercase tracking-wider">Configure New Discount</h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
+            <Field label="Discount Name" value={addForm.name} onChange={v => setAddForm(f => ({...f, name: v}))} placeholder="e.g. Summer Sale" />
             <Field label="Type" value={addForm.type} onChange={v => setAddForm(f => ({...f, type: v}))} options={['Percentage','Fixed Amount']} />
-            <Field label="Value (% or Rs)" value={addForm.value} onChange={v => setAddForm(f => ({...f, value: v}))} />
+            <Field label="Value" value={addForm.value} onChange={v => setAddForm(f => ({...f, value: v}))} placeholder="10 or 500" />
             <Field label="Applies To" value={addForm.appliesTo} onChange={v => setAddForm(f => ({...f, appliesTo: v}))}
-              options={['Entire cart','Registered customers','Orders > Rs 1,000','Specific category']} />
-            <Field label="Period" value={addForm.period} onChange={v => setAddForm(f => ({...f, period: v}))} />
+              options={['Entire cart', 'Specific product', 'Specific category']} />
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 pt-4 border-t border-[#f1f5f9]">
+            <Field label="Valid From" type="date" value={addForm.valid_from} onChange={v => setAddForm(f => ({...f, valid_from: v}))} />
+            <Field label="Valid Until" type="date" value={addForm.valid_until} onChange={v => setAddForm(f => ({...f, valid_until: v}))} />
+            <Field label="Min. Purchase (Rs)" value={addForm.min_purchase_amount} onChange={v => setAddForm(f => ({...f, min_purchase_amount: v}))} placeholder="0" />
+            
+            {addForm.appliesTo === 'Specific product' && (
+              <Field label="Select Product" value={addForm.product_id} onChange={v => setAddForm(f => ({...f, product_id: v}))} 
+                options={[{label: 'Choose...', value: ''}, ...products.map(p => ({label: p.name, value: p.id}))]} />
+            )}
+            {addForm.appliesTo === 'Specific category' && (
+              <Field label="Select Category" value={addForm.category_id} onChange={v => setAddForm(f => ({...f, category_id: v}))} 
+                options={[{label: 'Choose...', value: ''}, ...categories.map(c => ({label: c.name, value: c.id}))]} />
+            )}
+          </div>
+
           <div className="flex gap-2 justify-end">
-            <Button variant="secondary" onClick={() => { setShowAdd(false); setAddForm(EMPTY_FORM); }}>Cancel</Button>
+            <Button variant="secondary" onClick={() => { setShowAdd(false); setAddForm(EMPTY_FORM); }}>Discard</Button>
             <Button variant="primary" onClick={handleAdd} disabled={saving}>
-              {saving ? 'Saving…' : 'Add Discount'}
+              {saving ? 'Creating…' : 'Publish Discount'}
             </Button>
           </div>
         </div>
       )}
 
-      <div className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: '#e2e8f0' }}>
-        <table className="data-table">
+      <div className="bg-white rounded-xl border border-[#e2e8f0] overflow-hidden shadow-sm">
+        <table className="w-full border-collapse">
           <thead>
-            <tr><th>Discount Name</th><th>Type</th><th>Value</th><th>Applies To</th><th>Period</th><th>Used</th><th>Status</th><th></th></tr>
+            <tr className="bg-[#f8fafc] border-b border-[#e2e8f0]">
+              <th className="px-4 py-3 text-left text-xs font-bold text-[#64748b] uppercase tracking-wider">Promotion</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-[#64748b] uppercase tracking-wider">Details</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-[#64748b] uppercase tracking-wider">Applicability</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-[#64748b] uppercase tracking-wider">Validity</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-[#64748b] uppercase tracking-wider">Status</th>
+              <th className="px-4 py-3"></th>
+            </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-[#f1f5f9]">
             {discounts.map(d => {
               const isEditing = editId === d.id;
               return (
-                <tr key={d.id}>
-                  <td>
+                <tr key={d.id} className="hover:bg-[#fcfdfe] transition-colors">
+                  <td className="px-4 py-4">
                     {isEditing ? (
-                      <div className="space-y-1">
-                        <input value={editForm.name} onChange={e => setEditForm(f => ({...f, name: e.target.value}))}
-                          className="w-full px-2 py-1 text-xs border rounded border-[#1e3a5f] outline-none" placeholder="Name" />
-                        <input value={editForm.code} onChange={e => setEditForm(f => ({...f, code: e.target.value.toUpperCase()}))}
-                          className="w-full px-2 py-1 text-xs border rounded border-[#e2e8f0] outline-none font-mono" placeholder="Code" />
-                      </div>
+                      <input value={editForm.name} onChange={e => setEditForm(f => ({...f, name: e.target.value}))}
+                        className="w-full px-2 py-1 text-sm border rounded-lg border-[#1e3a5f] outline-none" />
                     ) : (
-                      <div>
-                        <p className="text-sm font-semibold">{d.name}</p>
-                        <p className="mono text-xs" style={{ color: '#94a3b8' }}>{d.code}</p>
-                      </div>
+                      <span className="text-sm font-semibold text-[#0f172a]">{d.name}</span>
                     )}
                   </td>
-                  <td>
+                  <td className="px-4 py-4">
                     {isEditing ? (
-                      <select value={editForm.type} onChange={e => setEditForm(f => ({...f, type: e.target.value}))}
-                        className="w-full px-2 py-1 text-xs border rounded border-[#e2e8f0] outline-none">
-                        <option>Percentage</option><option>Fixed Amount</option>
-                      </select>
-                    ) : <span className="text-sm">{d.type}</span>}
-                  </td>
-                  <td>
-                    {isEditing ? (
-                      <input value={editForm.value} onChange={e => setEditForm(f => ({...f, value: e.target.value}))}
-                        className="w-full px-2 py-1 text-xs border rounded border-[#e2e8f0] outline-none" />
-                    ) : <span className="text-sm font-semibold">{d.value}</span>}
-                  </td>
-                  <td className="text-sm" style={{ color: '#475569' }}>
-                    {isEditing ? (
-                      <input value={editForm.appliesTo} onChange={e => setEditForm(f => ({...f, appliesTo: e.target.value}))}
-                        className="w-full px-2 py-1 text-xs border rounded border-[#e2e8f0] outline-none" />
-                    ) : d.appliesTo}
-                  </td>
-                  <td className="text-sm" style={{ color: '#475569' }}>
-                    {isEditing ? (
-                      <input value={editForm.period} onChange={e => setEditForm(f => ({...f, period: e.target.value}))}
-                        className="w-full px-2 py-1 text-xs border rounded border-[#e2e8f0] outline-none" />
-                    ) : d.period}
-                  </td>
-                  <td className="text-sm">{(d.used || 0).toLocaleString()} uses</td>
-                  <td>
-                    {isEditing ? (
-                      <select value={editForm.status} onChange={e => setEditForm(f => ({...f, status: e.target.value}))}
-                        className="px-2 py-1 text-xs border rounded border-[#e2e8f0] outline-none">
-                        <option>Active</option><option>Expired</option>
-                      </select>
-                    ) : <Badge status={d.status} />}
-                  </td>
-                  <td>
-                    {isEditing ? (
-                      <div className="flex gap-1">
-                        <button onClick={saveEdit} disabled={saving}
-                          className="text-xs bg-[#1e3a5f] text-white px-3 py-1.5 rounded-lg disabled:opacity-50">
-                          {saving ? '…' : 'Save'}
-                        </button>
-                        <button onClick={cancelEdit} className="text-xs text-[#94a3b8] px-2 py-1">Cancel</button>
+                      <div className="flex gap-2">
+                        <select value={editForm.type} onChange={e => setEditForm(f => ({...f, type: e.target.value}))}
+                          className="px-2 py-1 text-xs border rounded-lg border-[#e2e8f0]">
+                          <option>Percentage</option><option>Fixed Amount</option>
+                        </select>
+                        <input value={editForm.value} onChange={e => setEditForm(f => ({...f, value: e.target.value}))}
+                          className="w-16 px-2 py-1 text-xs border rounded-lg border-[#e2e8f0]" />
                       </div>
                     ) : (
-                      <div className="flex gap-1">
-                        <button className="btn-outline" onClick={() => startEdit(d)}>Edit</button>
-                        <button onClick={() => handleDelete(d.id)}
-                          className="w-7 h-7 rounded border flex items-center justify-center hover:bg-[#fef2f2]" style={{ borderColor: '#e2e8f0' }}>
-                          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="#dc2626" strokeWidth="1.5">
-                            <path d="M1 3h10M4 3V1.5h4V3M9.5 3l-.5 7.5H3L2.5 3"/>
-                          </svg>
+                      <Badge variant="info">{d.value}</Badge>
+                    )}
+                  </td>
+                  <td className="px-4 py-4">
+                    {isEditing ? (
+                      <select value={editForm.appliesTo} onChange={e => setEditForm(f => ({...f, appliesTo: e.target.value}))}
+                        className="w-full px-2 py-1 text-xs border rounded-lg border-[#e2e8f0]">
+                        <option>Entire cart</option><option>Specific product</option><option>Specific category</option>
+                      </select>
+                    ) : (
+                      <span className="text-xs text-[#475569]">{d.appliesTo}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className="text-xs font-mono text-[#94a3b8]">{d.period}</span>
+                  </td>
+                  <td className="px-4 py-4">
+                    {isEditing ? (
+                      <select value={editForm.is_active} onChange={e => setEditForm(f => ({...f, is_active: e.target.value === 'true'}))}
+                        className="px-2 py-1 text-xs border rounded-lg border-[#e2e8f0]">
+                        <option value="true">Active</option><option value="false">Inactive</option>
+                      </select>
+                    ) : (
+                      <Badge status={d.status} />
+                    )}
+                  </td>
+                  <td className="px-4 py-4 text-right">
+                    {isEditing ? (
+                      <div className="flex gap-1 justify-end">
+                        <button onClick={saveEdit} disabled={saving} className="text-xs bg-[#1e3a5f] text-white px-3 py-1.5 rounded-lg">Save</button>
+                        <button onClick={cancelEdit} className="text-xs text-[#94a3b8] px-2 py-1">X</button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2 justify-end">
+                        <button className="text-xs text-[#1e3a5f] font-semibold hover:underline" onClick={() => startEdit(d)}>Edit</button>
+                        <button onClick={() => handleDelete(d.id)} className="text-[#dc2626] opacity-60 hover:opacity-100 transition-opacity">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                         </button>
                       </div>
                     )}

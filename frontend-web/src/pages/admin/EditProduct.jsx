@@ -1,4 +1,4 @@
-// src/pages/admin/AddProduct.jsx — IMPROVED: uses AppContext so product appears everywhere immediately
+// src/pages/admin/EditProduct.jsx
 import { useState, useEffect } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { PageHeader, Button, Input, Toast } from '../../components/common';
@@ -23,9 +23,9 @@ const EMPTY = {
   tax_rate: '' 
 };
 
-export default function AddProduct() {
-  const { setCurrentPage } = useAdmin();
-  const { addProduct } = useApp();
+export default function EditProduct() {
+  const { setCurrentPage, editTarget, setEditTarget } = useAdmin();
+  const { updateProduct } = useApp();
 
   const [form, setForm] = useState(EMPTY);
   const [suppliers, setSuppliers] = useState([]);
@@ -39,48 +39,48 @@ export default function AddProduct() {
   const showToast = (message, type = 'success') => { setToast({ visible: true, message, type }); setTimeout(() => setToast(t => ({ ...t, visible: false })), 2200); };
 
   useEffect(() => {
-    setForm(EMPTY);
-  }, []);
+    if (!editTarget?.id) {
+      setCurrentPage('products');
+      return;
+    }
+    setForm({ ...EMPTY, ...editTarget });
+  }, [editTarget, setCurrentPage]);
 
   useEffect(() => {
     let active = true;
-
     async function loadSuppliers() {
       setLoadingSuppliers(true);
       try {
         const res = await getSuppliers();
-        if (!active) return;
-        setSuppliers(Array.isArray(res?.data) ? res.data : []);
+        if (active) setSuppliers(Array.isArray(res?.data) ? res.data : []);
       } catch {
-        if (!active) return;
-        setSuppliers([]);
+        if (active) setSuppliers([]);
       } finally {
         if (active) setLoadingSuppliers(false);
       }
     }
-
     async function loadCategories() {
       setLoadingCategories(true);
       try {
         const res = await getCategories();
-        if (!active) return;
-        setCategories(Array.isArray(res?.data) ? res.data : []);
+        if (active) setCategories(Array.isArray(res?.data) ? res.data : []);
       } catch {
-        if (!active) return;
-        setCategories([]);
+        if (active) setCategories([]);
       } finally {
         if (active) setLoadingCategories(false);
       }
     }
-
     loadSuppliers();
     loadCategories();
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, []);
 
-
+  useEffect(() => {
+    if (form.supplier_id || !editTarget?.supplier_name) return;
+    const matchedSupplier = suppliers.find(s => s.supplier_name === editTarget.supplier_name);
+    if (!matchedSupplier) return;
+    setForm(prev => ({ ...prev, supplier_id: String(matchedSupplier.id) }));
+  }, [editTarget, suppliers, form.supplier_id]);
 
   const handleSubmit = async () => {
     const product_name = (form.product_name || '').trim();
@@ -104,27 +104,29 @@ export default function AddProduct() {
         barcode: (form.barcode || '').trim() || null,
         description: (form.description || '').trim() || null,
         unit_price,
-        quantity_in_stock: stockNum,
         stock: stockNum,
         supplier_id: form.supplier_id ? Number(form.supplier_id) : null,
         tax_rate: Number(form.tax_rate || 0),
         supply_price: Number(form.supply_price || 0),
         reorder_level: Number(form.reorder_level || 0),
       };
-      await addProduct(payload);
-      showToast('Product added successfully.');
+      
+      await updateProduct(editTarget.id, payload);
+      showToast('Product updated successfully.');
       
       setTimeout(() => {
+        setEditTarget(null);
         setCurrentPage('products');
       }, 1500);
     } catch (error) {
-      showToast(error?.message || 'Unable to save product.', 'error');
+      showToast(error?.message || 'Unable to update product.', 'error');
     } finally {
       setSaving(false);
     }
   };
 
   const handleCancel = () => {
+    setEditTarget(null);
     setCurrentPage('products');
   };
 
@@ -134,12 +136,12 @@ export default function AddProduct() {
     <AdminLayout>
       <Toast message={toast.message} visible={toast.visible} type={toast.type} />
       <PageHeader
-        breadcrumb={<span className="cursor-pointer hover:text-[#1e3a5f] transition-colors" onClick={() => setCurrentPage('products')}>← Products</span>}
-        title="Add New Product"
+        breadcrumb={<span className="cursor-pointer hover:text-[#1e3a5f] transition-colors" onClick={handleCancel}>← Products</span>}
+        title="Edit Product"
         actions={
           <>
             <Button variant="secondary" onClick={handleCancel}>Cancel</Button>
-            <Button variant="primary" onClick={handleSubmit} disabled={saving}>{saving ? 'Saving…' : 'Save Product'}</Button>
+            <Button variant="primary" onClick={handleSubmit} disabled={saving}>{saving ? 'Saving…' : 'Update Product'}</Button>
           </>
         }
       />
@@ -188,7 +190,7 @@ export default function AddProduct() {
           <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e2e8f0' }}>
             <h3 className="text-sm font-semibold text-[#0f172a] mb-4 pb-3 border-b" style={{ borderColor: '#e2e8f0' }}>Inventory</h3>
             <div className="grid grid-cols-2 gap-4">
-              <Input label="Opening Stock *" type="number" value={form.quantity_in_stock} onChange={set('quantity_in_stock')} placeholder="0" />
+              <Input label="Adjust Stock" type="number" value={form.quantity_in_stock} onChange={set('quantity_in_stock')} placeholder="0" />
               <Input label="Reorder At (units)" type="number" value={form.reorder_level} onChange={set('reorder_level')} placeholder="e.g. 20" />
             </div>
           </div>

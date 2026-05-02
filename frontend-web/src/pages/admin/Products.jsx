@@ -61,7 +61,7 @@ export default function Products() {
     exportCSV(rows, `products-${new Date().toISOString().slice(0, 10)}`);
   };
 
-  const handleEdit = (product) => { setEditTarget(product); setCurrentPage('add-product'); };
+  const handleEdit = (product) => { setEditTarget(product); setCurrentPage('edit-product'); };
 
   return (
     <AdminLayout>

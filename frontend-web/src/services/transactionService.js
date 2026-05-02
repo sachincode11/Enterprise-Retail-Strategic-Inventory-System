@@ -34,7 +34,11 @@ function mapTxnFromBackend(txn) {
 }
 
 function mapPaymentMethod(method) {
-  return method === 'Cash' ? 'cash' : 'digital_wallet';
+  const m = String(method).toLowerCase();
+  if (m === 'cash') return 'cash';
+  if (m === 'card') return 'card';
+  if (m === 'qr') return 'qr';
+  return 'cash';
 }
 
 export async function getTransactions() {
@@ -67,12 +71,15 @@ export async function addTransaction(txn) {
     const created = await apiRequest(`/stores/${storeId}/transactions`, {
       method: 'POST',
       body: {
-        customer_id: null,
+        customer_id: txn.customer_id || null,
+        guest_name: txn.guest_name || null,
+        guest_phone: txn.guest_phone || null,
         payment_method: mapPaymentMethod(txn.method),
-        discount_ids: [],
-        items: (txn.itemDetails || []).map(i => ({
-          product_id: Number(i.id),
-          quantity: Number(i.qty || 1),
+        discount_ids: txn.discount_ids || [],
+        manual_discount_percent: txn.manual_discount_percent || 0,
+        items: (txn.items || []).map(i => ({
+          product_id: Number(i.product_id),
+          quantity: Number(i.quantity || 1),
         })),
       },
     });

@@ -18,9 +18,11 @@ import Profile            from './Profile';
 import AI                 from './AI';
 import TransactionHistory from './TransactionHistory';
 import AddProduct         from './AddProduct';
+import EditProduct        from './EditProduct';
 import AddStock           from './AddStock';
 import ViewPurchaseOrder  from './ViewPurchaseOrder';
 import AddSupplier        from './AddSupplier';
+import EditSupplier       from './EditSupplier';
 import ViewCustomer       from './ViewCustomer';
 import AddStaff           from './AddStaff';
 import AddDiscount        from './AddDiscount';
@@ -50,9 +52,11 @@ const pageMap = {
   ai:                    AI,
   'transaction-history': TransactionHistory,
   'add-product':         AddProduct,
+  'edit-product':        EditProduct,
   'add-stock':           AddStock,
   'view-purchase-order': ViewPurchaseOrder,
   'add-supplier':        AddSupplier,
+  'edit-supplier':       EditSupplier,
   'view-customer':       ViewCustomer,
   'add-staff':           AddStaff,
   'edit-staff':          AddStaff,

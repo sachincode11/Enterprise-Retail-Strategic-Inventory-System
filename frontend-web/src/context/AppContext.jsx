@@ -55,7 +55,11 @@ export function AppProvider({ children }) {
   // Nepal real-time clock
   const [nowNP, setNowNP] = useState(getNepaliNow());
   useEffect(() => {
-    const t = setInterval(() => setNowNP(getNepaliNow()), 1000);
+    const t = setInterval(() => {
+      if (!window.pauseGlobalClock) {
+        setNowNP(getNepaliNow());
+      }
+    }, 1000);
     return () => clearInterval(t);
   }, []);
 
@@ -182,18 +186,17 @@ export function AppProvider({ children }) {
   const handleAddTransaction = useCallback(async (txn) => {
     const res = await addTxnService(txn);
     setTransactions(prev => [res.data, ...prev]);
-    // Deduct stock for each item sold
-    if (txn.items && Array.isArray(txn.items)) {
-      for (const item of txn.items) {
-        const product = products.find(p => p.id === item.id);
-        if (product) {
-          const newStock = Math.max(0, product.stock - item.qty);
-          await handleUpdateProduct(item.id, { stock: newStock });
-        }
-      }
+    
+    // Refresh products to get updated stock levels from backend
+    try {
+      const fresh = await getProducts();
+      setProducts(fresh.data || []);
+    } catch (err) {
+      console.error("Failed to refresh products after transaction:", err);
     }
+    
     return res.data;
-  }, [products, handleUpdateProduct]);
+  }, []);
 
   const handleVoidTransaction = useCallback(async (id) => {
     await voidTransaction(id);

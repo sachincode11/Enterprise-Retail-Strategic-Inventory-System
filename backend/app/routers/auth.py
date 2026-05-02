@@ -19,7 +19,7 @@ from app.models import OTPToken, RefreshToken, Role, User, UserRole
 from app.schemas import (
     LoginRequest, MessageResponse, OTPVerifyRequest,
     RefreshRequest, RegisterRequest, TokenResponse, UserOut,
-    UserProfileUpdate,
+    UserProfileUpdate, ResendOTPRequest
 )
 
 from app.utils import  _get_role, _user_roles, _send_otp_email
@@ -193,6 +193,31 @@ def verify_otp_endpoint(body: OTPVerifyRequest, db: Session = Depends(get_db)):
         "refresh_token": rt,
         "token_type": "bearer",
     }
+
+
+@router.post("/resend-otp", openapi_extra={"security": []})
+def resend_otp_endpoint(
+    body: ResendOTPRequest,
+    background: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.email == body.email, User.is_active == True).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    otp = generate_otp()
+    print(f"[OTP] Resend OTP for {user.email}: {otp}")
+    db.add(OTPToken(user_id=user.user_id, otp_code_hash=hash_otp(otp),
+                    purpose=body.purpose, expires_at=otp_expiry()))
+    db.commit()
+    background.add_task(_send_otp_email, user.email, otp)
+    
+    response = {
+        "message": "A new OTP has been sent to your email.",
+    }
+    if settings.DEBUG or not settings.SMTP_USER or not settings.SMTP_PASSWORD:
+        response["debug_otp"] = otp
+    return response
 
 
 @router.patch("/me")
