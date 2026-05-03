@@ -11,7 +11,7 @@ const STATUSES = ['All', 'Active', 'Low Stock', 'Out of Stock'];
 
 export default function Products() {
   const { setCurrentPage, setEditTarget } = useAdmin();
-  const { products, deleteProduct, loading } = useApp();
+  const { products, deleteProduct, loading, currencySymbol } = useApp();
 
   const [query, setQuery] = useState('');
   const [catFilter, setCat] = useState('All');
@@ -83,6 +83,7 @@ export default function Products() {
             title="Products"
             actions={
               <>
+                <Button variant="secondary" onClick={() => setCurrentPage('categories')}>Manage Categories</Button>
                 <Button variant="secondary" onClick={handleExport}>↓ Export CSV</Button>
                 <Button variant="primary" onClick={() => { setEditTarget(null); setCurrentPage('add-product'); }}>+ Add Product</Button>
               </>
@@ -120,7 +121,7 @@ export default function Products() {
                     <td className="font-semibold text-sm text-[#0f172a]">{p.name}</td>
                     <td><span className="mono text-xs text-[#94a3b8]">{p.sku}</span></td>
                     <td className="text-sm">{p.category}</td>
-                    <td className="text-sm font-mono font-semibold">Rs {p.priceNum?.toLocaleString('en-IN')}</td>
+                    <td className="text-sm font-mono font-semibold">{currencySymbol} {p.priceNum?.toLocaleString('en-IN')}</td>
                     <td>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold w-8">{p.stock}</span>

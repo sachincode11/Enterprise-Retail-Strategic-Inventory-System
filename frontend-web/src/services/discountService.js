@@ -1,22 +1,25 @@
 // src/services/discountService.js
 import { lsGet, lsSet } from '../utils/storage';
 import { apiRequest, getStoreId, normalizeServiceError, toApiEnvelope } from './apiClient';
+import { formatDate as uiFormatDate, formatCurrency } from '../utils/format';
 
 const LS_KEY = 'invosix_discounts';
 
-function formatDate(d) {
+function toIsoDate(d) {
   if (!d) return null;
-  if (typeof d === 'string' && d.includes('-')) return d; // already YYYY-MM-DD
-  return new Date(d).toISOString().slice(0, 10);
+  if (typeof d === 'string' && d.includes('-') && d.length === 10) return d; 
+  try {
+    return new Date(d).toISOString().slice(0, 10);
+  } catch {
+    return null;
+  }
 }
 
 function mapDiscountFromBackend(d) {
-  const isExpired =
-    d.valid_until && new Date(d.valid_until) < new Date() && d.is_active;
   const period = (() => {
     if (d.valid_from && d.valid_until)
-      return `${formatDate(d.valid_from)} – ${formatDate(d.valid_until)}`;
-    if (d.valid_from) return `From ${formatDate(d.valid_from)}`;
+      return `${uiFormatDate(d.valid_from)} – ${uiFormatDate(d.valid_until)}`;
+    if (d.valid_from) return `From ${uiFormatDate(d.valid_from)}`;
     return 'Ongoing';
   })();
 
@@ -29,7 +32,7 @@ function mapDiscountFromBackend(d) {
     value:
       d.discount_type === 'percentage'
         ? `${Number(d.discount_value)}%`
-        : `Rs ${Number(d.discount_value)}`,
+        : formatCurrency(d.discount_value),
     appliesTo:
       d.applies_to === 'transaction'
         ? 'Entire cart'
@@ -94,8 +97,8 @@ export async function addDiscount(discount) {
         discount_type,
         discount_value,
         applies_to,
-        valid_from: formatDate(discount.validFrom || discount.valid_from) || null,
-        valid_until: formatDate(discount.validUntil || discount.valid_until) || null,
+        valid_from: toIsoDate(discount.validFrom || discount.valid_from) || null,
+        valid_until: toIsoDate(discount.validUntil || discount.valid_until) || null,
         min_purchase_amount: discount.minPurchase ? Number(discount.minPurchase) : null,
         product_id: discount.productId ? Number(discount.productId) : null,
         category_id: discount.categoryId ? Number(discount.categoryId) : null,
@@ -124,9 +127,9 @@ export async function updateDiscount(id, updates) {
       patchBody.discount_value = Number(updates.discount_value);
     if (updates.applies_to) patchBody.applies_to = updates.applies_to;
     if (updates.valid_from !== undefined)
-      patchBody.valid_from = formatDate(updates.valid_from);
+      patchBody.valid_from = toIsoDate(updates.valid_from);
     if (updates.valid_until !== undefined)
-      patchBody.valid_until = formatDate(updates.valid_until);
+      patchBody.valid_until = toIsoDate(updates.valid_until);
 
     const updated = await apiRequest(`/stores/${storeId}/discounts/${backendId}`, {
       method: 'PATCH',

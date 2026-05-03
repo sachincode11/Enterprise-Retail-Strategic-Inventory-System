@@ -1,6 +1,7 @@
 import { useCashier } from '../../context/CashierContext';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
+import { formatDate, formatDateTime } from '../../utils/format';
 
 export default function Receipt() {
   const {
@@ -8,7 +9,7 @@ export default function Receipt() {
     paymentMethod, selectedCustomer, setCurrentPage, clearCart,
     lastTransaction,
   } = useCashier();
-  const { storeInfo, nowNP } = useApp();
+  const { storeInfo, nowNP, currencySymbol } = useApp();
   const { user } = useAuth();
 
   // Use lastTransaction snapshot if available (survives cart clear)
@@ -34,7 +35,7 @@ export default function Receipt() {
   const displayDate = snap.datetime || nowNP;
   const dateObj = typeof displayDate === 'string' ? new Date(displayDate) : displayDate;
   
-  const txnDate = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kathmandu' });
+  const txnDate = formatDate(dateObj);
   const txnTime = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kathmandu' });
 
   const handleNewTxn = () => { clearCart(); setCurrentPage('pos'); };
@@ -51,15 +52,15 @@ export default function Receipt() {
       snapCustomer ? `Customer: ${snapCustomer.name}` : '',
       '--------------------------------',
       'Items:',
-      ...cartItems.map(i => `  ${i.name}\n  ${i.qty} x Rs ${i.price} = Rs ${(i.price * i.qty).toLocaleString()}`),
+      ...cartItems.map(i => `  ${i.name}\n  ${i.qty} x ${currencySymbol} ${i.price} = ${currencySymbol} ${(i.price * i.qty).toLocaleString()}`),
       '--------------------------------',
-      `Subtotal:  Rs ${snapSubtotal.toLocaleString()}`,
-      snapDiscount > 0 ? `Discount:  -Rs ${Math.round(snapDiscount)}` : '',
-      `VAT (13%): Rs ${Math.round(snapTax)}`,
-      `TOTAL:     Rs ${Math.round(snapTotal).toLocaleString()}`,
+      `Subtotal:  ${currencySymbol} ${snapSubtotal.toLocaleString()}`,
+      snapDiscount > 0 ? `Discount:  -${currencySymbol} ${Math.round(snapDiscount)}` : '',
+      `VAT (13%): ${currencySymbol} ${Math.round(snapTax)}`,
+      `TOTAL:     ${currencySymbol} ${Math.round(snapTotal).toLocaleString()}`,
       `Payment:   ${snapMethod}`,
-      snapMethod === 'Cash' && snapTendered > 0 ? `Tendered:  Rs ${snapTendered.toLocaleString()}` : '',
-      snapMethod === 'Cash' && snapTendered > 0 ? `Change:    Rs ${Math.max(0, snapChange).toFixed(0)}` : '',
+      snapMethod === 'Cash' && snapTendered > 0 ? `Tendered:  ${currencySymbol} ${snapTendered.toLocaleString()}` : '',
+      snapMethod === 'Cash' && snapTendered > 0 ? `Change:    ${currencySymbol} ${Math.max(0, snapChange).toFixed(0)}` : '',
       '================================',
       '   Thank you for shopping!',
       '   Please come again',
@@ -125,9 +126,9 @@ export default function Receipt() {
               <div key={i}>
                 <div className="flex justify-between">
                   <span className="text-sm font-semibold text-[#0f172a] leading-tight" style={{ maxWidth: 200 }}>{item.name}</span>
-                  <span className="text-sm font-semibold text-[#0f172a]">Rs {(item.price * item.qty).toLocaleString()}</span>
+                  <span className="text-sm font-semibold text-[#0f172a]">{currencySymbol} {(item.price * item.qty).toLocaleString()}</span>
                 </div>
-                <p className="text-xs text-[#94a3b8] font-mono">{item.qty} × Rs {item.price}</p>
+                <p className="text-xs text-[#94a3b8] font-mono">{item.qty} × {currencySymbol} {item.price}</p>
               </div>
             ))}
             {cartItems.length === 0 && <p className="text-xs text-[#94a3b8] text-center py-2">No items on receipt</p>}
@@ -136,19 +137,19 @@ export default function Receipt() {
 
         {/* Totals */}
         <div className="px-8 pb-4 border-t border-dashed border-[#e2e8f0] pt-3 space-y-1.5">
-          <div className="flex justify-between text-xs text-[#94a3b8]"><span>Subtotal</span><span>Rs {Math.round(snapSubtotal).toLocaleString()}</span></div>
+          <div className="flex justify-between text-xs text-[#94a3b8]"><span>Subtotal</span><span>{currencySymbol} {Math.round(snapSubtotal).toLocaleString()}</span></div>
           {snapDiscount > 0 && (
             <div className="flex justify-between text-xs text-green-600">
               <span>Discount {snapDiscountObj ? `(${snapDiscountObj.name || snapDiscountObj.discount_name})` : ''}</span>
-              <span>-Rs {Math.round(snapDiscount).toLocaleString()}</span>
+              <span>-{currencySymbol} {Math.round(snapDiscount).toLocaleString()}</span>
             </div>
           )}
-          <div className="flex justify-between text-xs text-[#94a3b8]"><span>Tax (13%)</span><span>Rs {Math.round(snapTax).toLocaleString()}</span></div>
-          <div className="flex justify-between font-black text-base border-t border-[#e2e8f0] pt-2 mt-2"><span>TOTAL</span><span>Rs {Math.round(snapTotal).toLocaleString()}</span></div>
+          <div className="flex justify-between text-xs text-[#94a3b8]"><span>Tax (13%)</span><span>{currencySymbol} {Math.round(snapTax).toLocaleString()}</span></div>
+          <div className="flex justify-between font-black text-base border-t border-[#e2e8f0] pt-2 mt-2"><span>TOTAL</span><span>{currencySymbol} {Math.round(snapTotal).toLocaleString()}</span></div>
           <div className="flex justify-between text-xs text-[#94a3b8]"><span>Payment</span><span>{snapMethod}</span></div>
           {snapMethod === 'Cash' && snapTendered > 0 && <>
-            <div className="flex justify-between text-xs text-[#94a3b8]"><span>Tendered</span><span>Rs {snapTendered.toLocaleString()}</span></div>
-            <div className="flex justify-between text-xs font-bold text-green-600"><span>Change</span><span>Rs {Math.max(0, snapChange).toFixed(0)}</span></div>
+            <div className="flex justify-between text-xs text-[#94a3b8]"><span>Tendered</span><span>{currencySymbol} {snapTendered.toLocaleString()}</span></div>
+            <div className="flex justify-between text-xs font-bold text-green-600"><span>Change</span><span>{currencySymbol} {Math.max(0, snapChange).toFixed(0)}</span></div>
           </>}
         </div>
 

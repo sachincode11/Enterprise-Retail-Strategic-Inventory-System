@@ -5,6 +5,7 @@ import { lsGet, lsSet } from '../utils/storage';
 import { purchaseOrders as mockOrders } from '../data/mockData';
 import { apiRequest, getStoreId, normalizeServiceError, toApiEnvelope } from './apiClient';
 import { getSuppliers } from './supplierService';
+import { formatDate, formatCurrency } from '../utils/format';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK_ORDERS === 'true';
 const LS_KEY = 'invosix_orders';
@@ -12,12 +13,7 @@ const LS_KEY = 'invosix_orders';
 function getStored() { return lsGet(LS_KEY, mockOrders); }
 function saveStored(data) { lsSet(LS_KEY, data); }
 
-function formatDate(value) {
-  if (!value) return '—';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '—';
-  return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })} ${d.getFullYear()}`;
-}
+
 
 function mapOrderFromBackend(order, supplierMap) {
   const items = order.items || [];
@@ -30,7 +26,7 @@ function mapOrderFromBackend(order, supplierMap) {
     items: itemsCount,
     ordered: formatDate(order.order_date),
     expected: formatDate(order.expected_date),
-    value: `Rs ${totalValue.toFixed(2)}`,
+    value: formatCurrency(totalValue),
     status: order.status === 'received' ? 'Received' : order.status === 'pending' ? 'Pending' : order.status,
     orderItems: items.map(item => ({
       productId: item.product_id,
@@ -67,9 +63,9 @@ export async function addOrder(order) {
     const stored = getStored();
     const id = `#PO-${new Date().getFullYear()}-${String(stored.length + 50).padStart(3, '0')}`;
     const now = new Date();
-    const ordered = `${now.getDate()} ${now.toLocaleString('default', { month: 'short' })} ${now.getFullYear()}`;
+    const ordered = formatDate(now);
     const expected = new Date(now.getTime() + 3 * 86400000);
-    const expectedStr = `${expected.getDate()} ${expected.toLocaleString('default', { month: 'short' })} ${expected.getFullYear()}`;
+    const expectedStr = formatDate(expected);
     const newOrder = { ...order, id, ordered, expected: expectedStr, status: 'Pending' };
     saveStored([newOrder, ...stored]);
     return fakeApi(newOrder);
@@ -101,7 +97,7 @@ export async function addOrder(order) {
       items: order.items || (order.orderItems || []).length,
       ordered: formatDate(created.order_date),
       expected: formatDate(created.expected_date),
-      value: order.value || 'Rs 0',
+      value: order.value || formatCurrency(0),
       status: 'Pending',
       orderItems: order.orderItems || [],
     };

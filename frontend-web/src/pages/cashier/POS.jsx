@@ -109,7 +109,7 @@ function DiscountModal({ isOpen, onClose, onApply, onSelectPredefined }) {
                   <div className="text-left">
                     <p className="text-sm font-semibold text-[#0f172a] group-hover:text-[#1e3a5f]">{d.name || d.discount_name}</p>
                     <p className="text-[10px] text-[#94a3b8] font-mono">
-                      {d.discount_type === 'percentage' ? `${d.discount_value}% OFF` : `Rs ${d.discount_value} OFF`}
+                    {d.discount_type === 'percentage' ? `${d.discount_value}% OFF` : `${currencySymbol} ${d.discount_value} OFF`}
                     </p>
                   </div>
                   <div className="w-6 h-6 rounded-full bg-[#f1f5f9] flex items-center justify-center text-[#1e3a5f] opacity-0 group-hover:opacity-100 transition-opacity">
@@ -137,7 +137,7 @@ function DiscountModal({ isOpen, onClose, onApply, onSelectPredefined }) {
           </div>
           <div>
             <label className="block text-[10px] font-mono text-[#94a3b8] uppercase tracking-widest mb-1.5">
-              {type === 'percent' ? 'Discount %' : 'Amount (Rs)'}
+              {type === 'percent' ? 'Discount %' : `Amount (${currencySymbol})`}
             </label>
             <input type="number" value={value} onChange={e => setValue(e.target.value)}
               placeholder={type === 'percent' ? 'e.g. 10' : 'e.g. 100'}
@@ -172,7 +172,7 @@ function QRModal({ isOpen, onClose, total, onConfirm }) {
             <rect x="57" y="57" width="18" height="18" rx="2" fill="#1e3a5f" opacity="0.4"/>
           </svg>
         </div>
-        <div className="text-2xl font-bold text-[#0f172a]">Rs {total.toFixed(2)}</div>
+        <div className="text-2xl font-bold text-[#0f172a]">{currencySymbol} {total.toFixed(2)}</div>
         <p className="text-xs text-[#94a3b8]">eSewa / Khalti / ConnectIPS accepted</p>
         <div className="flex gap-2">
           <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
@@ -199,7 +199,7 @@ export default function POS() {
   // include addToCart from cashier context
   // (merged into the main destructure to avoid multiple hook calls)
 
-  const { addTransaction, products } = useApp();
+  const { addTransaction, products, currencySymbol } = useApp();
   const [searchQuery, setSearchQuery]   = useState('');
   const [discountOpen, setDiscountOpen] = useState(false);
   const [qrOpen, setQrOpen]             = useState(false);
@@ -314,7 +314,7 @@ export default function POS() {
                       disabled={p.stock === 0}
                       className="w-full text-left px-4 py-2.5 text-sm hover:bg-[#eff6ff] border-b border-[#f1f5f9] last:border-0 disabled:opacity-40">
                       <span className="font-medium text-[#0f172a]">{p.name}</span>
-                      <span className="text-[#94a3b8] ml-2 text-xs">{p.sku} · Rs {p.priceNum} · Stock: {p.stock}</span>
+                      <span className="text-[#94a3b8] ml-2 text-xs">{p.sku} · {currencySymbol} {p.priceNum} · Stock: {p.stock}</span>
                     </button>
                   ))}
                 </div>
@@ -334,7 +334,7 @@ export default function POS() {
                     <p className="text-xs text-[#94a3b8]">{p.sku} · {p.category}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold text-[#1e3a5f]">Rs {p.priceNum}</span>
+                    <span className="text-sm font-semibold text-[#1e3a5f]">{currencySymbol} {p.priceNum}</span>
                     <button onClick={() => {
                       addToCart(p);
                       setBrowseOpen(false);
@@ -372,8 +372,8 @@ export default function POS() {
                         <button onClick={() => updateQty(item.id, +1)} className="w-6 h-6 rounded border border-[#e2e8f0] flex items-center justify-center text-[#475569] hover:border-[#bfdbfe] transition-colors text-sm">+</button>
                       </div>
                     </td>
-                    <td className="px-2 py-3 text-sm text-[#475569] font-mono">Rs {item.price}.00</td>
-                    <td className="px-6 py-3 text-right text-sm font-semibold text-[#0f172a] font-mono">Rs {(item.price * item.qty).toLocaleString()}.00</td>
+                    <td className="px-2 py-3 text-sm text-[#475569] font-mono">{currencySymbol} {item.price}.00</td>
+                    <td className="px-6 py-3 text-right text-sm font-semibold text-[#0f172a] font-mono">{currencySymbol} {(item.price * item.qty).toLocaleString()}.00</td>
                     <td className="pr-3 py-3"><button onClick={() => removeFromCart(item.id)} className="text-[#ccc] hover:text-[#999] transition-colors text-lg">×</button></td>
                   </tr>
                 ))}
@@ -387,7 +387,7 @@ export default function POS() {
                       </div>
                     </td>
                     <td></td>
-                    <td className="px-6 py-3 text-right text-sm font-semibold text-[#e65100] font-mono">−Rs {discountAmt.toFixed(2)}</td>
+                    <td className="px-6 py-3 text-right text-sm font-semibold text-[#e65100] font-mono">−{currencySymbol} {discountAmt.toFixed(2)}</td>
                     <td className="pr-3 py-3"><button onClick={() => setDiscount(0)} className="text-[#ccc] hover:text-[#999] transition-colors text-lg">×</button></td>
                   </tr>
                 )}
@@ -411,10 +411,10 @@ export default function POS() {
           <div className="p-4 border-b border-[#e2e8f0]">
             <p className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-widest mb-3">Order Summary</p>
             <div className="space-y-2">
-              <div className="flex justify-between text-sm"><span className="text-[#94a3b8]">Subtotal ({cart.length} items)</span><span className="font-mono text-[#0f172a]">Rs {subtotal.toLocaleString()}.00</span></div>
-              {discount > 0 && <div className="flex justify-between text-sm"><span className="text-[#94a3b8]">Discount ({discount}%)</span><span className="font-mono text-[#e65100]">−Rs {discountAmt.toFixed(2)}</span></div>}
-              <div className="flex justify-between text-sm"><span className="text-[#94a3b8]">Tax (13% VAT)</span><span className="font-mono text-[#0f172a]">Rs {tax.toFixed(2)}</span></div>
-              <div className="flex justify-between font-bold text-base pt-2 border-t border-[#e2e8f0] mt-2"><span>Total</span><span className="font-mono">Rs {total.toFixed(2)}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-[#94a3b8]">Subtotal ({cart.length} items)</span><span className="font-mono text-[#0f172a]">{currencySymbol} {subtotal.toLocaleString()}.00</span></div>
+              {discount > 0 && <div className="flex justify-between text-sm"><span className="text-[#94a3b8]">Discount ({discount}%)</span><span className="font-mono text-[#e65100]">−{currencySymbol} {discountAmt.toFixed(2)}</span></div>}
+              <div className="flex justify-between text-sm"><span className="text-[#94a3b8]">Tax (13% VAT)</span><span className="font-mono text-[#0f172a]">{currencySymbol} {tax.toFixed(2)}</span></div>
+              <div className="flex justify-between font-bold text-base pt-2 border-t border-[#e2e8f0] mt-2"><span>Total</span><span className="font-mono">{currencySymbol} {total.toFixed(2)}</span></div>
             </div>
           </div>
           <div className="p-4 border-b border-[#e2e8f0]">
@@ -432,13 +432,13 @@ export default function POS() {
             </div>
             {paymentMethod === 'Cash' && (
               <div>
-                <label className="block text-[10px] font-mono text-[#94a3b8] uppercase tracking-widest mb-1.5">Cash Tendered (Rs)</label>
+                <label className="block text-[10px] font-mono text-[#94a3b8] uppercase tracking-widest mb-1.5">Cash Tendered ({currencySymbol})</label>
                 <input type="number" value={tendered} onChange={e => setTendered(parseFloat(e.target.value) || 0)}
                   className="w-full px-3 py-2 text-sm font-mono bg-[#f8fafc] border border-[#e2e8f0] rounded-lg outline-none focus:border-[#1e3a5f]" />
                 {tendered >= total && total > 0 && (
                   <div className="mt-2 flex justify-between text-sm">
                     <span className="text-[#94a3b8]">Change</span>
-                    <span className="font-mono font-semibold text-[#16a34a]">Rs {change.toFixed(2)}</span>
+                    <span className="font-mono font-semibold text-[#16a34a]">{currencySymbol} {change.toFixed(2)}</span>
                   </div>
                 )}
               </div>
@@ -451,7 +451,7 @@ export default function POS() {
               className="w-full py-3.5 rounded-xl font-bold text-white text-sm transition-all hover:bg-[#16324f] hover:shadow-[0_4px_16px_rgba(30,58,95,0.4)] disabled:opacity-40"
               style={{ background: '#1e3a5f' }}
             >
-              {processing ? 'Processing…' : `Charge Rs ${total.toFixed(2)}`}
+              {processing ? 'Processing…' : `Charge ${currencySymbol} ${total.toFixed(2)}`}
             </button>
             <button onClick={() => setCurrentPage('receipt')} className="w-full mt-2 py-2 text-xs text-[#94a3b8] hover:text-[#475569] transition-colors">
               View Last Receipt

@@ -10,7 +10,7 @@ from app.models import (
     Category, Inventory, InventoryLog, ProductPriceHistory, Product, ProductSupplier, Supplier, User
 )
 from app.schemas import (
-    CategoryCreate, CategoryOut, InventoryAdjust, InventoryOut,
+    CategoryCreate, CategoryOut, CategoryUpdate, InventoryAdjust, InventoryOut,
     MessageResponse, PaginatedResponse, ProductCreate, ProductOut, ProductUpdate,
 )
 
@@ -96,6 +96,29 @@ def create_category(
 ):
     cat = Category(store_id=store_id, **body.model_dump())
     db.add(cat)
+    db.commit()
+    db.refresh(cat)
+    return cat
+
+
+@cat_router.patch("/{category_id}", response_model=CategoryOut)
+def update_category(
+    store_id: str,
+    category_id: str,
+    body: CategoryUpdate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    cat = db.query(Category).filter(
+        Category.category_id == category_id, Category.store_id == store_id
+    ).first()
+    if not cat:
+        raise HTTPException(404, "Category not found.")
+
+    update_data = body.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(cat, field, value)
+
     db.commit()
     db.refresh(cat)
     return cat

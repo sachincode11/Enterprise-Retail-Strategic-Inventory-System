@@ -154,16 +154,30 @@ class StoreOut(BaseModel):
     address: Optional[str]
     contact_email: Optional[str]
     contact_phone: Optional[str]
-    # tax_rate: str
     is_active: bool
+    config: Optional[dict] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
 
 
+class StoreUpdate(BaseModel):
+    store_name: Optional[str] = None
+    address: Optional[str] = None
+    contact_email: Optional[EmailStr] = None
+    contact_phone: Optional[str] = None
+    config: Optional[dict] = None
+
+
 # Category
 class CategoryCreate(BaseModel):
     category_name: str
+    parent_category_id: Optional[int] = None
+    description: Optional[str] = None
+
+
+class CategoryUpdate(BaseModel):
+    category_name: Optional[str] = None
     parent_category_id: Optional[int] = None
     description: Optional[str] = None
 

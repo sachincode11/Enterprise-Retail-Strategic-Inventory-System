@@ -1,8 +1,8 @@
 // src/pages/admin/S6.jsx — Security / Access Control
-import { useState } from 'react';
+import { LoadingSpinner, Toggle } from '../../components/common';
 import { SettingsLayout } from './SettingsLayout';
-import { Toggle } from '../../components/common';
-import { saveSettings } from '../../services/settingsService';
+import { useSettings } from '../../hooks/useSettings';
+import { useApp } from '../../context/AppContext';
 
 function Row({ label, sub, children }) {
   return (
@@ -17,17 +17,14 @@ function Row({ label, sub, children }) {
 }
 
 export default function S6() {
-  const [pinVoids,   setPinVoids]   = useState(true);
-  const [pinRefunds, setPinRefunds] = useState(true);
-  const [twoFA,      setTwoFA]      = useState(true);
-  const [autoLogout, setAutoLogout] = useState('30 minutes');
-  const [logRetention, setLogRetention] = useState('90 days');
-  const [saved, setSaved] = useState(false);
+  const { settings, loading, saving, saved, update, save } = useSettings();
+  const { refreshSettings } = useApp();
+
+  if (loading || !settings) return <SettingsLayout activeId="S6"><LoadingSpinner /></SettingsLayout>;
 
   const handleSave = async () => {
-    await saveSettings({ requirePin: pinVoids, pinRefunds, twoFactor: twoFA });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    await save();
+    await refreshSettings();
   };
 
   return (
@@ -38,28 +35,29 @@ export default function S6() {
         {saved && <p className="text-xs text-[#15803d] mt-1">Security settings saved.</p>}
       </div>
       <Row label="Admin Auto Logout" sub="Automatically log out inactive admin sessions">
-        <select value={autoLogout} onChange={e => setAutoLogout(e.target.value)}
+        <select value={settings?.autoLogoutTime || '30 minutes'} onChange={e => update('autoLogoutTime', e.target.value)}
           className="px-3 py-1.5 rounded-lg border text-sm outline-none focus:border-[#1e3a5f]"
           style={{ borderColor: '#e2e8f0', minWidth: 160, color: '#475569' }}>
           <option>15 minutes</option><option>30 minutes</option><option>1 hour</option><option>Never</option>
         </select>
       </Row>
       <Row label="Require PIN for Voids" sub="Cashiers must enter supervisor PIN to void items">
-        <Toggle checked={pinVoids} onChange={setPinVoids} />
+        <Toggle checked={settings?.requirePinForVoids ?? true} onChange={v => update('requirePinForVoids', v)} />
       </Row>
       <Row label="Require PIN for Refunds" sub="Prevents unauthorized refund processing">
-        <Toggle checked={pinRefunds} onChange={setPinRefunds} />
+        <Toggle checked={settings?.requirePinForRefunds ?? true} onChange={v => update('requirePinForRefunds', v)} />
       </Row>
       <Row label="Two-Factor Auth for All Admins" sub="Email OTP required on every admin login">
-        <Toggle checked={twoFA} onChange={setTwoFA} />
+        <Toggle checked={settings?.twoFactor ?? false} onChange={v => update('twoFactor', v)} />
       </Row>
       <Row label="Audit Log Retention" sub="How long activity logs are retained">
-        <select value={logRetention} onChange={e => setLogRetention(e.target.value)}
+        <select value={settings?.logRetention || '90 days'} onChange={e => update('logRetention', e.target.value)}
           className="px-3 py-1.5 rounded-lg border text-sm outline-none focus:border-[#1e3a5f]"
           style={{ borderColor: '#e2e8f0', minWidth: 160, color: '#475569' }}>
           <option>30 days</option><option>90 days</option><option>180 days</option><option>1 year</option>
         </select>
       </Row>
+      {saving && <p className="px-6 py-2 text-xs text-[#94a3b8]">Saving…</p>}
     </SettingsLayout>
   );
 }

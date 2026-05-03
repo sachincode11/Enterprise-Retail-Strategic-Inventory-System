@@ -2,6 +2,7 @@
 import { SettingsLayout } from './SettingsLayout';
 import { useSettings } from '../../hooks/useSettings';
 import { LoadingSpinner } from '../../components/common';
+import { useApp } from '../../context/AppContext';
 
 function Row({ label, sub, children }) {
   return (
@@ -17,32 +18,39 @@ function Row({ label, sub, children }) {
 
 export default function S2() {
   const { settings, loading, saving, saved, update, save } = useSettings();
-  if (loading) return <SettingsLayout activeId="S2"><LoadingSpinner /></SettingsLayout>;
+  const { refreshSettings } = useApp();
+  
+  if (loading || !settings) return <SettingsLayout activeId="S2"><LoadingSpinner /></SettingsLayout>;
+
+  const handleSave = async () => {
+    await save();
+    await refreshSettings();
+  };
 
   return (
-    <SettingsLayout activeId="S2" onSave={() => save()}>
+    <SettingsLayout activeId="S2" onSave={handleSave}>
       <div className="px-6 py-4 border-b" style={{ borderColor: '#e2e8f0', background: '#f8fafc' }}>
         <h3 className="text-sm font-semibold text-[#0f172a]">Store Details</h3>
         <p className="text-xs mt-0.5 text-[#94a3b8]">Displayed on receipts and system-wide.</p>
         {saved && <p className="text-xs text-[#15803d] mt-1">Saved successfully.</p>}
       </div>
       <Row label="Store Name">
-        <input className="input-field" value={settings.storeName} onChange={e => update('storeName', e.target.value)} style={{ width: 260 }} />
+        <input className="input-field" value={settings?.storeName || ''} onChange={e => update('storeName', e.target.value)} style={{ width: 260 }} />
       </Row>
       <Row label="Store ID" sub="Read-only">
-        <input className="input-field" value={settings.storeId} readOnly style={{ width: 260, color: '#94a3b8', background: '#f8fafc' }} />
+        <input className="input-field" value={settings?.storeId || ''} readOnly style={{ width: 260, color: '#94a3b8', background: '#f8fafc' }} />
       </Row>
       <Row label="Address">
-        <input className="input-field" value={settings.address} onChange={e => update('address', e.target.value)} style={{ width: 300 }} />
+        <input className="input-field" value={settings?.address || ''} onChange={e => update('address', e.target.value)} style={{ width: 300 }} />
       </Row>
       <Row label="Phone">
-        <input className="input-field" value={settings.phone} onChange={e => update('phone', e.target.value)} style={{ width: 260 }} />
+        <input className="input-field" value={settings?.phone || ''} onChange={e => update('phone', e.target.value)} style={{ width: 260 }} />
       </Row>
       <Row label="Business Hours">
-        <input className="input-field" value={settings.businessHours} onChange={e => update('businessHours', e.target.value)} style={{ width: 200 }} />
+        <input className="input-field" value={settings?.businessHours || ''} onChange={e => update('businessHours', e.target.value)} style={{ width: 200 }} />
       </Row>
       <Row label="Email">
-        <input className="input-field" value={settings.email} onChange={e => update('email', e.target.value)} style={{ width: 260 }} />
+        <input className="input-field" value={settings?.email || ''} onChange={e => update('email', e.target.value)} style={{ width: 260 }} />
       </Row>
       {saving && <p className="px-6 py-2 text-xs text-[#94a3b8]">Saving…</p>}
     </SettingsLayout>

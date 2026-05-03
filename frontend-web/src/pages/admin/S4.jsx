@@ -1,8 +1,8 @@
-// src/pages/admin/S4.jsx — Roles & Permissions (Floor Manager removed)
-import { useState } from 'react';
+// src/pages/admin/S4.jsx — Roles & Permissions
+import { LoadingSpinner, Toggle } from '../../components/common';
 import { SettingsLayout } from './SettingsLayout';
-import { Toggle } from '../../components/common';
-import { saveSettings } from '../../services/settingsService';
+import { useSettings } from '../../hooks/useSettings';
+import { useApp } from '../../context/AppContext';
 
 const permissions = [
   { id: 'refunds',       label: 'Cashier — Can process refunds',     sub: 'Requires PIN verification',       default: true  },
@@ -13,20 +13,26 @@ const permissions = [
   { id: 'editSettings',  label: 'Cashier — Can edit POS settings',    sub: 'Theme/auto-print only',            default: false },
 ];
 
-// ROLES: Admin and Cashier only — Floor Manager removed
 const ROLES = [
   { id: 'admin',   name: 'Admin',   color: '#1e3a5f', badge: '#eff6ff', description: 'Full system access — inventory, staff, reports, settings' },
   { id: 'cashier', name: 'Cashier', color: '#475569', badge: '#f1f5f9', description: 'POS billing, transactions, shift management' },
 ];
 
 export default function S4() {
-  const [perms, setPerms] = useState(Object.fromEntries(permissions.map(p => [p.id, p.default])));
-  const [saved, setSaved] = useState(false);
+  const { settings, loading, saving, saved, update, save } = useSettings();
+  const { refreshSettings } = useApp();
+
+  if (loading || !settings) return <SettingsLayout activeId="S4"><LoadingSpinner /></SettingsLayout>;
 
   const handleSave = async () => {
-    await saveSettings({ permissions: perms });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    await save();
+    await refreshSettings();
+  };
+
+  const perms = settings?.permissions || Object.fromEntries(permissions.map(p => [p.id, p.default]));
+
+  const togglePerm = (id, val) => {
+    update('permissions', { ...perms, [id]: val });
   };
 
   return (
@@ -37,7 +43,6 @@ export default function S4() {
         {saved && <p className="text-xs text-[#15803d] mt-1">Permissions saved.</p>}
       </div>
 
-      {/* Role overview cards */}
       <div className="px-6 py-5 border-b grid grid-cols-2 gap-3" style={{ borderColor: '#e2e8f0' }}>
         {ROLES.map(role => (
           <div key={role.id} className="rounded-xl p-4 border" style={{ borderColor: '#e2e8f0', background: '#f8fafc' }}>
@@ -61,9 +66,10 @@ export default function S4() {
             <span className="text-sm font-medium text-[#0f172a] block">{p.label}</span>
             {p.sub && <span className="text-xs text-[#94a3b8]">{p.sub}</span>}
           </div>
-          <Toggle checked={perms[p.id]} onChange={val => setPerms(prev => ({ ...prev, [p.id]: val }))} />
+          <Toggle checked={!!perms[p.id]} onChange={val => togglePerm(p.id, val)} />
         </div>
       ))}
+      {saving && <p className="px-6 py-2 text-xs text-[#94a3b8]">Saving…</p>}
     </SettingsLayout>
   );
 }

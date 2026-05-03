@@ -325,9 +325,11 @@ export function Toast({ message, type = 'success', visible }) {
   const bg = type === 'success' ? '#dcfce7' : type === 'error' ? '#fee2e2' : '#eff6ff';
   const color = type === 'success' ? '#15803d' : type === 'error' ? '#991b1b' : '#1e3a5f';
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-lg text-sm font-medium shadow-lg fade-in"
-      style={{ background: bg, color }}>
-      {message}
+    <div className="fixed top-8 left-0 right-0 z-[100] flex justify-center pointer-events-none">
+      <div className="px-5 py-3 rounded-xl text-sm font-semibold shadow-[0_8px_30px_rgb(0,0,0,0.12)] fade-in pointer-events-auto border"
+        style={{ background: bg, color, borderColor: 'rgba(0,0,0,0.05)' }}>
+        {message}
+      </div>
     </div>
   );
 }

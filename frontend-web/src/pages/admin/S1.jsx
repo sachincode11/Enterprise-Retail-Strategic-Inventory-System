@@ -2,6 +2,8 @@
 import { SettingsLayout } from './SettingsLayout';
 import { useSettings } from '../../hooks/useSettings';
 import { LoadingSpinner } from '../../components/common';
+import { formatDate } from '../../utils/format';
+import { useApp } from '../../context/AppContext';
 
 function Row({ label, sub, children }) {
   return (
@@ -25,10 +27,17 @@ function ReadOnly({ value }) {
 
 export default function S1() {
   const { settings, loading, saving, saved, update, save } = useSettings();
-  if (loading) return <SettingsLayout activeId="S1"><LoadingSpinner /></SettingsLayout>;
+  const { refreshSettings } = useApp();
+  
+  if (loading || !settings) return <SettingsLayout activeId="S1"><LoadingSpinner /></SettingsLayout>;
+
+  const handleSave = async () => {
+    await save();
+    await refreshSettings();
+  };
 
   return (
-    <SettingsLayout activeId="S1" onSave={() => save()}>
+    <SettingsLayout activeId="S1" onSave={handleSave}>
       <div className="px-6 py-4 border-b" style={{ borderColor: '#e2e8f0', background: '#f8fafc' }}>
         <h3 className="text-sm font-semibold text-[#0f172a]">Display & Appearance</h3>
         <p className="text-xs text-[#94a3b8] mt-0.5">Regional settings for Kathmandu Main Store</p>
@@ -41,26 +50,33 @@ export default function S1() {
       </Row>
 
       {/* Date Format: editable */}
-      <Row label="Date Format">
-        <select value={settings.dateFormat} onChange={e => update('dateFormat', e.target.value)}
+      <Row label="Date Format" sub={`Preview: ${formatDate(new Date(), settings?.dateFormat)}`}>
+        <select value={settings?.dateFormat || ''} onChange={e => update('dateFormat', e.target.value)}
           className="px-3 py-1.5 rounded-lg border text-sm outline-none focus:border-[#1e3a5f]"
           style={{ borderColor: '#e2e8f0', minWidth: 200, background: '#f8fafc' }}>
-          <option>DD/MM/YYYY</option><option>MM/DD/YYYY</option><option>YYYY-MM-DD</option>
+          <option value="DD/MM/YYYY">{formatDate(new Date(), 'DD/MM/YYYY')} (DD/MM/YYYY)</option>
+          <option value="MM/DD/YYYY">{formatDate(new Date(), 'MM/DD/YYYY')} (MM/DD/YYYY)</option>
+          <option value="YYYY-MM-DD">{formatDate(new Date(), 'YYYY-MM-DD')} (YYYY-MM-DD)</option>
+          <option value="DD MMM, YYYY">{formatDate(new Date(), 'DD MMM, YYYY')} (DD MMM, YYYY)</option>
         </select>
       </Row>
 
       {/* Theme: editable */}
       <Row label="Theme">
-        <select value={settings.theme} onChange={e => update('theme', e.target.value)}
+        <select value={settings?.theme || 'Light'} onChange={e => update('theme', e.target.value)}
           className="px-3 py-1.5 rounded-lg border text-sm outline-none focus:border-[#1e3a5f]"
           style={{ borderColor: '#e2e8f0', minWidth: 200, background: '#f8fafc' }}>
           <option>Light</option><option>Dark</option><option>System</option>
         </select>
       </Row>
 
-      {/* Currency: fixed to NPR */}
+      {/* Currency: editable (NPR for now) */}
       <Row label="Currency" sub="Nepali Rupee (NPR) — fixed for this store">
-        <ReadOnly value="Rs (NPR)" />
+        <select value={settings?.currency || ''} onChange={e => update('currency', e.target.value)}
+          className="px-3 py-1.5 rounded-lg border text-sm outline-none focus:border-[#1e3a5f]"
+          style={{ borderColor: '#e2e8f0', minWidth: 200, background: '#f8fafc' }}>
+          <option value="Rs (NPR)">Rs (NPR)</option>
+        </select>
       </Row>
 
       {/* Timezone: fixed to Nepal */}

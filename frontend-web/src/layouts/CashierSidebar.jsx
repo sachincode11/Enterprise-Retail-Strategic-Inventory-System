@@ -27,9 +27,9 @@ export default function CashierSidebar() {
 
   return (
     <aside className="w-[210px] min-h-screen flex flex-col shrink-0" style={{ background: '#0f172a' }}>
-      <div className="px-5 pt-5 pb-4 border-b" style={{ borderColor: '#1e293b' }}>
+      <div className="flex items-center px-5 border-b" style={{ borderColor: '#1e293b', height: '52px' }}>
         <button onClick={() => setCurrentPage('dashboard')} className="flex items-center">
-          <img src={logo} alt="Logo" className="w-36 h-auto" />
+          <img src={logo} alt="Logo" className="w-28 h-auto" />
         </button>
       </div>
       <nav className="flex-1 px-3 pt-4">

@@ -10,6 +10,7 @@ import { getDiscounts, addDiscount as addDiscountService, updateDiscount, delete
 import { getCustomers } from '../services/customerService';
 import { getStaff } from '../services/staffService';
 import { getStoreInfo } from '../services/storeService';
+import { getSettings } from '../services/settingsService';
 import { lsGet, lsSet } from '../utils/storage';
 
 const AppContext = createContext(null);
@@ -46,6 +47,7 @@ export function AppProvider({ children }) {
   const [customers, setCustomers]       = useState([]);
   const [staff, setStaff]               = useState([]);
   const [storeInfo, setStoreInfo]       = useState(null);
+  const [settings, setSettings]         = useState(null);
   const [loading, setLoading]           = useState(true);
   const { user } = useAuth();
   const [liveNotificationReadIds, setLiveNotificationReadIds] = useState(
@@ -72,9 +74,9 @@ export function AppProvider({ children }) {
 
     async function boot() {
       setLoading(true);
-      const [p, t, o, d, c, s, si] = await Promise.allSettled([
+      const [p, t, o, d, c, s, si, st] = await Promise.allSettled([
         getProducts(), getTransactions(), getOrders(), getDiscounts(),
-        getCustomers(), getStaff(), getStoreInfo(),
+        getCustomers(), getStaff(), getStoreInfo(), getSettings(),
       ]);
 
       setProducts(p.status === 'fulfilled' ? (p.value?.data || []) : []);
@@ -84,10 +86,24 @@ export function AppProvider({ children }) {
       setCustomers(c.status === 'fulfilled' ? (c.value?.data || []) : []);
       setStaff(s.status === 'fulfilled' ? (s.value?.data || []) : []);
       setStoreInfo(si.status === 'fulfilled' ? (si.value?.data || null) : null);
+      setSettings(st.status === 'fulfilled' ? (st.value?.data || null) : null);
       setLoading(false);
     }
     boot();
   }, [user]);
+
+  const refreshSettings = useCallback(async () => {
+    const res = await getSettings();
+    if (res.data) setSettings(res.data);
+  }, []);
+
+  // Sync critical display settings to localStorage for utilities (format.js)
+  useEffect(() => {
+    if (settings) {
+      lsSet('invosix_date_format', settings.dateFormat);
+      lsSet('invosix_currency', settings.currency);
+    }
+  }, [settings]);
 
   useEffect(() => {
     lsSet(LIVE_NOTIFICATION_READS_KEY, [...liveNotificationReadIds]);
@@ -95,6 +111,8 @@ export function AppProvider({ children }) {
 
   const liveNotifications = buildLiveNotifications(products);
   const unreadLiveNotificationCount = liveNotifications.filter(n => !liveNotificationReadIds.has(n.id)).length;
+  const currencySymbol = settings?.currency?.split(' ')[0] || 'Rs';
+  const dateFormat = settings?.dateFormat || 'DD/MM/YYYY';
 
   const markLiveNotificationRead = useCallback((id) => {
     setLiveNotificationReadIds(prev => {
@@ -260,6 +278,10 @@ export function AppProvider({ children }) {
       isLiveNotificationRead,
       markLiveNotificationRead,
       markAllLiveNotificationsRead,
+      settings,
+      refreshSettings,
+      currencySymbol,
+      dateFormat,
       // Products
       products,
       addProduct: handleAddProduct,

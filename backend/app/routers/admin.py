@@ -34,7 +34,7 @@ from app.schemas import (
     FAQCreate, FAQOut, MessageResponse,
     NotificationOut, PolicyCreate, PolicyOut,
     PurchaseOrderCreate, PurchaseOrderOut, PurchaseOrderStatusUpdate,
-    StaffCreate, StaffOut, StoreOut, SupplierCreate, SupplierOut, SupplierUpdate, UserOut, UserUpdate,
+    StaffCreate, StaffOut, StoreOut, StoreUpdate, SupplierCreate, SupplierOut, SupplierUpdate, UserOut, UserUpdate,
 )
 
 
@@ -669,4 +669,30 @@ def get_store(
     store = db.query(Store).filter(Store.store_id == store_id).first()
     if not store:
         raise HTTPException(404, "Store not found.")
+    return store
+
+
+@store_router.patch("/{store_id}", response_model=StoreOut)
+def update_store(
+    store_id: int,
+    body: StoreUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    store = db.query(Store).filter(Store.store_id == store_id).first()
+    if not store:
+        raise HTTPException(404, "Store not found.")
+    
+    update_data = body.model_dump(exclude_unset=True)
+    
+    # Handle partial config update if provided
+    if "config" in update_data and update_data["config"] and store.config:
+        new_config = {**store.config, **update_data["config"]}
+        update_data["config"] = new_config
+
+    for key, value in update_data.items():
+        setattr(store, key, value)
+    
+    db.commit()
+    db.refresh(store)
     return store

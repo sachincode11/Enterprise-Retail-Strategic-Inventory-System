@@ -21,6 +21,7 @@ from app.routers.admin import (
     faq_router, policy_router, notif_router,
     discount_router, staff_router, customer_router, store_router,
 )
+from app.routers.reports import report_router
 
 
 # lifespan (startup / shutdown)
@@ -37,6 +38,13 @@ async def lifespan(app: FastAPI):
 
 def _ensure_schema_compatibility() -> None:
     inspector = inspect(engine)
+    # Store table fixes
+    if "stores" in inspector.get_table_names():
+        cols = {column["name"] for column in inspector.get_columns("stores")}
+        with engine.begin() as conn:
+            if "config" not in cols:
+                conn.execute(text("ALTER TABLE stores ADD COLUMN config JSON NULL"))
+
     # Suppliers table fixes
     if "suppliers" in inspector.get_table_names():
         cols = {column["name"] for column in inspector.get_columns("suppliers")}
@@ -45,8 +53,6 @@ def _ensure_schema_compatibility() -> None:
                 conn.execute(text("ALTER TABLE suppliers ADD COLUMN store_id INT NULL"))
             if "is_active" not in cols:
                 conn.execute(text("ALTER TABLE suppliers ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1"))
-    
-    # Products table fixes
     if "products" in inspector.get_table_names():
         cols = {column["name"] for column in inspector.get_columns("products")}
         with engine.begin() as conn:
@@ -163,6 +169,7 @@ app.include_router(discount_router, prefix=API)
 app.include_router(staff_router,    prefix=API)
 app.include_router(customer_router, prefix=API)
 app.include_router(store_router,    prefix=API)
+app.include_router(report_router,   prefix=API)
 
 
 # Health check

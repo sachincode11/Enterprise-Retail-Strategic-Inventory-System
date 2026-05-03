@@ -76,6 +76,7 @@ class Store(Base):
     contact_email = Column(String(150), nullable=True)
     contact_phone = Column(String(20),  nullable=True)
     is_active     = Column(Boolean,     nullable=False, default=True)
+    config        = Column(JSON,        nullable=True)
     created_at    = Column(DateTime,    nullable=False, server_default=func.now())
 
     owner            = relationship("User",             back_populates="owned_stores",    foreign_keys=[owner_id])

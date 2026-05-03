@@ -18,10 +18,12 @@ from .schemas import (
     # Store
     StoreCreate,
     StoreOut,
+    StoreUpdate,
 
     # Category
     CategoryCreate,
     CategoryOut,
+    CategoryUpdate,
 
     # Product
     ProductCreate,
@@ -97,10 +99,12 @@ __all__ = [
     # Store
     "StoreCreate",
     "StoreOut",
+    "StoreUpdate",
 
     # Category
     "CategoryCreate",
     "CategoryOut",
+    "CategoryUpdate",
 
     # Product
     "ProductCreate",

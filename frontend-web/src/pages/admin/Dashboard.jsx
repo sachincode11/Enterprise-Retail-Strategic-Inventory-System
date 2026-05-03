@@ -3,6 +3,7 @@ import AdminLayout from '../../layouts/AdminLayout';
 import { StatCard, SectionCard, Badge, Avatar, ProgressRow, Button } from '../../components/common';
 import { useAdmin } from '../../context/AdminContext';
 import { useApp } from '../../context/AppContext';
+import { formatDate, formatDateTime } from '../../utils/format';
 
 // BAR GRAPH replacing the old line graph
 function BarGraph({ data }) {
@@ -41,7 +42,7 @@ function BarGraph({ data }) {
 
 export default function Dashboard() {
   const { setCurrentPage } = useAdmin();
-  const { products, transactions, orders, staff, nowNP } = useApp();
+  const { products, transactions, orders, staff, nowNP, currencySymbol } = useApp();
 
   const lowStockItems = products.filter(p => p.status === 'Low Stock' || p.status === 'Out of Stock').slice(0, 5);
   const pendingOrders = orders.filter(o => o.status === 'Pending').length;
@@ -58,14 +59,14 @@ export default function Dashboard() {
     for (let i = 13; i >= 0; i--) {
       const d = new Date(nowNP);
       d.setDate(d.getDate() - i);
-      const key = `${d.getDate()}/${d.getMonth() + 1}`;
+      const key = formatDate(d); // Uses user setting
       buckets[key] = 0;
     }
     transactions.forEach(t => {
       if (t.status !== 'Paid') return;
       const d = new Date(t.datetime || '');
       if (isNaN(d.getTime())) return;
-      const key = `${d.getDate()}/${d.getMonth() + 1}`;
+      const key = formatDate(d);
       if (key in buckets) {
         const n = parseInt((t.amount || '').replace(/[^0-9]/g, ''), 10) || 0;
         buckets[key] += n;
@@ -92,7 +93,7 @@ export default function Dashboard() {
       return {
         name: p.name,
         units: `${p.soldUnits} units`,
-        revenue: `Rs ${(p.soldUnits * (p.priceNum || 0)).toLocaleString('en-IN')}`,
+        revenue: `${currencySymbol} ${(p.soldUnits * (p.priceNum || 0)).toLocaleString('en-IN')}`,
         pct: maxSold > 0 ? Math.round((p.soldUnits / maxSold) * 100) : Math.round(Math.random() * 60 + 30),
       };
     });
@@ -119,7 +120,7 @@ export default function Dashboard() {
 
   // Nepal clock strings — safe check to avoid RangeError on invalid date
   const isValid = nowNP instanceof Date && !isNaN(nowNP);
-  const dateStr = isValid ? nowNP.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kathmandu' }) : '...';
+  const dateStr = isValid ? formatDate(nowNP) : '...';
   const timeStr = isValid ? nowNP.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Kathmandu' }) : '--:--:--';
 
   const avgDaily = revenueData.length ? Math.round(revenueData.reduce((s, d) => s + d.value, 0) / revenueData.length) : 0;
@@ -148,7 +149,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-4">
-        <StatCard label="Today's Revenue" value={`Rs ${todayRevenue.toLocaleString('en-IN')}`} progress={72} navy />
+        <StatCard label="Today's Revenue" value={`${currencySymbol} ${todayRevenue.toLocaleString('en-IN')}`} progress={72} navy />
         <StatCard label="Total Transactions" value={transactions.length} progress={45} />
         <StatCard label="Total Products" value={products.length} progress={55} />
         <StatCard label="Low Stock Items" value={lowStockItems.length} progress={30} />
@@ -169,8 +170,8 @@ export default function Dashboard() {
           <div className="px-5 pt-4 pb-4">
             <BarGraph data={revenueData} />
             <div className="flex justify-between mt-4">
-              <div><p className="text-[10px] text-[#94a3b8] uppercase">Avg Daily</p><p className="text-sm font-semibold text-[#0f172a]">Rs {avgDaily.toLocaleString('en-IN')}</p></div>
-              <div><p className="text-[10px] text-[#94a3b8] uppercase">Peak Day</p><p className="text-sm font-semibold text-[#0f172a]">Rs {peakDay.value.toLocaleString('en-IN')}</p></div>
+              <div><p className="text-[10px] text-[#94a3b8] uppercase">Avg Daily</p><p className="text-sm font-semibold text-[#0f172a]">{currencySymbol} {avgDaily.toLocaleString('en-IN')}</p></div>
+              <div><p className="text-[10px] text-[#94a3b8] uppercase">Peak Day</p><p className="text-sm font-semibold text-[#0f172a]">{currencySymbol} {peakDay.value.toLocaleString('en-IN')}</p></div>
               <div><p className="text-[10px] text-[#94a3b8] uppercase">Total Txns</p><p className="text-sm font-semibold text-[#16a34a]">{transactions.filter(t => t.status === 'Paid').length}</p></div>
             </div>
           </div>

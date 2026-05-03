@@ -1,9 +1,6 @@
-// src/services/settingsService.js
-import { fakeApi } from '../utils/fakeApi';
-import { lsGet, lsSet } from '../utils/storage';
+import { apiRequest, getStoreId } from './apiClient';
 
-const USE_MOCK = true;
-const LS_KEY = 'invosix_settings';
+const USE_MOCK = false;
 
 const DEFAULT_SETTINGS = {
   // Display & Appearance
@@ -41,31 +38,81 @@ const DEFAULT_SETTINGS = {
 };
 
 export async function getSettings() {
-  if (USE_MOCK) return fakeApi(lsGet(LS_KEY, DEFAULT_SETTINGS));
-  const res = await fetch('/api/settings');
-  return res.json();
+  const storeId = getStoreId();
+  try {
+    const store = await apiRequest(`/stores/${storeId}`);
+    if (!store) return { data: DEFAULT_SETTINGS };
+
+    // Map backend store to frontend settings
+    const flat = {
+      ...DEFAULT_SETTINGS,
+      storeName: store.store_name,
+      address: store.address || '',
+      phone: store.contact_phone || '',
+      email: store.contact_email || '',
+      storeId: `STORE-${String(store.store_id).padStart(3, '0')}`,
+      ...(store.config || {}),
+    };
+    return { data: flat };
+  } catch (err) {
+    console.error("Failed to fetch settings:", err);
+    return { data: DEFAULT_SETTINGS };
+  }
 }
 
 export async function saveSettings(updates) {
-  if (USE_MOCK) {
-    const current = lsGet(LS_KEY, DEFAULT_SETTINGS);
-    const merged = { ...current, ...updates };
-    lsSet(LS_KEY, merged);
-    return fakeApi(merged);
-  }
-  const res = await fetch('/api/settings', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(updates),
+  const storeId = getStoreId();
+
+  // Split updates into Store fields and Config fields
+  const storeFields = {};
+  const configFields = {};
+
+  const STORE_MAP = {
+    storeName: 'store_name',
+    address: 'address',
+    phone: 'contact_phone',
+    email: 'contact_email'
+  };
+
+  Object.entries(updates).forEach(([key, val]) => {
+    if (STORE_MAP[key]) {
+      storeFields[STORE_MAP[key]] = val;
+    } else {
+      configFields[key] = val;
+    }
   });
-  return res.json();
+
+  const payload = {
+    ...storeFields,
+    config: configFields
+  };
+
+  try {
+    const store = await apiRequest(`/stores/${storeId}`, {
+      method: 'PATCH',
+      body: payload
+    });
+
+    if (store) {
+      const flat = {
+        ...DEFAULT_SETTINGS,
+        storeName: store.store_name,
+        address: store.address || '',
+        phone: store.contact_phone || '',
+        email: store.contact_email || '',
+        storeId: `STORE-${String(store.store_id).padStart(3, '0')}`,
+        ...(store.config || {}),
+      };
+      return { data: flat };
+    }
+    return { data: DEFAULT_SETTINGS };
+  } catch (err) {
+    console.error("Failed to save settings:", err);
+    throw err;
+  }
 }
 
 export async function resetSettings() {
-  if (USE_MOCK) {
-    lsSet(LS_KEY, DEFAULT_SETTINGS);
-    return fakeApi(DEFAULT_SETTINGS);
-  }
-  const res = await fetch('/api/settings/reset', { method: 'POST' });
-  return res.json();
+  // For now, reset just clears to defaults in the save call
+  return saveSettings(DEFAULT_SETTINGS);
 }

@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react';
 import CashierSettingsLayout from './CashierSettingsLayout';
 import { Toggle } from '../../components/common';
-import { getSettings, saveSettings } from '../../services/settingsService';
+import { useApp } from '../../context/AppContext';
+import { saveSettings } from '../../services/settingsService';
 
 function Row({ label, children }) {
   return (
@@ -28,26 +29,26 @@ function LockedField({ value }) {
 }
 
 export default function S1General() {
+  const { settings, refreshSettings } = useApp();
   const [autoPrint, setAutoPrint] = useState(true);
   const [theme, setTheme]         = useState('Light');
   const [saved, setSaved]         = useState(false);
-  const [loading, setLoading]     = useState(true);
 
   useEffect(() => {
-    getSettings().then(res => {
-      setAutoPrint(res.data.autoPrint ?? true);
-      setTheme(res.data.theme || 'Light');
-      setLoading(false);
-    });
-  }, []);
+    if (settings) {
+      setAutoPrint(settings.autoPrint ?? true);
+      setTheme(settings.theme || 'Light');
+    }
+  }, [settings]);
 
   const handleSave = async () => {
     await saveSettings({ autoPrint, theme });
+    await refreshSettings();
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
-  if (loading) return <CashierSettingsLayout activeId="s1"><div className="p-8 text-sm text-[#94a3b8]">Loading…</div></CashierSettingsLayout>;
+  if (!settings) return <CashierSettingsLayout activeId="s1"><div className="p-8 text-sm text-[#94a3b8]">Loading…</div></CashierSettingsLayout>;
 
   return (
     <CashierSettingsLayout activeId="s1" onSave={handleSave}>
@@ -62,10 +63,10 @@ export default function S1General() {
         <LockedField value="English (EN)" />
       </Row>
       <Row label="Date Format">
-        <LockedField value="DD/MM/YYYY" />
+        <LockedField value={settings.dateFormat || 'DD/MM/YYYY'} />
       </Row>
       <Row label="Currency Symbol">
-        <LockedField value="Rs (NPR)" />
+        <LockedField value={settings.currency || 'Rs (NPR)'} />
       </Row>
 
       {/* Editable: Theme */}

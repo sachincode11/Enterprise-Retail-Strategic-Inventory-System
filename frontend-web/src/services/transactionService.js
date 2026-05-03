@@ -3,6 +3,7 @@ import { fakeApi } from '../utils/fakeApi';
 import { lsGet, lsSet } from '../utils/storage';
 import { transactions as mockTransactions } from '../data/mockData';
 import { apiRequest, getStoreId, normalizeServiceError, toApiEnvelope } from './apiClient';
+import { formatDateTime, formatCurrency } from '../utils/format';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK_TRANSACTIONS === 'true';
 const LS_KEY = 'invosix_transactions';
@@ -11,12 +12,7 @@ const DEFAULT_PAGE_SIZE = 10
 function getStored() { return lsGet(LS_KEY, mockTransactions); }
 function saveStored(data) { lsSet(LS_KEY, data); }
 
-function formatDateTime(value) {
-  if (!value) return '—';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '—';
-  return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}, ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-}
+
 
 function mapTxnFromBackend(txn) {
   const amount = Number(txn.total_amount || 0);
@@ -28,7 +24,7 @@ function mapTxnFromBackend(txn) {
     datetime: formatDateTime(txn.transaction_date),
     items: txn.items?.length || 0,
     method: 'Cash',
-    amount: `Rs ${Math.round(amount).toLocaleString('en-IN')}`,
+    amount: formatCurrency(amount),
     status: txn.status === 'refunded' ? 'Refunded' : txn.status === 'cancelled' ? 'Voided' : 'Paid',
   };
 }
@@ -60,8 +56,7 @@ export async function addTransaction(txn) {
     const stored = getStored();
     const id = `#TXN-${String(Date.now()).slice(-4)}`;
     const now = new Date();
-    const datetime = `${now.getDate()} ${now.toLocaleString('default', { month: 'short' })}, ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
-    const newTxn = { ...txn, id, datetime, status: 'Paid' };
+    const newTxn = { ...txn, id, datetime: formatDateTime(now), status: 'Paid' };
     saveStored([newTxn, ...stored]);
     return fakeApi(newTxn);
   }

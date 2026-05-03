@@ -43,7 +43,7 @@ function mapProductFromBackend(product, stockMap, categoryMap, supplierMap) {
     description: product.description || '',
     supply_price: product.supply_price || '',
     reorder_level: product.reorder_level || '',
-    
+
     // Maintain legacy names for backward compatibility if needed, 
     // but we will update the components to use the new names.
     name: product.product_name,
@@ -107,6 +107,42 @@ export async function getCategories() {
     return toApiEnvelope(categories);
   } catch {
     return fakeApi([]);
+  }
+}
+
+export async function addCategory(payload) {
+  try {
+    const storeId = getStoreId();
+    const created = await apiRequest(`/stores/${storeId}/categories`, {
+      method: 'POST',
+      body: payload,
+    });
+    return toApiEnvelope(created, 201);
+  } catch (error) {
+    throw normalizeServiceError(error, 'Failed to add category');
+  }
+}
+
+export async function updateCategory(id, payload) {
+  try {
+    const storeId = getStoreId();
+    const updated = await apiRequest(`/stores/${storeId}/categories/${id}`, {
+      method: 'PATCH',
+      body: payload,
+    });
+    return toApiEnvelope(updated);
+  } catch (error) {
+    throw normalizeServiceError(error, 'Failed to update category');
+  }
+}
+
+export async function deleteCategory(id) {
+  try {
+    const storeId = getStoreId();
+    await apiRequest(`/stores/${storeId}/categories/${id}`, { method: 'DELETE' });
+    return toApiEnvelope({ deleted: id });
+  } catch (error) {
+    throw normalizeServiceError(error, 'Failed to delete category');
   }
 }
 

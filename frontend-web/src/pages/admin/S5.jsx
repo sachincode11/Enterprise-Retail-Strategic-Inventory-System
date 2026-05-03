@@ -1,8 +1,8 @@
 // src/pages/admin/S5.jsx — Admin Alerts / Notifications
-import { useState } from 'react';
+import { LoadingSpinner, Toggle } from '../../components/common';
 import { SettingsLayout } from './SettingsLayout';
-import { Toggle } from '../../components/common';
-import { saveSettings } from '../../services/settingsService';
+import { useSettings } from '../../hooks/useSettings';
+import { useApp } from '../../context/AppContext';
 
 const alerts = [
   { id: 'daily_revenue', label: 'Daily Revenue Summary Email',  sub: null,                                   default: true  },
@@ -13,19 +13,27 @@ const alerts = [
 ];
 
 export default function S5() {
-  const [states, setStates] = useState(Object.fromEntries(alerts.map(a => [a.id, a.default])));
-  const [saved, setSaved]   = useState(false);
+  const { settings, loading, saving, saved, update, save } = useSettings();
+  const { refreshSettings } = useApp();
+
+  if (loading || !settings) return <SettingsLayout activeId="S5"><LoadingSpinner /></SettingsLayout>;
 
   const handleSave = async () => {
-    await saveSettings({ notifications: states });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    await save();
+    await refreshSettings();
+  };
+
+  const states = settings?.notifications || Object.fromEntries(alerts.map(a => [a.id, a.default]));
+
+  const toggleAlert = (id, val) => {
+    update('notifications', { ...states, [id]: val });
   };
 
   return (
     <SettingsLayout activeId="S5" onSave={handleSave}>
       <div className="px-6 py-4 border-b" style={{ borderColor: '#e2e8f0', background: '#f8fafc' }}>
         <h3 className="text-sm font-semibold text-[#0f172a]">Admin Alerts</h3>
+        <p className="text-xs mt-0.5 text-[#94a3b8]">Configure which system alerts you want to receive.</p>
         {saved && <p className="text-xs text-[#15803d] mt-1">Notification preferences saved.</p>}
       </div>
       {alerts.map(a => (
@@ -34,9 +42,10 @@ export default function S5() {
             <span className="text-sm font-medium text-[#0f172a] block">{a.label}</span>
             {a.sub && <span className="text-xs text-[#94a3b8]">{a.sub}</span>}
           </div>
-          <Toggle checked={states[a.id]} onChange={val => setStates(prev => ({ ...prev, [a.id]: val }))} />
+          <Toggle checked={!!states[a.id]} onChange={val => toggleAlert(a.id, val)} />
         </div>
       ))}
+      {saving && <p className="px-6 py-2 text-xs text-[#94a3b8]">Saving…</p>}
     </SettingsLayout>
   );
 }
