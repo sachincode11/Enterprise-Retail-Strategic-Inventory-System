@@ -11,7 +11,7 @@ from sqlalchemy import inspect, text
 from app.core.config import settings
 from app.database import Base, engine
 from app.models import *
-
+from app.ai.routers.ai_router import ai_router
 # routers
 from app.routers.auth import router as auth_router
 from app.routers.products import cat_router, prod_router, inv_router
@@ -163,7 +163,7 @@ app.include_router(discount_router, prefix=API)
 app.include_router(staff_router,    prefix=API)
 app.include_router(customer_router, prefix=API)
 app.include_router(store_router,    prefix=API)
-
+app.include_router(ai_router, prefix=API)
 
 # Health check
 @app.get("/health", tags=["Health"])
