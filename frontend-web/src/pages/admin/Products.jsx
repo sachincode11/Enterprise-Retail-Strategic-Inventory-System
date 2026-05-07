@@ -6,12 +6,11 @@ import { useAdmin } from '../../context/AdminContext';
 import { useApp } from '../../context/AppContext';
 import { exportCSV } from '../../utils/exportData';
 
-const CATEGORIES = ['All', 'Grains', 'Dairy', 'Instant Food', 'Condiments', 'Household', 'Beverages', 'Oils & Fats', 'Snacks'];
 const STATUSES = ['All', 'Active', 'Low Stock', 'Out of Stock'];
 
 export default function Products() {
   const { setCurrentPage, setEditTarget } = useAdmin();
-  const { products, deleteProduct, loading, currencySymbol } = useApp();
+  const { products, categories, deleteProduct, loading, currencySymbol } = useApp();
 
   const [query, setQuery] = useState('');
   const [catFilter, setCat] = useState('All');
@@ -101,7 +100,8 @@ export default function Products() {
             <input value={query} onChange={e => { setQuery(e.target.value); setPage(1); }}
               placeholder="Search name, SKU or category…" className="input-field" style={{ maxWidth: 260 }} />
             <select value={catFilter} onChange={e => { setCat(e.target.value); setPage(1); }} className="input-field" style={{ maxWidth: 160 }}>
-              {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+              <option>All</option>
+              {categories.map(c => <option key={c.category_id} value={c.category_name}>{c.category_name}</option>)}
             </select>
             <select value={statusFilter} onChange={e => { setStatus(e.target.value); setPage(1); }} className="input-field" style={{ maxWidth: 160 }}>
               {STATUSES.map(s => <option key={s}>{s}</option>)}

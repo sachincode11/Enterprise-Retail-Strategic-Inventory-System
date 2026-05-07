@@ -31,15 +31,15 @@ function Field({ label, value, onChange, type = 'text', readOnly }) {
 export default function Profile() {
   const { user, updateProfile } = useAuth();
   const [editing, setEditing] = useState(false);
-  const [toast,   setToast]   = useState({ visible: false, message: '', type: 'success' });
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
   // Derive from live auth session
   const nameParts = (user?.name || 'Admin User').split(' ');
   const [form, setForm] = useState({
     firstName: nameParts[0] || 'Admin',
-    lastName:  nameParts.slice(1).join(' ') || '',
-    email:     user?.email || '',
-    phone:     user?.phone || '',
+    lastName: nameParts.slice(1).join(' ') || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
   });
 
   useEffect(() => {
@@ -56,12 +56,12 @@ export default function Profile() {
   const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
 
   // Live user display values
-  const displayName  = user?.name  || `${form.firstName} ${form.lastName}`.trim();
-  const displayRole  = user?.role  ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Admin';
+  const displayName = user?.name || `${form.firstName} ${form.lastName}`.trim();
+  const displayRole = user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Admin';
   const displayStore = user?.store || 'STORE-001';
   const displayEmail = user?.email || form.email;
   const displayPhone = user?.phone || form.phone || '—';
-  const initials     = user?.initials || nameParts.map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'AS';
+  const initials = user?.initials || nameParts.map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'AS';
 
   const showToast = (msg, type = 'success') => {
     setToast({ visible: true, message: msg, type });
@@ -89,7 +89,7 @@ export default function Profile() {
   const handleChangePassword = () => {
     const stored = lsGet('invosix_admin_password', 'admin123');
     if (pwForm.current !== stored) { showToast('Current password is incorrect.'); return; }
-    if (pwForm.next.length < 6)    { showToast('New password must be at least 6 characters.'); return; }
+    if (pwForm.next.length < 6) { showToast('New password must be at least 6 characters.'); return; }
     if (pwForm.next !== pwForm.confirm) { showToast('Passwords do not match.'); return; }
     lsSet('invosix_admin_password', pwForm.next);
     setPwForm({ current: '', next: '', confirm: '' });
@@ -117,7 +117,7 @@ export default function Profile() {
           <div className="relative">
             <div className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold text-white" style={{ background: '#1e3a5f' }}>{initials}</div>
             <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center border-2 border-[#0f172a]" style={{ background: '#22c55e' }}>
-              <svg width="8" height="8" viewBox="0 0 8 8" fill="white"><circle cx="4" cy="4" r="3"/></svg>
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="white"><circle cx="4" cy="4" r="3" /></svg>
             </div>
           </div>
           <div>
@@ -144,13 +144,13 @@ export default function Profile() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <Field label="First Name" value={form.firstName} onChange={set('firstName')} readOnly={!editing} />
-              <Field label="Last Name"  value={form.lastName}  onChange={set('lastName')}  readOnly={!editing} />
+              <Field label="Last Name" value={form.lastName} onChange={set('lastName')} readOnly={!editing} />
             </div>
             <Field label="Email" value={form.email} onChange={set('email')} type="email" readOnly={!editing} />
             <Field label="Phone" value={form.phone} onChange={set('phone')} readOnly={!editing} />
             <div className="grid grid-cols-2 gap-3 pt-2">
               <Field label="Store" value={displayStore} readOnly />
-              <Field label="Role"  value={displayRole}  readOnly />
+              <Field label="Role" value={displayRole} readOnly />
             </div>
           </div>
         </Section>
@@ -159,7 +159,7 @@ export default function Profile() {
         <Section title="Change Password">
           <div className="space-y-4">
             <Field label="Current Password" value={pwForm.current} onChange={setPw('current')} type="password" />
-            <Field label="New Password"     value={pwForm.next}    onChange={setPw('next')}    type="password" />
+            <Field label="New Password" value={pwForm.next} onChange={setPw('next')} type="password" />
             <Field label="Confirm Password" value={pwForm.confirm} onChange={setPw('confirm')} type="password" />
             <Button variant="primary" onClick={handleChangePassword} className="w-full mt-2">Update Password</Button>
           </div>

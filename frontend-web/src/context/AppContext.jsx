@@ -3,7 +3,7 @@
 // Products, transactions, orders, discounts, staff, customers all live here.
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
-import { getProducts, updateProduct, addProduct, deleteProduct, adjustInventory, stockStatus } from '../services/productService';
+import { getProducts, updateProduct, addProduct, deleteProduct, adjustInventory, stockStatus, getCategories } from '../services/productService';
 import { getTransactions, addTransaction as addTxnService, voidTransaction, refundTransaction } from '../services/transactionService';
 import { getOrders, addOrder as addOrderService, updateOrderStatus } from '../services/orderService';
 import { getDiscounts, addDiscount as addDiscountService, updateDiscount, deleteDiscount } from '../services/discountService';
@@ -41,6 +41,7 @@ function buildLiveNotifications(products = []) {
 
 export function AppProvider({ children }) {
   const [products, setProducts]         = useState([]);
+  const [categories, setCategories]     = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [orders, setOrders]             = useState([]);
   const [discounts, setDiscounts]       = useState([]);
@@ -87,6 +88,15 @@ export function AppProvider({ children }) {
       setStaff(s.status === 'fulfilled' ? (s.value?.data || []) : []);
       setStoreInfo(si.status === 'fulfilled' ? (si.value?.data || null) : null);
       setSettings(st.status === 'fulfilled' ? (st.value?.data || null) : null);
+      
+      // Fetch categories too
+      try {
+        const catRes = await getCategories();
+        setCategories(catRes?.data || []);
+      } catch (err) {
+        console.error("Failed to fetch categories:", err);
+      }
+
       setLoading(false);
     }
     boot();
@@ -95,6 +105,11 @@ export function AppProvider({ children }) {
   const refreshSettings = useCallback(async () => {
     const res = await getSettings();
     if (res.data) setSettings(res.data);
+  }, []);
+
+  const refreshCategories = useCallback(async () => {
+    const res = await getCategories();
+    if (res.data) setCategories(res.data);
   }, []);
 
   // Sync critical display settings to localStorage for utilities (format.js)
@@ -288,6 +303,9 @@ export function AppProvider({ children }) {
       updateProduct: handleUpdateProduct,
       deleteProduct: handleDeleteProduct,
       addStock: handleAddStock,
+      // Categories
+      categories,
+      refreshCategories,
       // Transactions
       transactions,
       addTransaction: handleAddTransaction,

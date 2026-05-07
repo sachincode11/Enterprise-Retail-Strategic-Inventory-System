@@ -10,24 +10,11 @@ const EMPTY = { name: '', code: '', type: 'Percentage', value: '', appliesTo: 'E
 
 export default function AddDiscount() {
   const { setCurrentPage } = useAdmin();
-  const { addDiscount, products } = useApp();
+  const { addDiscount, products, categories } = useApp();
 
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
-  const [categories, setCategories] = useState([]);
-
-  useEffect(() => {
-    window.pauseGlobalClock = true;
-    let active = true;
-    getCategories().then(res => {
-      if (active) setCategories(Array.isArray(res?.data) ? res.data : []);
-    }).catch(() => { });
-    return () => {
-      active = false;
-      window.pauseGlobalClock = false;
-    };
-  }, []);
 
   const set = key => e => setForm(prev => ({ ...prev, [key]: e.target.value }));
   const toggle = key => setForm(prev => ({ ...prev, [key]: !prev[key] }));

@@ -23,6 +23,7 @@ function mapDiscountFromBackend(d) {
     return 'Ongoing';
   })();
 
+  const isExpired = d.valid_until && new Date(d.valid_until) < new Date();
   return {
     id: d.discount_id,
     backendId: d.discount_id,
@@ -93,15 +94,15 @@ export async function addDiscount(discount) {
     const created = await apiRequest(`/stores/${storeId}/discounts`, {
       method: 'POST',
       body: {
-        discount_name: discount.name,
+        discount_name: discount.name || discount.discount_name,
         discount_type,
         discount_value,
         applies_to,
-        valid_from: toIsoDate(discount.validFrom || discount.valid_from) || null,
-        valid_until: toIsoDate(discount.validUntil || discount.valid_until) || null,
-        min_purchase_amount: discount.minPurchase ? Number(discount.minPurchase) : null,
-        product_id: discount.productId ? Number(discount.productId) : null,
-        category_id: discount.categoryId ? Number(discount.categoryId) : null,
+        valid_from: toIsoDate(discount.valid_from || discount.validFrom || discount.startDate) || null,
+        valid_until: toIsoDate(discount.valid_until || discount.validUntil || discount.endDate) || null,
+        min_purchase_amount: Number(discount.min_purchase_amount || discount.minPurchase || discount.minOrder || 0) || null,
+        product_id: discount.product_id ? Number(discount.product_id) : (discount.productId ? Number(discount.productId) : null),
+        category_id: discount.category_id ? Number(discount.category_id) : (discount.categoryId ? Number(discount.categoryId) : null),
       },
     });
 

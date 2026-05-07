@@ -17,6 +17,21 @@ const EMPTY_FORM = {
   is_active: true 
 };
 
+const Field = ({ label, value, onChange, type = 'text', options, placeholder }) => (
+  <div>
+    <p className="text-xs text-[#94a3b8] mb-1">{label}</p>
+    {options ? (
+      <select value={value} onChange={e => onChange(e.target.value)}
+        className="w-full px-3 py-2 text-sm border rounded-lg border-[#e2e8f0] outline-none focus:border-[#1e3a5f] bg-white">
+        {options.map(o => <option key={o.value ?? o} value={o.value ?? o}>{o.label ?? o}</option>)}
+      </select>
+    ) : (
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+        className="w-full px-3 py-2 text-sm border rounded-lg border-[#e2e8f0] outline-none focus:border-[#1e3a5f] bg-white" />
+    )}
+  </div>
+);
+
 export default function Discounts() {
   const { discounts, categories, products, addDiscount, updateDiscount, deleteDiscount } = useApp();
   const [editId, setEditId]       = useState(null);
@@ -54,7 +69,10 @@ export default function Discounts() {
   };
 
   const handleAdd = async () => {
-    if (!addForm.name || !addForm.value) return;
+    if (!addForm.name || !addForm.value) { alert('Name and value are required'); return; }
+    if (addForm.appliesTo === 'Specific category' && !addForm.category_id) { alert('Please select a category'); return; }
+    if (addForm.appliesTo === 'Specific product' && !addForm.product_id) { alert('Please select a product'); return; }
+    
     setSaving(true);
     await addDiscount(addForm);
     setSaving(false);
@@ -66,21 +84,6 @@ export default function Discounts() {
     if (!window.confirm('Delete this discount?')) return;
     await deleteDiscount(id);
   };
-
-  const Field = ({ label, value, onChange, type = 'text', options, placeholder }) => (
-    <div>
-      <p className="text-xs text-[#94a3b8] mb-1">{label}</p>
-      {options ? (
-        <select value={value} onChange={e => onChange(e.target.value)}
-          className="w-full px-3 py-2 text-sm border rounded-lg border-[#e2e8f0] outline-none focus:border-[#1e3a5f] bg-white">
-          {options.map(o => <option key={o.value ?? o} value={o.value ?? o}>{o.label ?? o}</option>)}
-        </select>
-      ) : (
-        <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-          className="w-full px-3 py-2 text-sm border rounded-lg border-[#e2e8f0] outline-none focus:border-[#1e3a5f] bg-white" />
-      )}
-    </div>
-  );
 
   return (
     <AdminLayout>
@@ -118,7 +121,7 @@ export default function Discounts() {
             )}
             {addForm.appliesTo === 'Specific category' && (
               <Field label="Select Category" value={addForm.category_id} onChange={v => setAddForm(f => ({...f, category_id: v}))} 
-                options={[{label: 'Choose...', value: ''}, ...categories.map(c => ({label: c.name, value: c.id}))]} />
+                options={[{label: 'Choose...', value: ''}, ...categories.map(c => ({label: c.category_name, value: c.category_id}))]} />
             )}
           </div>
 
