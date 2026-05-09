@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Invo6",
+    "slug": "invo6",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./src/assets/fulllogo.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./src/assets/fulllogo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.invo6.customer"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/fulllogo.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.invo6.customer"
+    },
+    "web": {
+      "favicon": "./src/assets/fulllogo.png",
+      "bundler": "metro"
+    }
+  }
+}
