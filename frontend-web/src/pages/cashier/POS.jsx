@@ -4,6 +4,7 @@ import CashierLayout from '../../layouts/CashierLayout';
 import { useCashier } from '../../context/CashierContext';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../../components/common';
+import useScannerSocket from '../../hooks/useScannerSocket';
 
 function CustomerPanel({ selectedCustomer, setSelectedCustomer }) {
   const [tab, setTab]       = useState('Registered');
@@ -73,7 +74,7 @@ function CustomerPanel({ selectedCustomer, setSelectedCustomer }) {
 }
 
 function DiscountModal({ isOpen, onClose, onApply, onSelectPredefined }) {
-  const { discounts } = useApp();
+  const { discounts, currencySymbol } = useApp();
   const [type,  setType]  = useState('percent');
   const [value, setValue] = useState('');
   
@@ -154,6 +155,7 @@ function DiscountModal({ isOpen, onClose, onApply, onSelectPredefined }) {
 }
 
 function QRModal({ isOpen, onClose, total, onConfirm }) {
+  const { currencySymbol } = useApp();
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="QR Payment">
       <div className="text-center space-y-4">
@@ -183,6 +185,23 @@ function QRModal({ isOpen, onClose, total, onConfirm }) {
   );
 }
 
+function ScannerStatus({ status }) {
+  const colors = {
+    connected: '#22c55e',
+    connecting: '#eab308',
+    disconnected: '#ef4444',
+  };
+  
+  return (
+    <div className="flex items-center gap-2 px-3 py-1.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg">
+      <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: colors[status] || '#94a3b8' }}></div>
+      <span className="text-[10px] font-mono font-bold text-[#475569] uppercase tracking-wider">
+        IoT Scanner: {status}
+      </span>
+    </div>
+  );
+}
+
 export default function POS() {
   const {
     cart, addToCart, updateQty, removeFromCart, clearCart,
@@ -205,6 +224,12 @@ export default function POS() {
   const [qrOpen, setQrOpen]             = useState(false);
   const [processing, setProcessing]     = useState(false);
   const [browseOpen, setBrowseOpen]     = useState(false);
+
+  // Initialize IoT Scanner WebSocket
+  const { status: scannerStatus } = useScannerSocket((scannedProduct) => {
+    // This callback fires when the ESP32 scans a barcode
+    addToCart(scannedProduct);
+  });
 
   const PAYMENT_METHODS = ['Cash', 'Card', 'QR'];
 
@@ -279,7 +304,8 @@ export default function POS() {
               <h2 className="font-bold text-[#0f172a]">New Transaction</h2>
               <span className="text-xs text-[#94a3b8] font-mono">#TXN-{Date.now().toString().slice(-6)}</span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
+              <ScannerStatus status={scannerStatus} />
               <button onClick={() => setDiscountOpen(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-[#e2e8f0] rounded-lg text-[#475569] hover:border-[#bfdbfe] transition-colors bg-white">
                 Discount

@@ -1,12 +1,6 @@
-// src/pages/cashier/S3IoTDevices.jsx
+import { useState, useEffect } from 'react';
 import CashierSettingsLayout from './CashierSettingsLayout';
-
-const devices = [
-  { name:'ESP32 Weight Scale',   id:'ESP32-WS-001', status:'Connected', last:'Just now',  signal:98 },
-  { name:'Barcode Scanner USB',  id:'USB-BC-002',   status:'Connected', last:'5 min ago', signal:100},
-  { name:'Thermal Printer',      id:'TP-USB-003',   status:'Connected', last:'2 min ago', signal:100},
-  { name:'NFC Reader Module',    id:'NFC-004',      status:'Inactive',  last:'2 days ago',signal:0  },
-];
+import { apiRequest } from '../../services/apiClient';
 
 function SignalBar({ value }) {
   return (
@@ -19,12 +13,54 @@ function SignalBar({ value }) {
 }
 
 export default function S3IoTDevices() {
+  const [devices, setDevices] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchDevices = async () => {
+    try {
+      const res = await apiRequest('/iot/health');
+      // Format backend registry to UI shape
+      const mapped = res.registered_devices.map(d => ({
+        name: d.device_id.includes('SCANNER') ? 'ESP32 Barcode Scanner' : 'IoT Device',
+        id: d.device_id,
+        status: d.status || 'Connected',
+        last: new Date(d.last_seen).toLocaleTimeString(),
+        signal: d.rssi ? Math.min(100, Math.max(0, (d.rssi + 100) * 2)) : 0, // Mock RSSI to % mapping
+        scans: d.scans || 0,
+        ip: d.ip_address || 'Unknown'
+      }));
+      setDevices(mapped);
+    } catch (err) {
+      console.error('Failed to fetch IoT health:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDevices();
+    const interval = setInterval(fetchDevices, 10000); // Refresh every 10s
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <CashierSettingsLayout activeId="s3">
-      <div className="px-6 py-4 border-b" style={{ borderColor:'#e2e8f0', background:'#f8fafc' }}>
-        <h3 className="text-sm font-semibold text-[#0f172a]">IoT Devices</h3>
-        <p className="text-xs text-[#94a3b8] mt-0.5">Manage connected hardware and peripherals</p>
+      <div className="px-6 py-4 border-b flex justify-between items-center" style={{ borderColor:'#e2e8f0', background:'#f8fafc' }}>
+        <div>
+          <h3 className="text-sm font-semibold text-[#0f172a]">IoT Devices</h3>
+          <p className="text-xs text-[#94a3b8] mt-0.5">Manage connected hardware and peripherals</p>
+        </div>
+        <button onClick={fetchDevices} className="text-[10px] font-bold text-[#1e3a5f] hover:underline">
+          {loading ? 'Refreshing...' : 'Refresh Now'}
+        </button>
       </div>
+
+      {devices.length === 0 && !loading && (
+        <div className="p-12 text-center">
+          <p className="text-sm text-[#94a3b8]">No IoT devices registered yet.</p>
+          <p className="text-xs text-[#cbd5e1] mt-1">Ensure your ESP32 is connected to WiFi and configured correctly.</p>
+        </div>
+      )}
 
       {devices.map((d, i) => (
         <div key={i} className="flex items-center justify-between px-6 py-4 border-b last:border-0 hover:bg-[#f8fafc] transition-colors" style={{ borderColor:'#e2e8f0' }}>
@@ -37,7 +73,8 @@ export default function S3IoTDevices() {
             </div>
             <div>
               <p className="text-sm font-semibold text-[#0f172a]">{d.name}</p>
-              <p className="text-xs text-[#94a3b8] font-mono">{d.id} · Last seen {d.last}</p>
+              <p className="text-xs text-[#94a3b8] font-mono">{d.id} · IP: {d.ip} · Last: {d.last}</p>
+              {d.scans > 0 && <p className="text-[9px] font-bold text-[#1e3a5f] uppercase tracking-tighter mt-0.5">Total Scans: {d.scans}</p>}
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -45,7 +82,7 @@ export default function S3IoTDevices() {
             <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ background: d.status==='Connected'?'#dcfce7':'#f3f4f6', color: d.status==='Connected'?'#15803d':'#6b7280' }}>
               {d.status}
             </span>
-            <button className="btn-outline text-xs">{d.status==='Connected' ? 'Configure' : 'Enable'}</button>
+            <button className="btn-outline text-xs">Configure</button>
           </div>
         </div>
       ))}
