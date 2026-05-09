@@ -153,8 +153,8 @@ class RAGSourceType(str, enum.Enum):
 class RAGAccessLevel(str, enum.Enum):
     """Shared by chatbot_sessions, rag_document_chunks, store_policies."""
     public = "public"          # All users (customers & shopkeeper)
-    shopkeeper = "shopkeeper"  # Shopkeeper / admin only
-    customer = "customer"      # Authenticated customer only
+    staff = "staff"            # Cashier
+    admin = "admin"            # Shopkeeper / admin only
 
 
 class ChatSenderType(str, enum.Enum):

@@ -1,39 +1,41 @@
 """
 Application configuration loaded from environment variables / .env file.
 """
-from pydantic_settings import BaseSettings
+import os
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 class Settings(BaseSettings):
     # App
-    APP_NAME: str = "Enterprise Retail & Strategic Inventory System"
-    APP_VERSION: str = "1.0.0"
-    DEBUG: bool = True
+    APP_NAME: str
+    APP_VERSION: str
+    DEBUG: bool
 
     # Database
-    DATABASE_URL: str = "mysql+pymysql://root:password@localhost/ersis"
+    DATABASE_URL: str
 
     # JWT
-    JWT_SECRET_KEY: str = "change-me-in-production"
-    JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60          # 1 hour
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    JWT_SECRET_KEY: str
+    JWT_ALGORITHM: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int
+    REFRESH_TOKEN_EXPIRE_DAYS: int
 
     # OTP / 2FA
-    OTP_EXPIRE_MINUTES: int = 5
-    OTP_LENGTH: int = 6
+    OTP_EXPIRE_MINUTES: int
+    OTP_LENGTH: int
 
     # Email (SMTP)
-    SMTP_HOST: str = "smtp.gmail.com"
-    SMTP_PORT: int = 587
-    SMTP_USER: str = ""
-    SMTP_PASSWORD: str = ""
-    EMAIL_FROM: str = "noreply@ersis.com"
+    SMTP_HOST: str
+    SMTP_PORT: int
+    SMTP_USER: str
+    SMTP_PASSWORD: str
+    EMAIL_FROM: str
 
     # MQTT (IoT)
-    MQTT_BROKER_HOST: str = "mosquitto"
-    MQTT_BROKER_PORT: int = 1883
-    MQTT_SCAN_TOPIC: str = "ersis/scans"
+    MQTT_BROKER_HOST: str
+    MQTT_BROKER_PORT: int
+    MQTT_SCAN_TOPIC: str
 
     # CORS
     ALLOWED_ORIGINS: list[str] = [
@@ -48,13 +50,16 @@ class Settings(BaseSettings):
     ]
 
     # AI / RAG
-    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
-    LLM_API_KEY: str = ""
-    LLM_MODEL: str = "gpt-3.5-turbo"
+    EMBEDDING_MODEL: str
+    LLM_PROVIDER: str
+    GROQ_API_KEY: str
+    FAISS_INDEX_DIR: str
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(
+        env_file=os.path.join(BASE_DIR, ".env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 
 settings = Settings()

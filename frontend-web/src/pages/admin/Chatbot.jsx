@@ -1,27 +1,10 @@
-// src/pages/admin/Chatbot.jsx
 import { useState, useRef, useEffect } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { useAdmin } from '../../context/AdminContext';
+import chatbotService from '../../services/chatbotService';
 
 const initialMessages = [{ role: 'ai', text: "Hi! I'm your Store Intelligence Assistant. Ask me anything about sales, inventory, staff performance, or forecasts.", time: '09:00 AM' }];
 const quickPrompts = ['What were our top 3 products last month?','Which products need restocking now?',"Show this week's revenue summary",'Who is the top cashier this month?','Forecast for next 7 days','Current low stock items?'];
-const aiReplies = {
-  default:  "Based on your store data, I've analyzed the relevant records. Your store (KTM-001) is performing well with Rs 84,210 in revenue today. Would you like a breakdown by category or cashier?",
-  restock:  "Current low stock items:\n\n1. Tata Salt 1kg — 2 units left (reorder at 15)\n2. Surf Excel 500g — Out of stock\n3. Nescafé Classic 100g — 4 units (reorder at 20)\n\nRecommendation: Place a purchase order with Himalaya Dist. today.",
-  revenue:  "This week's revenue summary:\n\n• Mon: Rs 71,000\n• Tue: Rs 58,000\n• Wed: Rs 101,200\n• Thu: Rs 68,000\n• Fri: Rs 75,000\n• Sat: Rs 82,000\n• Today: Rs 84,210 ↑\n\nTotal: Rs 5.39L — up 12% vs last week.",
-  top:      "Top 3 products last month:\n\n1. Organic Basmati Rice 5kg — Rs 4.2L (1,240 units)\n2. Amul Full Cream Milk 1L — Rs 2.9L (3,410 units)\n3. Coca-Cola 500ml — Rs 1.4L (2,100 units)\n\nThese three account for 36% of total revenue.",
-  cashier:  "Top cashier this month:\n\n🥇 Priya Shrestha — 842 transactions, Rs 6.1L revenue\n🥈 Kasim Rijal — 714 transactions, Rs 5.2L revenue\n🥉 Roshan KC — 684 transactions, Rs 4.9L revenue",
-  forecast: "7-Day Sales Forecast (AI Model — 87% confidence):\n\n• Mon: Rs 78,000\n• Tue: Rs 81,000\n• Wed: Rs 92,000 ↑ (peak)\n• Thu: Rs 74,000\n• Fri: Rs 69,000\n• Sat: Rs 88,000\n• Sun: Rs 95,000 ↑\n\nForecast total: Rs 5.77L",
-};
-function getReply(msg) {
-  const m = msg.toLowerCase();
-  if (m.includes('restock') || m.includes('stock') || m.includes('low')) return aiReplies.restock;
-  if (m.includes('revenue') || m.includes('week') || m.includes('sales')) return aiReplies.revenue;
-  if (m.includes('top') || m.includes('product') || m.includes('best'))   return aiReplies.top;
-  if (m.includes('cashier') || m.includes('staff'))                        return aiReplies.cashier;
-  if (m.includes('forecast') || m.includes('next') || m.includes('predict')) return aiReplies.forecast;
-  return aiReplies.default;
-}
 
 export default function Chatbot() {
   const { setCurrentPage } = useAdmin();
@@ -32,17 +15,31 @@ export default function Chatbot() {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, typing]);
 
-  const sendMessage = (text) => {
+  const sendMessage = async (text) => {
     const msg = text || input.trim();
     if (!msg) return;
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     setMessages(prev => [...prev, { role: 'user', text: msg, time: now }]);
     setInput('');
     setTyping(true);
-    setTimeout(() => {
+
+    try {
+      const data = await chatbotService.sendMessage(msg);
+      setMessages(prev => [...prev, { 
+        role: 'ai', 
+        text: data.response, 
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+      }]);
+    } catch (err) {
+      console.error('Chatbot API error:', err);
+      setMessages(prev => [...prev, { 
+        role: 'ai', 
+        text: "I encountered an error processing your request. Please ensure the backend is running and you have a valid API key.", 
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+      }]);
+    } finally {
       setTyping(false);
-      setMessages(prev => [...prev, { role: 'ai', text: getReply(msg), time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
-    }, 1200);
+    }
   };
 
   return (

@@ -3,6 +3,7 @@ import AdminLayout from '../../layouts/AdminLayout';
 import { PageHeader, SectionCard, BarChart } from '../../components/common';
 import { useAdmin } from '../../context/AdminContext';
 import { useApp } from '../../context/AppContext';
+import chatbotService from '../../services/chatbotService';
 
 // Static forecast data — would come from the scikit-learn AI service in production
 const forecastData = [
@@ -120,7 +121,19 @@ export default function AI() {
             <p className="text-xs pt-1 text-[#94a3b8]">Last retrained: 20 Mar 2026 · {products.length} products tracked</p>
           </div>
         </SectionCard>
-        <SectionCard title="RAG Knowledge Base">
+        <SectionCard title="RAG Knowledge Base" headerRight={
+          <button 
+            onClick={async () => {
+              try {
+                const res = await chatbotService.ingestData();
+                alert('Successfully synced knowledge base: ' + res.message);
+              } catch (err) {
+                alert('Failed to sync: ' + err.message);
+              }
+            }}
+            className="text-[10px] font-semibold px-2 py-1 rounded bg-[#eff6ff] text-[#1e3a5f] hover:bg-[#dbeafe] transition-colors"
+          >Sync Now</button>
+        }>
           <div className="px-5 py-4 space-y-3">
             {ragKnowledgeBase.map((item, i) => (
               <div key={i} className="flex items-center justify-between py-2 border-b last:border-0" style={{ borderColor: '#e2e8f0' }}>

@@ -23,6 +23,8 @@ from app.routers.admin import (
 )
 from app.routers.reports import report_router
 from app.routers.scanner import router as scanner_router
+from app.routers.chatbot import router as chatbot_router
+from app.routers.forecasting import router as forecasting_router
 
 
 # lifespan (startup / shutdown)
@@ -172,6 +174,8 @@ app.include_router(customer_router, prefix=API)
 app.include_router(store_router,    prefix=API)
 app.include_router(report_router,   prefix=API)
 app.include_router(scanner_router,  prefix=API)
+app.include_router(chatbot_router,  prefix=API)
+app.include_router(forecasting_router, prefix=API)
 
 
 # Health check

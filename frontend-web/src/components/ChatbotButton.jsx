@@ -1,6 +1,5 @@
-// src/components/ChatbotButton.jsx
-// Floating AI chatbot button — visible on ALL pages.
 import { useState, useRef, useEffect } from 'react';
+import chatbotService from '../services/chatbotService';
 
 const INITIAL_MESSAGES = [
   { role: 'assistant', text: 'Hi! I am your InvoSix AI assistant. Ask me about sales, inventory, staff, or anything about the store.' },
@@ -20,34 +19,23 @@ export default function ChatbotButton() {
   async function send() {
     const text = input.trim();
     if (!text || loading) return;
+    
     setInput('');
     setMessages(prev => [...prev, { role: 'user', text }]);
     setLoading(true);
 
-    // Simulate AI response with mock replies
-    await new Promise(r => setTimeout(r, 900));
-    const reply = getMockReply(text);
-    setMessages(prev => [...prev, { role: 'assistant', text: reply }]);
-    setLoading(false);
-  }
-
-  function getMockReply(question) {
-    const q = question.toLowerCase();
-    if (q.includes('revenue') || q.includes('sales'))
-      return "Today's revenue is Rs 84,210 — up 8.4% from yesterday. The peak hour was 12:00–13:00. Monthly revenue stands at Rs 2.4M.";
-    if (q.includes('stock') || q.includes('inventory'))
-      return 'There are 7 low-stock items. Critical ones: Tata Salt (2 units), Surf Excel (0 units). I recommend placing a restock order for those today.';
-    if (q.includes('staff') || q.includes('cashier'))
-      return 'Currently 4 staff on shift: Kasim Rijal and Priya Shrestha are active, Roshan KC is on break. Bijay Thapa is off today.';
-    if (q.includes('supplier'))
-      return 'You have 4 suppliers. Nepal Trading Co. supplies 128 products and is your top vendor by volume. FreshFarm Imports is currently inactive.';
-    if (q.includes('transaction') || q.includes('txn'))
-      return 'Today there are 128 transactions so far. The latest is TXN-0091 for Rs 1,416 by Rohan Sharma. Average basket: Rs 743.';
-    if (q.includes('discount') || q.includes('promo'))
-      return 'Active discounts: SEASONAL2026 (10% off, used 148 times) and MEMBER5 (5% for registered customers). FLAT100 gives Rs 100 off orders above Rs 1,000.';
-    if (q.includes('hello') || q.includes('hi') || q.includes('hey'))
-      return 'Hello! How can I help you today? You can ask about sales, inventory, staff, suppliers, or transactions.';
-    return "I can help with sales data, inventory levels, staff info, supplier details, and transaction history. What would you like to know?";
+    try {
+      const data = await chatbotService.sendMessage(text);
+      setMessages(prev => [...prev, { role: 'assistant', text: data.response }]);
+    } catch (err) {
+      console.error('Chatbot error:', err);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        text: "I'm sorry, I'm having trouble connecting to my brain right now. Please try again later." 
+      }]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
