@@ -377,7 +377,7 @@ class ProductImage(Base):
 
     image_id      = Column(Integer,     primary_key=True, autoincrement=True)
     product_id    = Column(Integer,     ForeignKey("products.product_id", ondelete="CASCADE"),  nullable=False)
-    image_url     = Column(String(500), nullable=False)
+    image_url     = Column(Text(length=4294967295), nullable=False)
     alt_text      = Column(String(255), nullable=True)
     is_primary    = Column(Boolean,     nullable=False, default=False)
     display_order = Column(Integer,     nullable=False, default=0)

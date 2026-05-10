@@ -7,7 +7,7 @@ from app.core.deps import get_current_user, require_admin, require_cashier
 from app.database import get_db
 from app.models.enums import InventoryReferenceType
 from app.models import (
-    Category, Inventory, InventoryLog, ProductPriceHistory, Product, ProductSupplier, Supplier, User
+    Category, Inventory, InventoryLog, ProductPriceHistory, Product, ProductSupplier, Supplier, User, ProductImage
 )
 from app.schemas import (
     CategoryCreate, CategoryOut, CategoryUpdate, InventoryAdjust, InventoryOut,
@@ -35,6 +35,11 @@ def _get_product_supply_price(db: Session, product_id: int) -> Optional[Decimal]
     return link.supply_price if link else None
 
 
+def _get_product_image_url(db: Session, product_id: int) -> Optional[str]:
+    img = db.query(ProductImage).filter(ProductImage.product_id == product_id).order_by(ProductImage.is_primary.desc(), ProductImage.image_id.asc()).first()
+    return img.image_url if img else None
+
+
 def _serialize_product(db: Session, product: Product) -> ProductOut:
     return ProductOut(
         product_id=product.product_id,
@@ -51,6 +56,7 @@ def _serialize_product(db: Session, product: Product) -> ProductOut:
         is_active=product.is_active,
         reorder_level=product.inventory.reorder_level if product.inventory else None,
         supply_price=_get_product_supply_price(db, product.product_id),
+        image_url=_get_product_image_url(db, product.product_id),
         created_at=product.created_at,
     )
 
@@ -215,13 +221,16 @@ def create_product(
     if db.query(Product).filter(Product.barcode == body.barcode,
                                   Product.store_id == store_id).first():
         raise HTTPException(400, "Barcode already exists in this store.")
-    product_data = body.model_dump(exclude={"supplier_id", "reorder_level", "supply_price"})
+    product_data = body.model_dump(exclude={"supplier_id", "reorder_level", "supply_price", "image_url"})
     p = Product(store_id=store_id, **product_data)
     db.add(p)
     db.flush()
 
     if body.supplier_id is not None:
         _sync_product_supplier(db, store_id, p.product_id, body.supplier_id, body.supply_price)
+        
+    if body.image_url:
+        db.add(ProductImage(product_id=p.product_id, image_url=body.image_url, is_primary=True, uploaded_by=admin.user_id))
 
     # Initialise inventory row
     db.add(Inventory(product_id=p.product_id, store_id=store_id,
@@ -267,6 +276,15 @@ def update_product(
         inv = db.query(Inventory).filter(Inventory.product_id == product_id, Inventory.store_id == store_id).first()
         if inv:
             inv.reorder_level = reorder_level
+            
+    if "image_url" in update_data:
+        image_url = update_data.pop("image_url")
+        if image_url is not None:
+            img = db.query(ProductImage).filter(ProductImage.product_id == p.product_id).first()
+            if img:
+                img.image_url = image_url
+            else:
+                db.add(ProductImage(product_id=p.product_id, image_url=image_url, is_primary=True, uploaded_by=admin.user_id))
             
     for field, value in update_data.items():
         setattr(p, field, value)

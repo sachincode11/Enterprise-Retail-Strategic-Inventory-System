@@ -25,6 +25,7 @@ from app.services.chatbot import (
     ingest_faqs,
     ingest_policies,
     ingest_products,
+    ingest_store_statistics,
     vector_store,
 )
 
@@ -321,6 +322,10 @@ def ingest_documents(
     if body.ingest_products:
         ingest_products(db, body.store_id)
         ingested.append("Products")
+        
+    # Always ingest store stats during an ingest call to keep it fresh
+    ingest_store_statistics(db, body.store_id)
+    ingested.append("Store Stats")
     
     return {
         "message": f"Successfully ingested: {', '.join(ingested)}",

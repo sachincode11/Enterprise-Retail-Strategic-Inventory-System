@@ -43,6 +43,7 @@ function mapProductFromBackend(product, stockMap, categoryMap, supplierMap) {
     description: product.description || '',
     supply_price: product.supply_price || '',
     reorder_level: product.reorder_level || '',
+    image_url: product.image_url || null,
 
     // Maintain legacy names for backward compatibility if needed, 
     // but we will update the components to use the new names.
@@ -56,6 +57,7 @@ function mapProductFromBackend(product, stockMap, categoryMap, supplierMap) {
     costPrice: product.supply_price || '',
     reorderAt: product.reorder_level || '',
     supplierId: product.supplier_id || '',
+    image_url: product.image_url || null,
   };
 }
 
@@ -248,6 +250,7 @@ export async function addProduct(product) {
         unit_of_measure: product.unit_of_measure || product.unit || 'pcs',
         reorder_level: product.reorder_level || product.reorderAt ? Number(product.reorder_level || product.reorderAt) : undefined,
         supply_price: product.supply_price || product.costPrice ? Number(product.supply_price || product.costPrice) : undefined,
+        image_url: product.image_url || undefined,
       },
     });
 
@@ -301,6 +304,7 @@ export async function updateProduct(id, updates) {
       supply_price: updates.supply_price !== undefined ? Number(updates.supply_price) : (updates.costPrice !== undefined ? Number(updates.costPrice) : undefined),
       category_id: updates.category_id ? Number(updates.category_id) : undefined,
       supplier_id: updates.supplier_id !== undefined ? (updates.supplier_id !== null ? Number(updates.supplier_id) : null) : (updates.supplierId !== undefined ? (updates.supplierId ? Number(updates.supplierId) : null) : undefined),
+      image_url: updates.image_url !== undefined ? updates.image_url : undefined,
     };
 
     Object.keys(patchBody).forEach(key => patchBody[key] === undefined && delete patchBody[key]);

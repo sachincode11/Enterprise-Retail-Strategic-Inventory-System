@@ -1,5 +1,5 @@
 // src/pages/admin/AddProduct.jsx — IMPROVED: uses AppContext so product appears everywhere immediately
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { PageHeader, Button, Input, Toast } from '../../components/common';
 import { useAdmin } from '../../context/AdminContext';
@@ -34,6 +34,8 @@ export default function AddProduct() {
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+  const [imagePreview, setImagePreview] = useState(null);
+  const fileInputRef = useRef(null);
 
   const set = key => e => setForm(prev => ({ ...prev, [key]: e.target.value }));
   const showToast = (message, type = 'success') => { setToast({ visible: true, message, type }); setTimeout(() => setToast(t => ({ ...t, visible: false })), 2200); };
@@ -110,6 +112,7 @@ export default function AddProduct() {
         tax_rate: Number(form.tax_rate || 0),
         supply_price: Number(form.supply_price || 0),
         reorder_level: Number(form.reorder_level || 0),
+        image_url: imagePreview || null,
       };
       await addProduct(payload);
       showToast('Product added successfully.');
@@ -126,6 +129,19 @@ export default function AddProduct() {
 
   const handleCancel = () => {
     setCurrentPage('products');
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        showToast('Image size must be less than 2MB', 'error');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result);
+      reader.readAsDataURL(file);
+    }
   };
 
   const margin = form.unit_price && form.supply_price ? (parseFloat(form.unit_price) - parseFloat(form.supply_price)).toFixed(2) : null;
@@ -208,15 +224,40 @@ export default function AddProduct() {
 
           <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e2e8f0' }}>
             <h3 className="text-sm font-semibold text-[#0f172a] mb-4 pb-3 border-b" style={{ borderColor: '#e2e8f0' }}>Product Image</h3>
-            <div className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-[#1e3a5f] hover:bg-[#eff6ff] transition-all" style={{ borderColor: '#e2e8f0' }}>
-              <svg className="mx-auto mb-2 text-[#94a3b8]" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></svg>
-              <p className="text-xs text-[#94a3b8]">Click to upload or drag & drop</p>
-              <p className="text-xs text-[#94a3b8] mt-1">PNG, JPG up to 2MB</p>
+            <div 
+              className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-[#1e3a5f] hover:bg-[#eff6ff] transition-all relative overflow-hidden" 
+              style={{ borderColor: '#e2e8f0', minHeight: '160px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input type="file" accept="image/png, image/jpeg" className="hidden" ref={fileInputRef} onChange={handleImageChange} />
+              
+              {imagePreview ? (
+                <div className="absolute inset-0 w-full h-full p-2 group">
+                  <img src={imagePreview} alt="Preview" className="w-full h-full object-contain rounded-md" />
+                  <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
+                    <p className="text-white text-xs font-semibold">Change Image</p>
+                  </div>
+                  <button 
+                    className="absolute top-3 right-3 bg-white rounded-full p-1 shadow-md hover:bg-gray-100 text-red-500"
+                    onClick={(e) => { e.stopPropagation(); setImagePreview(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                    title="Remove Image"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <svg className="mx-auto mb-2 text-[#94a3b8]" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></svg>
+                  <p className="text-xs text-[#94a3b8]">Click to upload image</p>
+                  <p className="text-xs text-[#94a3b8] mt-1">PNG, JPG up to 2MB</p>
+                </>
+              )}
             </div>
           </div>
 
           <div className="bg-white rounded-xl border p-4" style={{ borderColor: '#e2e8f0', background: '#f8fafc' }}>
             <p className="text-xs font-semibold text-[#0f172a] mb-1">Preview</p>
+            {imagePreview && <div className="mb-3 w-16 h-16 rounded-md border border-[#e2e8f0] bg-white overflow-hidden flex-shrink-0"><img src={imagePreview} className="w-full h-full object-contain" /></div>}
             <p className="text-sm font-bold text-[#0f172a]">{form.product_name || 'Product Name'}</p>
             <p className="text-xs text-[#94a3b8] font-mono">{form.sku || 'SKU-XXXXX'}</p>
             <p className="text-sm font-semibold text-[#1e3a5f] mt-1">Rs {form.unit_price || '0'}</p>

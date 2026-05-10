@@ -118,7 +118,20 @@ export default function Products() {
               <tbody>
                 {paginated.map(p => (
                   <tr key={p.id}>
-                    <td className="font-semibold text-sm text-[#0f172a]">{p.name}</td>
+                    <td className="font-semibold text-sm text-[#0f172a]">
+                      <div className="flex items-center gap-3">
+                        {p.image_url ? (
+                          <div className="w-8 h-8 rounded border overflow-hidden flex-shrink-0" style={{ borderColor: '#e2e8f0' }}>
+                            <img src={p.image_url} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        ) : (
+                          <div className="w-8 h-8 rounded border flex items-center justify-center bg-[#f8fafc] flex-shrink-0" style={{ borderColor: '#e2e8f0' }}>
+                            <svg className="w-4 h-4 text-[#94a3b8]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></svg>
+                          </div>
+                        )}
+                        <span>{p.name}</span>
+                      </div>
+                    </td>
                     <td><span className="mono text-xs text-[#94a3b8]">{p.sku}</span></td>
                     <td className="text-sm">{p.category}</td>
                     <td className="text-sm font-mono font-semibold">{currencySymbol} {p.priceNum?.toLocaleString('en-IN')}</td>

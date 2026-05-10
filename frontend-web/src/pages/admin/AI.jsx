@@ -12,6 +12,8 @@ export default function AI() {
   const [metrics, setMetrics] = useState([]);
   const [topSellers, setTopSellers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [forecastSummary, setForecastSummary] = useState('');
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   useEffect(() => {
     async function loadAIMetrics() {
@@ -41,23 +43,12 @@ export default function AI() {
         : `Only ${p.stock} units left — below reorder threshold`,
     }));
 
-  // Aggregated metrics for display
-  const avgRMSE = metrics.length ? (metrics.reduce((acc, m) => acc + m.rmse_score, 0) / metrics.length).toFixed(1) : '4.2';
-  const avgMAE = metrics.length ? (metrics.reduce((acc, m) => acc + m.mae_score, 0) / metrics.length).toFixed(1) : '3.8';
-  
   const ragKnowledgeBase = [
     { name: 'Store Policies',       key: 'store_policies',      count: 'Live from DB' },
     { name: 'Store FAQs',           key: 'store_faqs',          count: 'Live from DB' },
     { name: 'Product Descriptions', key: 'rag_document_chunks', count: 'Live from DB' },
     { name: 'Sales History',        key: 'sales_forecasts',     count: 'Indexed'      },
   ];
-
-  const displayMetrics = [
-    { label: 'Forecast Error (RMSE)', value: `±${avgRMSE} units`, pct: 96 },
-    { label: 'Mean Absolute Error',    value: `±${avgMAE} units`,   pct: 91 },
-    { label: 'RAG Chatbot Accuracy',   value: '88%',   pct: 88 },
-  ];
-
   // Map top sellers to chart format
   const chartData = topSellers.map(ts => ({
     label: ts.product_name.substring(0, 5),
@@ -148,18 +139,46 @@ export default function AI() {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <SectionCard title="Model Performance">
-          <div className="px-5 py-4 space-y-4">
-            {displayMetrics.map(m => (
-              <div key={m.label}>
-                <div className="flex justify-between mb-1.5">
-                  <span className="text-sm text-[#0f172a]">{m.label}</span>
-                  <span className="text-sm font-semibold text-[#1e3a5f]">{m.value}</span>
-                </div>
-                <div className="progress-bar"><div className="progress-bar-fill" style={{ width: `${m.pct}%` }} /></div>
+        <SectionCard title="AI Assistant Summary">
+          <div className="px-5 py-4 min-h-[140px] flex flex-col justify-center">
+            {!forecastSummary && !summaryLoading && (
+              <div className="text-center">
+                <p className="text-sm text-[#475569] mb-4">
+                  Have the AI analyze your forecast data and provide a quick executive summary.
+                </p>
+                <button 
+                  onClick={async () => {
+                    setSummaryLoading(true);
+                    try {
+                      const prompt = `As a friendly AI retail assistant, please write a brief, 2-sentence summary of our top forecasted sellers for the next 7 days based on this data: ${JSON.stringify(topSellers.map(x => ({name: x.product_name, qty: x.total_predicted})))} Make it sound encouraging for the shop owner.`;
+                      const res = await chatbotService.sendMessage(prompt);
+                      setForecastSummary(res.response);
+                    } catch (e) {
+                      setForecastSummary('Failed to generate summary.');
+                    } finally {
+                      setSummaryLoading(false);
+                    }
+                  }}
+                  className="text-sm font-medium px-4 py-2 rounded-lg bg-[#1e3a5f] text-white hover:bg-[#16324f] transition-all duration-150 inline-flex items-center gap-2"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                  Generate Forecast Summary
+                </button>
               </div>
-            ))}
-            <p className="text-xs pt-1 text-[#94a3b8]">Last synced: {new Date().toLocaleDateString()} · {metrics.length} models active</p>
+            )}
+            {summaryLoading && <p className="text-sm text-[#94a3b8] italic text-center animate-pulse py-6">AI is analyzing the forecast...</p>}
+            {forecastSummary && (
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-[#1e3a5f] flex items-center gap-1.5">
+                  <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="6" cy="6" r="2"/><path d="M6 1v1M6 10v1M1 6h1M10 6h1" strokeLinecap="round"/></svg>
+                  AI Insight
+                </p>
+                <p className="text-[15px] text-[#475569] leading-relaxed">
+                  {forecastSummary}
+                </p>
+                <button onClick={() => setForecastSummary('')} className="text-xs text-[#3b82f6] hover:underline mt-2 inline-block">Reset Summary</button>
+              </div>
+            )}
           </div>
         </SectionCard>
         <SectionCard title="RAG Knowledge Base" headerRight={

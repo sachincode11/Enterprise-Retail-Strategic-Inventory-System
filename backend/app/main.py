@@ -133,6 +133,7 @@ def _seed_default_store() -> None:
 
 
 # app factory
+print("RELOADING APP...")
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,

@@ -3,8 +3,11 @@ Chatbot Service — RAG-based AI Assistant
 Uses FAISS vector store + sentence embeddings + LLM API
 """
 
+import json
 import logging
 import os
+import faiss
+import numpy as np
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -19,6 +22,7 @@ from app.models import (
     StoreFAQ,
     StorePolicy,
 )
+from app.models.enums import RAGSourceType, RAGAccessLevel
 
 logger = logging.getLogger(__name__)
 
@@ -51,14 +55,12 @@ class EmbeddingService:
     
     def embed(self, text: str):
         """Generate embedding for a single text."""
-        import numpy as np
         model = self.get_model()
         embedding = model.encode(text, convert_to_numpy=True)
         return embedding.astype("float32")
 
     def embed_batch(self, texts: list[str]):
         """Generate embeddings for multiple texts."""
-        import numpy as np
         model = self.get_model()
         embeddings = model.encode(texts, convert_to_numpy=True, show_progress_bar=False)
         return embeddings.astype("float32")
@@ -84,8 +86,6 @@ class FAISSVectorStore:
     
     def load_or_create_index(self, store_id: int, dimension: int = 384):
         """Load existing index or create new one."""
-        import faiss
-        import json
         if store_id in self._indexes:
             return self._indexes[store_id]
         
@@ -114,7 +114,6 @@ class FAISSVectorStore:
         mapping_path = self._get_mapping_path(store_id)
         
         faiss.write_index(self._indexes[store_id], index_path)
-        import json
         with open(mapping_path, "w") as f:
             json.dump(self._chunk_mappings[store_id], f)
         
@@ -124,7 +123,6 @@ class FAISSVectorStore:
         self, store_id: int, chunk_ids: list[int], embeddings
     ):
         """Add new chunks to the index."""
-        import faiss
         index = self.load_or_create_index(store_id, dimension=embeddings.shape[1])
         
         # Normalize for cosine similarity
@@ -140,7 +138,6 @@ class FAISSVectorStore:
         self, store_id: int, query_embedding, top_k: int = TOP_K_RETRIEVAL
     ) -> list[tuple[int, float]]:
         """Search for most similar chunks. Returns [(chunk_id, score), ...]"""
-        import faiss
         index = self.load_or_create_index(store_id)
         
         if index.ntotal == 0:
@@ -196,7 +193,7 @@ vector_store = FAISSVectorStore()
 
 
 # Document Ingestion
-def ingest_faqs(db: Session, store_id: int, access_level: str = "customer"):
+def ingest_faqs(db: Session, store_id: int, access_level: str = "public"):
     """Ingest store FAQs into RAG chunks."""
     faqs = (
         db.query(StoreFAQ)
@@ -211,7 +208,7 @@ def ingest_faqs(db: Session, store_id: int, access_level: str = "customer"):
             db.query(RAGDocumentChunk)
             .filter(
                 RAGDocumentChunk.store_id == store_id,
-                RAGDocumentChunk.source_type == "faq",
+                RAGDocumentChunk.source_type == RAGSourceType.faq,
                 RAGDocumentChunk.source_id == faq.faq_id,
             )
             .first()
@@ -225,11 +222,11 @@ def ingest_faqs(db: Session, store_id: int, access_level: str = "customer"):
         
         chunk = RAGDocumentChunk(
             store_id=store_id,
-            source_type="faq",
+            source_type=RAGSourceType.faq,
             access_level=access_level,
             source_id=faq.faq_id,
             chunk_text=chunk_text,
-            embedding_model=EMBEDDING_MODEL_NAME,
+            embedding_model=getattr(settings, 'EMBEDDING_MODEL', 'all-MiniLM-L6-v2'),
         )
         db.add(chunk)
         chunks_to_add.append(chunk)
@@ -254,6 +251,7 @@ def ingest_faqs(db: Session, store_id: int, access_level: str = "customer"):
 
 def ingest_policies(db: Session, store_id: int):
     """Ingest store policies into RAG chunks."""
+    print(f"DEBUG: RUNNING ingest_policies for store {store_id}")
     policies = (
         db.query(StorePolicy)
         .filter(StorePolicy.store_id == store_id, StorePolicy.is_active.is_(True))
@@ -266,7 +264,7 @@ def ingest_policies(db: Session, store_id: int):
             db.query(RAGDocumentChunk)
             .filter(
                 RAGDocumentChunk.store_id == store_id,
-                RAGDocumentChunk.source_type == "policy",
+                RAGDocumentChunk.source_type == RAGSourceType.store_policy,
                 RAGDocumentChunk.source_id == policy.policy_id,
             )
             .first()
@@ -280,15 +278,15 @@ def ingest_policies(db: Session, store_id: int):
         # Map policy access to RAG access
         # PolicyAccessLevel is 'public' or 'private'
         p_access = policy.access_level.value if hasattr(policy.access_level, "value") else policy.access_level
-        rag_access = "public" if p_access == "public" else "admin"
+        rag_access = RAGAccessLevel.public if p_access == "public" else RAGAccessLevel.admin
         
         chunk = RAGDocumentChunk(
             store_id=store_id,
-            source_type="policy",
+            source_type=RAGSourceType.store_policy,
             access_level=rag_access,
             source_id=policy.policy_id,
             chunk_text=chunk_text,
-            embedding_model=EMBEDDING_MODEL_NAME,
+            embedding_model=getattr(settings, 'EMBEDDING_MODEL', 'all-MiniLM-L6-v2'),
         )
         db.add(chunk)
         chunks_to_add.append(chunk)
@@ -309,7 +307,7 @@ def ingest_policies(db: Session, store_id: int):
     logger.info(f"Ingested {len(chunks_to_add)} policy chunks for store {store_id}")
 
 
-def ingest_products(db: Session, store_id: int, access_level: str = "customer"):
+def ingest_products(db: Session, store_id: int, access_level: str = "public"):
     """Ingest product info into RAG chunks."""
     products = (
         db.query(Product)
@@ -323,7 +321,7 @@ def ingest_products(db: Session, store_id: int, access_level: str = "customer"):
             db.query(RAGDocumentChunk)
             .filter(
                 RAGDocumentChunk.store_id == store_id,
-                RAGDocumentChunk.source_type == "product",
+                RAGDocumentChunk.source_type == RAGSourceType.product,
                 RAGDocumentChunk.source_id == product.product_id,
             )
             .first()
@@ -343,11 +341,11 @@ def ingest_products(db: Session, store_id: int, access_level: str = "customer"):
         
         chunk = RAGDocumentChunk(
             store_id=store_id,
-            source_type="product",
+            source_type=RAGSourceType.product,
             access_level=access_level,
             source_id=product.product_id,
             chunk_text=chunk_text,
-            embedding_model=EMBEDDING_MODEL_NAME,
+            embedding_model=getattr(settings, 'EMBEDDING_MODEL', 'all-MiniLM-L6-v2'),
         )
         db.add(chunk)
         chunks_to_add.append(chunk)
@@ -366,6 +364,61 @@ def ingest_products(db: Session, store_id: int, access_level: str = "customer"):
     
     db.commit()
     logger.info(f"Ingested {len(chunks_to_add)} product chunks for store {store_id}")
+
+
+def ingest_store_statistics(db: Session, store_id: int):
+    """Ingest aggregated store statistics into RAG chunks for admin query support."""
+    from sqlalchemy import func
+    from app.models import Product, Category, Transaction
+    from app.models.enums import RAGSourceType, RAGAccessLevel
+    
+    total_products = db.query(func.count(Product.product_id)).filter(Product.store_id == store_id, Product.is_active.is_(True)).scalar() or 0
+    total_categories = db.query(func.count(Category.category_id)).filter(Category.store_id == store_id).scalar() or 0
+    total_transactions = db.query(func.count(Transaction.transaction_id)).filter(Transaction.store_id == store_id).scalar() or 0
+    
+    chunk_text = (
+        f"STORE STATISTICS AND OVERVIEW:\n"
+        f"Total active products in inventory: {total_products}\n"
+        f"Total categories: {total_categories}\n"
+        f"Total sales transactions processed: {total_transactions}\n"
+        f"This document contains the exact total count of products and sales for the store."
+    )
+    
+    existing = (
+        db.query(RAGDocumentChunk)
+        .filter(
+            RAGDocumentChunk.store_id == store_id,
+            RAGDocumentChunk.source_type == RAGSourceType.inventory_summary,
+        )
+        .first()
+    )
+    
+    chunks_to_add = []
+    if existing:
+        existing.chunk_text = chunk_text
+        db.commit()
+        logger.info(f"Updated store statistics chunk for store {store_id}")
+    else:
+        chunk = RAGDocumentChunk(
+            store_id=store_id,
+            source_type=RAGSourceType.inventory_summary,
+            access_level=RAGAccessLevel.admin,
+            source_id=0,
+            chunk_text=chunk_text,
+            embedding_model=getattr(settings, 'EMBEDDING_MODEL', 'all-MiniLM-L6-v2'),
+        )
+        db.add(chunk)
+        chunks_to_add.append(chunk)
+        db.flush()
+        
+        texts = [chunk.chunk_text]
+        chunk_ids = [chunk.chunk_id]
+        embeddings = embedding_service.embed_batch(texts)
+        
+        vector_store.add_chunks(store_id, chunk_ids, embeddings)
+        chunk.faiss_index_id = 0
+        db.commit()
+        logger.info(f"Ingested store statistics chunk for store {store_id}")
 
 
 # LLM Integration

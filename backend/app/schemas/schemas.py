@@ -228,6 +228,7 @@ class ProductCreate(BaseModel):
     unit_of_measure: Optional[str] = None
     reorder_level: Optional[int] = None
     supply_price: Optional[Decimal] = None
+    image_url: Optional[str] = None
 
 
 class ProductUpdate(BaseModel):
@@ -243,6 +244,7 @@ class ProductUpdate(BaseModel):
     barcode: Optional[str] = None
     reorder_level: Optional[int] = None
     supply_price: Optional[Decimal] = None
+    image_url: Optional[str] = None
 
 
 class ProductOut(BaseModel):
@@ -260,6 +262,7 @@ class ProductOut(BaseModel):
     is_active: bool
     reorder_level: Optional[int] = None
     supply_price: Optional[Decimal] = None
+    image_url: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
