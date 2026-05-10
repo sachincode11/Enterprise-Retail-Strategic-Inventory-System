@@ -1,30 +1,38 @@
-// src/pages/cashier/Profile.jsx — IMPROVED: Change PIN removed
-import { useState } from 'react';
+// src/pages/cashier/Profile.jsx — IMPROVED: Read-only profile, functional Recent Activity
+import { useEffect, useState } from 'react';
 import CashierLayout from '../../layouts/CashierLayout';
-import { Toggle } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
-
-const shiftHistory = [
-  { id: '#0842', date: '22 Mar 2026', status: 'Active', hours: '08:00 – ongoing', txns: 91  },
-  { id: '#0834', date: '21 Mar 2026', status: null,     hours: '08:00 – 17:00',   txns: 118 },
-  { id: '#0826', date: '20 Mar 2026', status: null,     hours: '08:00 – 16:30',   txns: 104 },
-  { id: '#0814', date: '19 Mar 2026', status: null,     hours: '08:00 – 17:00',   txns: 97  },
-];
-const recentActivity = [
-  { action: 'Completed transaction #TXN-0091', detail: 'Rs 1,416 · Cash',   time: '14:48' },
-  { action: 'Applied discount to #TXN-0091',   detail: 'Seasonal Sale 10%', time: '14:46' },
-  { action: 'Processed refund #TXN-0088',      detail: 'Rs 3,400 · Card',   time: '13:55' },
-  { action: 'Login — Shift #0842 started',     detail: 'kasim@store.np',    time: '08:14' },
-];
+import { getTransactions } from '../../services/transactionService';
+import { LoadingSpinner } from '../../components/common';
 
 export default function Profile() {
   const { user } = useAuth();
-  const [receiptSound, setReceiptSound] = useState(true);
-  const [notifAlerts,  setNotifAlerts]  = useState(true);
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const displayName  = user?.name || 'Kasim Rijal';
-  const displayEmail = user?.email || 'kasim@store.np';
-  const initials     = user?.initials || 'KR';
+  useEffect(() => {
+    async function loadActivity() {
+      try {
+        const res = await getTransactions();
+        // Filter by current cashier and sort by date desc
+        const myTxns = (res.data || [])
+          .filter(t => t.backendId && t.cashier.includes(String(user?.id || '')))
+          .sort((a, b) => new Date(b.rawDate) - new Date(a.rawDate))
+          .slice(0, 5); // Show last 5
+        
+        setActivities(myTxns);
+      } catch (err) {
+        console.error("Failed to load activity", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadActivity();
+  }, [user]);
+
+  const displayName  = user?.name || 'Cashier';
+  const displayEmail = user?.email || '';
+  const initials     = user?.initials || 'U';
 
   return (
     <CashierLayout>
@@ -41,105 +49,86 @@ export default function Profile() {
           </div>
           <div>
             <h2 className="text-xl font-bold text-white">{displayName}</h2>
-            <p className="text-sm mt-0.5" style={{ color: '#94a3b8' }}>Cashier · KTM-001 — Kathmandu</p>
+            <p className="text-sm mt-0.5" style={{ color: '#94a3b8' }}>Cashier · {user?.store || 'Default Store'}</p>
             <div className="flex items-center gap-3 mt-2">
-              <span className="text-xs font-mono px-2.5 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.1)', color: '#cbd5e1' }}>Shift #0842</span>
+              <span className="text-xs font-mono px-2.5 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.1)', color: '#cbd5e1' }}>Role: Cashier</span>
               <div className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e]" />
-                <span className="text-xs text-[#94a3b8]">On Shift</span>
+                <span className="text-xs text-[#94a3b8]">Active Account</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          {/* Personal info — read only for cashier */}
-          <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e2e8f0' }}>
-            <h3 className="text-sm font-semibold text-[#0f172a] mb-4">Personal Information</h3>
-            <div className="space-y-3">
-              {[
-                { label: 'Full Name',  value: displayName },
-                { label: 'Email',      value: displayEmail },
-                { label: 'Phone',      value: '+977-9841-000123' },
-                { label: 'Store',      value: 'KTM-001 — Kathmandu' },
-              ].map(f => (
-                <div key={f.label}>
-                  <p className="text-xs text-[#94a3b8] mb-1">{f.label}</p>
-                  <p className="text-sm font-medium text-[#0f172a]">{f.value}</p>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-[#94a3b8] mt-4 pt-4 border-t" style={{ borderColor: '#e2e8f0' }}>
-              To update your information, contact your Admin.
-            </p>
-          </div>
-
-          {/* Preferences — NO Change PIN section (removed per requirements) */}
-          <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e2e8f0' }}>
-            <h3 className="text-sm font-semibold text-[#0f172a] mb-4">Preferences</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-[#0f172a]">Receipt Sound</p>
-                  <p className="text-xs text-[#94a3b8]">Play sound on transaction complete</p>
-                </div>
-                <Toggle checked={receiptSound} onChange={setReceiptSound} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {/* Personal info */}
+          <div className="md:col-span-1 space-y-5">
+            <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e2e8f0' }}>
+              <h3 className="text-sm font-semibold text-[#0f172a] mb-4 pb-3 border-b" style={{ borderColor: '#e2e8f0' }}>Personal Information</h3>
+              <div className="space-y-4">
+                {[
+                  { label: 'Full Name',  value: displayName },
+                  { label: 'Email',      value: displayEmail },
+                  { label: 'Phone',      value: user?.phone || 'Not provided' },
+                  { label: 'Store',      value: user?.store || 'Assigned Store' },
+                ].map(f => (
+                  <div key={f.label}>
+                    <p className="text-[10px] text-[#94a3b8] uppercase font-mono tracking-wider mb-1">{f.label}</p>
+                    <p className="text-sm font-medium text-[#0f172a]">{f.value}</p>
+                  </div>
+                ))}
               </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-[#0f172a]">Low Stock Alerts</p>
-                  <p className="text-xs text-[#94a3b8]">Show alerts for low inventory</p>
-                </div>
-                <Toggle checked={notifAlerts} onChange={setNotifAlerts} />
-              </div>
-            </div>
-            {/* PIN management note — PIN is managed by Admin */}
-            <div className="mt-5 pt-4 border-t" style={{ borderColor: '#e2e8f0' }}>
-              <div className="rounded-lg p-3" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                <p className="text-xs font-medium text-[#0f172a] mb-1">PIN Management</p>
-                <p className="text-xs text-[#94a3b8]">Your PIN is managed by the Admin. Contact your store administrator to reset it.</p>
+              <div className="mt-6 pt-5 border-t" style={{ borderColor: '#e2e8f0' }}>
+                <p className="text-[10px] text-[#94a3b8] leading-relaxed italic">
+                  * Profile updates are managed by your Store Administrator. Contact them to change your details.
+                </p>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Shift History */}
-        <div className="bg-white rounded-xl border p-5 mb-4" style={{ borderColor: '#e2e8f0' }}>
-          <h3 className="text-sm font-semibold text-[#0f172a] mb-4">Shift History</h3>
-          <table className="data-table">
-            <thead><tr><th>Shift ID</th><th>Date</th><th>Hours</th><th>Transactions</th><th>Status</th></tr></thead>
-            <tbody>
-              {shiftHistory.map(s => (
-                <tr key={s.id}>
-                  <td><span className="mono text-xs font-medium">{s.id}</span></td>
-                  <td className="text-sm">{s.date}</td>
-                  <td className="text-sm text-[#475569]">{s.hours}</td>
-                  <td className="text-sm font-semibold">{s.txns}</td>
-                  <td>
-                    {s.status
-                      ? <span className="text-xs px-2 py-0.5 rounded bg-[#dcfce7] text-[#15803d] font-medium">{s.status}</span>
-                      : <span className="text-xs text-[#94a3b8]">Closed</span>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e2e8f0' }}>
-          <h3 className="text-sm font-semibold text-[#0f172a] mb-4">Recent Activity</h3>
-          <div className="space-y-3">
-            {recentActivity.map((a, i) => (
-              <div key={i} className="flex items-start gap-3 pb-3 border-b last:border-0 last:pb-0" style={{ borderColor: '#e2e8f0' }}>
-                <div className="w-1.5 h-1.5 rounded-full bg-[#1e3a5f] mt-1.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-[#0f172a]">{a.action}</p>
-                  <p className="text-xs text-[#94a3b8]">{a.detail}</p>
-                </div>
-                <span className="text-xs font-mono text-[#94a3b8]">{a.time}</span>
+          {/* Recent Activity */}
+          <div className="md:col-span-2">
+            <div className="bg-white rounded-xl border p-5 h-full" style={{ borderColor: '#e2e8f0' }}>
+              <div className="flex items-center justify-between mb-6 pb-3 border-b" style={{ borderColor: '#e2e8f0' }}>
+                <h3 className="text-sm font-semibold text-[#0f172a]">Recent Activity</h3>
+                <span className="text-[10px] bg-[#f1f5f9] text-[#1e3a5f] px-2 py-0.5 rounded font-bold uppercase tracking-wider">Last 5 Sales</span>
               </div>
-            ))}
+
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-3">
+                  <LoadingSpinner size={20} />
+                  <p className="text-xs text-[#94a3b8]">Syncing transaction history...</p>
+                </div>
+              ) : activities.length > 0 ? (
+                <div className="space-y-4">
+                  {activities.map((txn) => (
+                    <div key={txn.id} className="flex items-start gap-4 p-3 rounded-lg hover:bg-[#f8fafc] transition-colors border border-transparent hover:border-[#e2e8f0]">
+                      <div className="w-8 h-8 rounded-full bg-[#eff6ff] flex items-center justify-center flex-shrink-0 text-[#1e3a5f]">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-sm font-semibold text-[#0f172a]">Sale {txn.id}</p>
+                          <span className="text-xs font-bold text-[#1e3a5f]">{txn.amount}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-[#94a3b8]">Customer: {txn.customer}</p>
+                          <p className="text-[10px] font-mono text-[#94a3b8]">{txn.datetime}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-12 h-12 bg-[#f8fafc] rounded-full flex items-center justify-center mb-3">
+                    <svg className="text-[#cbd5e1]" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                  </div>
+                  <p className="text-sm font-medium text-[#475569]">No recent transactions</p>
+                  <p className="text-xs text-[#94a3b8] mt-1">Start processing sales to see them here.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
