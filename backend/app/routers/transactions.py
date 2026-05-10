@@ -15,7 +15,7 @@ from app.models import (
     User, GuestCustomer, Discount
     )
 from app.schemas import (
-    MessageResponse, RefundCreate, TransactionCreate, TransactionOut,
+    MessageResponse, RefundCreate, TransactionCreate, TransactionOut, PaginatedResponse
 )
 
 
@@ -30,7 +30,7 @@ def _next_invoice(store_id: str, db: Session) -> str:
     return f"INV-{store_id[:8].upper()}-{count + 1:05d}"
 
 
-@router.get("", response_model=list[TransactionOut])
+@router.get("", response_model=PaginatedResponse)
 def list_transactions(
     store_id: str,
     page: int = Query(1, ge=1),
@@ -42,9 +42,17 @@ def list_transactions(
     q = db.query(Transaction).filter(Transaction.store_id == store_id)
     if customer_id:
         q = q.filter(Transaction.customer_id == customer_id)
+    
+    total = q.count()
     items = q.order_by(Transaction.transaction_date.desc()) \
               .offset((page - 1) * size).limit(size).all()
-    return items
+    
+    return {
+        "total": total,
+        "page": page,
+        "size": size,
+        "items": items
+    }
 
 
 @router.get("/{transaction_id}", response_model=TransactionOut)
@@ -197,6 +205,53 @@ def create_transaction(
     db.commit()
     db.refresh(txn)
     return txn
+
+
+@router.patch("/{transaction_id}/status", response_model=TransactionOut)
+def update_transaction_status(
+    store_id: str,
+    transaction_id: int,
+    status: TransactionStatus,
+    db: Session = Depends(get_db),
+    cashier: User = Depends(require_cashier),
+):
+    """Update transaction status (e.g., to cancelled/voided)."""
+    t = db.query(Transaction).filter(
+        Transaction.transaction_id == transaction_id,
+        Transaction.store_id == store_id,
+    ).first()
+    if not t:
+        raise HTTPException(404, "Transaction not found.")
+    
+    if t.status == TransactionStatus.cancelled:
+        raise HTTPException(400, "Transaction is already cancelled.")
+
+    # If cancelling, return stock
+    if status == TransactionStatus.cancelled:
+        for item in t.items:
+            inv = db.query(Inventory).filter(Inventory.product_id == item.product_id).first()
+            if inv:
+                before = inv.quantity_in_stock
+                inv.quantity_in_stock += item.quantity
+                db.add(InventoryLog(
+                    inventory_id=inv.inventory_id,
+                    product_id=item.product_id,
+                    store_id=store_id,
+                    movement_type=MovementType.adjustment,
+                    quantity_change=item.quantity,
+                    quantity_before=before,
+                    quantity_after=inv.quantity_in_stock,
+                    reference_type=InventoryReferenceType.transaction,
+                    reference_id=t.transaction_id,
+                    performed_by=cashier.user_id,
+                    notes=f"Voiding transaction {t.invoice_number}"
+                ))
+
+    t.status = status
+    db.commit()
+    db.refresh(t)
+    return t
+
 
 # Refunds
 refund_router = APIRouter(

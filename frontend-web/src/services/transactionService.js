@@ -16,15 +16,20 @@ function saveStored(data) { lsSet(LS_KEY, data); }
 
 function mapTxnFromBackend(txn) {
   const amount = Number(txn.total_amount || 0);
+  const method = txn.payments?.[0]?.payment_method || 'Cash';
+  
   return {
     id: txn.invoice_number || `#TXN-${txn.transaction_id}`,
     backendId: txn.transaction_id,
-    customer: txn.customer_id ? `Customer #${txn.customer_id}` : 'Walk-in Guest',
+    customer: txn.customer_id ? `Customer #${txn.customer_id}` : (txn.guest_customer?.name || 'Walk-in Guest'),
     cashier: txn.cashier_id ? `Cashier #${txn.cashier_id}` : '—',
     datetime: formatDateTime(txn.transaction_date),
     items: txn.items?.length || 0,
-    method: 'Cash',
+    items_raw: txn.items || [], // Full item objects for detail view
+    method: method.charAt(0).toUpperCase() + method.slice(1),
     amount: formatCurrency(amount),
+    subtotal: txn.subtotal || 0,
+    tax: txn.tax_amount || 0,
     status: txn.status === 'refunded' ? 'Refunded' : txn.status === 'cancelled' ? 'Voided' : 'Paid',
   };
 }
@@ -42,12 +47,37 @@ export async function getTransactions() {
 
   try {
     const storeId = getStoreId();
-    const txns = await apiRequest(`/stores/${storeId}/transactions?page=1&size=${DEFAULT_PAGE_SIZE}`);
+    // Fetch a larger batch (up to 100 as per backend limit) to show more records
+    const res = await apiRequest(`/stores/${storeId}/transactions?page=1&size=100`);
+    
+    // Support both old flat array and new PaginatedResponse shape
+    const txns = Array.isArray(res) ? res : (res.items || []);
+    
     const mapped = txns.map(mapTxnFromBackend);
     saveStored(mapped);
     return toApiEnvelope(mapped);
   } catch {
     return fakeApi(getStored());
+  }
+}
+
+export async function getTransactionDetails(id) {
+  // If id is numeric, use it directly, otherwise it might be an invoice number
+  // For backend call we need the numeric transaction_id (backendId)
+  if (USE_MOCK) {
+    const found = getStored().find(t => t.id === id);
+    return fakeApi(found);
+  }
+
+  try {
+    const storeId = getStoreId();
+    const source = getStored().find(t => t.id === id);
+    const backendId = source?.backendId || id;
+    
+    const txn = await apiRequest(`/stores/${storeId}/transactions/${backendId}`);
+    return toApiEnvelope(mapTxnFromBackend(txn));
+  } catch (error) {
+    throw normalizeServiceError(error, 'Failed to fetch transaction details');
   }
 }
 
@@ -94,13 +124,32 @@ export async function voidTransaction(id) {
     return fakeApi({ voided: id });
   }
 
-  // No dedicated void endpoint in backend yet; keep local status for UI.
-  const updated = getStored().map(t => t.id === id ? { ...t, status: 'Voided' } : t);
-  saveStored(updated);
-  return toApiEnvelope({ voided: id });
+  try {
+    const storeId = getStoreId();
+    const source = getStored().find(t => t.id === id);
+    const backendId = source?.backendId;
+
+    if (!backendId) {
+      const updated = getStored().map(t => t.id === id ? { ...t, status: 'Voided' } : t);
+      saveStored(updated);
+      return toApiEnvelope({ voided: id });
+    }
+
+    const updatedTxn = await apiRequest(`/stores/${storeId}/transactions/${backendId}/status?status=cancelled`, {
+      method: 'PATCH',
+    });
+
+    const mapped = mapTxnFromBackend(updatedTxn);
+    const updatedList = getStored().map(t => t.id === id ? mapped : t);
+    saveStored(updatedList);
+    return toApiEnvelope(mapped);
+  } catch (error) {
+    throw normalizeServiceError(error, 'Failed to void transaction');
+  }
 }
 
-export async function refundTransaction(id) {
+export async function refundTransaction(id, refundData) {
+  // refundData: { product_id, quantity, reason, notes }
   if (USE_MOCK) {
     const updated = getStored().map(t => t.id === id ? { ...t, status: 'Refunded' } : t);
     saveStored(updated);
@@ -110,17 +159,26 @@ export async function refundTransaction(id) {
   try {
     const storeId = getStoreId();
     const source = getStored().find(t => t.id === id);
-    if (!source?.backendId) {
-      const updated = getStored().map(t => t.id === id ? { ...t, status: 'Refunded' } : t);
-      saveStored(updated);
-      return toApiEnvelope({ refunded: id });
-    }
+    const backendId = source?.backendId || id;
 
-    // Backend refund endpoint requires product/quantity details.
-    // For now mark local status unless granular refund UI is implemented.
-    const updated = getStored().map(t => t.id === id ? { ...t, status: 'Refunded' } : t);
-    saveStored(updated);
-    return toApiEnvelope({ refunded: id, pendingServerSync: true });
+    const res = await apiRequest(`/stores/${storeId}/refunds`, {
+      method: 'POST',
+      body: {
+        original_transaction_id: Number(backendId),
+        product_id: Number(refundData.product_id),
+        quantity_returned: Number(refundData.quantity),
+        reason: refundData.reason || 'other',
+        notes: refundData.notes || '',
+      },
+    });
+
+    // Refresh the transaction in local state
+    const refreshed = await apiRequest(`/stores/${storeId}/transactions/${backendId}`);
+    const mapped = mapTxnFromBackend(refreshed);
+    const updatedList = getStored().map(t => t.id === id ? mapped : t);
+    saveStored(updatedList);
+
+    return toApiEnvelope(mapped);
   } catch (error) {
     throw normalizeServiceError(error, 'Failed to refund transaction');
   }

@@ -232,13 +232,29 @@ export function AppProvider({ children }) {
   }, []);
 
   const handleVoidTransaction = useCallback(async (id) => {
-    await voidTransaction(id);
-    setTransactions(prev => prev.map(t => t.id === id ? { ...t, status: 'Voided' } : t));
+    const res = await voidTransaction(id);
+    setTransactions(prev => prev.map(t => t.id === id ? (res.data || { ...t, status: 'Voided' }) : t));
+    
+    // Refresh products to get updated stock levels
+    try {
+      const fresh = await getProducts();
+      setProducts(fresh.data || []);
+    } catch (err) {
+      console.error("Failed to refresh products after void:", err);
+    }
   }, []);
 
-  const handleRefundTransaction = useCallback(async (id) => {
-    await refundTransaction(id);
-    setTransactions(prev => prev.map(t => t.id === id ? { ...t, status: 'Refunded' } : t));
+  const handleRefundTransaction = useCallback(async (id, refundData) => {
+    const res = await refundTransaction(id, refundData);
+    setTransactions(prev => prev.map(t => t.id === id ? (res.data || { ...t, status: 'Refunded' }) : t));
+
+    // Refresh products to get updated stock levels
+    try {
+      const fresh = await getProducts();
+      setProducts(fresh.data || []);
+    } catch (err) {
+      console.error("Failed to refresh products after refund:", err);
+    }
   }, []);
 
   // ── Orders ────────────────────────────────────────────────────────────────
