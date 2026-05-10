@@ -117,11 +117,20 @@ export function AppProvider({ children }) {
     if (res.data) setDiscounts(res.data);
   }, []);
 
-  // Sync critical display settings to localStorage for utilities (format.js)
+  // Sync critical display settings to localStorage for utilities (format.js) and handle Theme
   useEffect(() => {
     if (settings) {
       lsSet('invosix_date_format', settings.dateFormat);
       lsSet('invosix_currency', settings.currency);
+      
+      const isDark = settings.theme === 'Dark' || 
+                    (settings.theme === 'System' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                    
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     }
   }, [settings]);
 
