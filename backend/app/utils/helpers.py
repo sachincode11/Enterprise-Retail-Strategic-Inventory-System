@@ -34,20 +34,26 @@ def _user_roles(db: Session, user: User) -> set:
     return roles
 
 
-async def _send_otp_email(email: str, otp: str) -> None:
+async def _send_otp_email(email: str, otp: str, subject: str = "OTP Verification Code") -> None:
     """Send OTP via SMTP; falls back to console output in dev/misconfigured envs."""
     if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
-        print(f"[EMAIL-FALLBACK] OTP for {email}: {otp}")
+        print(f"[EMAIL-FALLBACK] {subject} for {email}: {otp}")
         return
 
     msg = EmailMessage()
-    msg["Subject"] = f"{settings.APP_NAME} - OTP Verification Code"
+    msg["Subject"] = f"{settings.APP_NAME} - {subject}"
     msg["From"] = settings.EMAIL_FROM or settings.SMTP_USER
     msg["To"] = email
-    msg.set_content(
-        f"Your OTP code is: {otp}\n\n"
-        f"This code expires in {settings.OTP_EXPIRE_MINUTES} minutes."
-    )
+    
+    if "Password" in subject:
+        content = f"Your temporary password is: {otp}\n\nPlease change it after logging in."
+    else:
+        content = (
+            f"Your OTP code is: {otp}\n\n"
+            f"This code expires in {settings.OTP_EXPIRE_MINUTES} minutes."
+        )
+    
+    msg.set_content(content)
 
     try:
         with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=20) as server:
@@ -55,5 +61,5 @@ async def _send_otp_email(email: str, otp: str) -> None:
             server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
             server.send_message(msg)
     except Exception as exc:
-        print(f"[EMAIL-ERROR] Failed to send OTP to {email}: {exc}")
-        print(f"[EMAIL-FALLBACK] OTP for {email}: {otp}")
+        print(f"[EMAIL-ERROR] Failed to send {subject} to {email}: {exc}")
+        print(f"[EMAIL-FALLBACK] {subject} for {email}: {otp}")
