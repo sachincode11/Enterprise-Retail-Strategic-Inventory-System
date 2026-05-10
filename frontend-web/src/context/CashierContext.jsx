@@ -27,7 +27,7 @@ export function CashierProvider({ children }) {
   const [paymentMethod, setPaymentMethod]     = useState('Cash');
   const [tendered, setTendered]               = useState(0);
   const [selectedCustomer, setSelectedCustomer] = useState(() => lsGet('invosix_pos_customer', null));
-  const [heldTransactions, setHeldTransactions] = useState([]);
+  const [heldTransactions, setHeldTransactions] = useState(() => lsGet('invosix_pos_held', []));
   const [lastTransaction, setLastTransaction]   = useState(null);
   const [settingsTab, setSettingsTab]         = useState('general');
   const [postAuthPage, setPostAuthPage]       = useState('dashboard');
@@ -37,6 +37,7 @@ export function CashierProvider({ children }) {
   useEffect(() => { lsSet('invosix_pos_discount', discount); }, [discount]);
   useEffect(() => { lsSet('invosix_pos_sel_discount', selectedDiscount); }, [selectedDiscount]);
   useEffect(() => { lsSet('invosix_pos_customer', selectedCustomer); }, [selectedCustomer]);
+  useEffect(() => { lsSet('invosix_pos_held', heldTransactions); }, [heldTransactions]);
 
   const addToCart = (product, discounts = []) => {
     const priceSource = product.priceNum ?? product.price;
@@ -173,6 +174,10 @@ export function CashierProvider({ children }) {
     setHeldTransactions(prev => prev.filter(h => h.id !== heldId));
   };
 
+  const removeHeld = (heldId) => {
+    setHeldTransactions(prev => prev.filter(h => h.id !== heldId));
+  };
+
   const voidCart = () => clearCart();
 
   const subtotal    = cart.reduce((sum, i) => {
@@ -234,7 +239,7 @@ export function CashierProvider({ children }) {
       paymentMethod, setPaymentMethod,
       tendered, setTendered,
       selectedCustomer, setSelectedCustomer,
-      heldTransactions, holdTransaction, resumeHeld, voidCart,
+      heldTransactions, holdTransaction, resumeHeld, removeHeld, voidCart,
       settingsTab, setSettingsTab,
       postAuthPage, setPostAuthPage,
       subtotal, discountAmt, tax, total, change,

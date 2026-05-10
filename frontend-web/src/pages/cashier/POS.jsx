@@ -211,6 +211,36 @@ function DiscountModal({ isOpen, onClose, onApply, onSelectPredefined }) {
   );
 }
 
+function HeldModal({ isOpen, onClose, heldList, onResume, onRemove }) {
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Held Transactions">
+      <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+        {heldList.length === 0 && <p className="text-center py-10 text-sm text-[#94a3b8]">No transactions currently on hold</p>}
+        {heldList.map(h => (
+          <div key={h.id} className="p-4 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-between group">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-mono font-bold text-[#1e3a5f]">{h.id}</span>
+                <span className="text-[10px] text-[#94a3b8]">• {h.heldAt}</span>
+              </div>
+              <p className="text-sm font-semibold text-[#0f172a] truncate">{h.customer?.name || 'Walk-in Guest'}</p>
+              <p className="text-xs text-[#94a3b8]">{h.cart.length} items • Rs {h.cart.reduce((s, i) => s + (i.price * i.qty), 0).toLocaleString()}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => onRemove(h.id)} className="p-2 text-[#94a3b8] hover:text-[#dc2626] transition-colors">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+              </button>
+              <button onClick={() => { onResume(h.id); onClose(); }} className="px-4 py-2 bg-[#1e3a5f] text-white text-xs font-bold rounded-lg hover:bg-[#16324f] transition-all">
+                Resume
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Modal>
+  );
+}
+
 function QRModal({ isOpen, onClose, total, onConfirm }) {
   const { currencySymbol } = useApp();
   return (
@@ -267,7 +297,7 @@ export default function POS() {
     paymentMethod, setPaymentMethod,
     tendered, setTendered,
     selectedCustomer, setSelectedCustomer,
-    holdTransaction, voidCart,
+    heldTransactions, holdTransaction, resumeHeld, removeHeld, voidCart,
     subtotal, discountAmt, tax, total, change,
     setCurrentPage, setLastTransaction,
   } = useCashier();
@@ -281,6 +311,7 @@ export default function POS() {
   const [qrOpen, setQrOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [browseOpen, setBrowseOpen] = useState(false);
+  const [heldOpen, setHeldOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   // Sync discounts on mount
@@ -383,9 +414,18 @@ export default function POS() {
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-[#e2e8f0] rounded-lg text-[#475569] hover:border-[#fecaca] hover:text-[#ef4444] transition-colors bg-white">
                 Void
               </button>
-              <button onClick={holdTransaction}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-[#e2e8f0] rounded-lg text-[#475569] hover:border-[#bfdbfe] transition-colors bg-white">
+              <button onClick={holdTransaction} disabled={!cart.length}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-[#e2e8f0] rounded-lg text-[#475569] hover:border-[#bfdbfe] transition-colors bg-white disabled:opacity-40 disabled:cursor-not-allowed">
                 Hold
+              </button>
+              <button onClick={() => setHeldOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-[#e2e8f0] rounded-lg text-[#475569] hover:border-[#1e3a5f] hover:text-[#1e3a5f] transition-colors bg-white relative">
+                Held
+                {heldTransactions.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#ef4444] text-white text-[9px] font-bold rounded-full flex items-center justify-center border-2 border-white">
+                    {heldTransactions.length}
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -407,9 +447,14 @@ export default function POS() {
                       setSearchQuery('');
                     }}
                       disabled={p.stock === 0}
-                      className="w-full text-left px-4 py-2.5 text-sm hover:bg-[#eff6ff] border-b border-[#f1f5f9] last:border-0 disabled:opacity-40">
-                      <span className="font-medium text-[#0f172a]">{p.name}</span>
-                      <span className="text-[#94a3b8] ml-2 text-xs">{p.sku} · {currencySymbol} {p.priceNum} · Stock: {p.stock}</span>
+                      className="w-full text-left px-4 py-2.5 text-sm hover:bg-[#eff6ff] border-b border-[#f1f5f9] last:border-0 disabled:opacity-40 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded border border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-center overflow-hidden shrink-0">
+                        {p.image_url ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" /> : <span className="text-xl">🛒</span>}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-[#0f172a] truncate">{p.name}</p>
+                        <p className="text-[#94a3b8] text-xs font-mono">{p.sku} · {currencySymbol} {p.priceNum} · Stock: {p.stock}</p>
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -423,9 +468,12 @@ export default function POS() {
           <Modal isOpen={browseOpen} onClose={() => setBrowseOpen(false)} title="Browse Products">
             <div className="space-y-1 max-h-80 overflow-y-auto">
               {products.filter(p => p.stock > 0).map(p => (
-                <div key={p.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[#f8fafc]">
-                  <div>
-                    <p className="text-sm font-medium text-[#0f172a]">{p.name}</p>
+                <div key={p.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[#f8fafc] gap-3">
+                  <div className="w-10 h-10 rounded border border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-center overflow-hidden shrink-0">
+                    {p.image_url ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" /> : <span className="text-xl">🛒</span>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[#0f172a] truncate">{p.name}</p>
                     <p className="text-xs text-[#94a3b8]">{p.sku} · {p.category}</p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -601,6 +649,14 @@ export default function POS() {
       />
       <QRModal isOpen={qrOpen} onClose={() => setQrOpen(false)} total={total}
         onConfirm={() => { setQrOpen(false); processPayment(); }} />
+
+      <HeldModal
+        isOpen={heldOpen}
+        onClose={() => setHeldOpen(false)}
+        heldList={heldTransactions}
+        onResume={resumeHeld}
+        onRemove={removeHeld}
+      />
     </CashierLayout>
   );
 }

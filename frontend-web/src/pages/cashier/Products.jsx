@@ -76,8 +76,12 @@ export default function Products() {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {filtered.map(p => (
               <div key={p.id} className="bg-white rounded-xl border p-4 flex flex-col gap-2 hover:shadow-sm transition-shadow" style={{ borderColor: '#e2e8f0' }}>
-                <div className="w-full h-20 rounded-lg flex items-center justify-center mb-1" style={{ background: '#f8fafc' }}>
-                  <span className="text-3xl select-none">🛒</span>
+                <div className="w-full h-32 rounded-lg flex items-center justify-center mb-1 overflow-hidden" style={{ background: '#f8fafc' }}>
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-3xl select-none">🛒</span>
+                  )}
                 </div>
                 <p className="text-sm font-semibold text-[#0f172a] leading-snug">{p.name}</p>
                 <p className="text-xs text-[#94a3b8] font-mono">{p.sku}</p>
