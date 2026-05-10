@@ -12,3 +12,4 @@ wheels/
 backend/seed_users.py
 backend/seed_transactions.py
 backend/seed_products.py
+backend/seed_ai.py

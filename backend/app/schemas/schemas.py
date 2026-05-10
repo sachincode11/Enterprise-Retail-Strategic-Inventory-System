@@ -589,3 +589,9 @@ class PaginatedResponse(BaseModel):
     page: int
     size: int
     items: list
+
+    model_config = {"from_attributes": True}
+
+
+class TransactionPaginatedResponse(PaginatedResponse):
+    items: list[TransactionOut]

@@ -79,6 +79,7 @@ from .schemas import (
     # Generic
     MessageResponse,
     PaginatedResponse,
+    TransactionPaginatedResponse,
 
     # Analytics
     SpendingTrend,
@@ -169,6 +170,7 @@ __all__ = [
     # Generic
     "MessageResponse",
     "PaginatedResponse",
+    "TransactionPaginatedResponse",
 
     # Analytics
     "SpendingTrend",

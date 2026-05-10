@@ -15,7 +15,8 @@ from app.models import (
     User, GuestCustomer, Discount
     )
 from app.schemas import (
-    MessageResponse, RefundCreate, TransactionCreate, TransactionOut, PaginatedResponse
+    MessageResponse, RefundCreate, TransactionCreate, TransactionOut, 
+    PaginatedResponse, TransactionPaginatedResponse
 )
 
 
@@ -30,7 +31,7 @@ def _next_invoice(store_id: str, db: Session) -> str:
     return f"INV-{store_id[:8].upper()}-{count + 1:05d}"
 
 
-@router.get("", response_model=PaginatedResponse)
+@router.get("", response_model=TransactionPaginatedResponse)
 def list_transactions(
     store_id: str,
     page: int = Query(1, ge=1),
