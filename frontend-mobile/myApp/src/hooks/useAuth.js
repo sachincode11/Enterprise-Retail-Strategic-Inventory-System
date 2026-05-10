@@ -1,20 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiRequest, saveSession, clearSession } from '../services/apiClient';
 
 const AuthContext = createContext(null);
-
-// Mock user — replace with real auth API responses
-const MOCK_USER = {
-  id: 'usr_001',
-  fullName: 'simona kattel',
-  email: 'simona@gmail.com',
-  phone: '+977-9801234567',
-  avatar: 'SK',
-  verified: true,
-  orders: 24,
-  totalSpent: 18400,
-  totalSaved: 1200,
-};
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -32,55 +20,107 @@ export function AuthProvider({ children }) {
   }, []);
 
   // ── Login ────────────────────────────────────────────────
-  // Replace with: POST /api/auth/login { email, password }
-  
   const login = async ({ email, password }) => {
-    await new Promise(r => setTimeout(r, 800));
-
     if (!email || !password) {
       throw new Error('Email and password are required.');
     }
 
-    const cleanEmail = email.trim().toLowerCase();
+    const data = await apiRequest('/auth/login', {
+      method: 'POST',
+      body: { email, password },
+      withAuth: false
+    });
 
-    // FIX C (strict login)
-    if (cleanEmail !== 'simona@gmail.com' || password !== 'simona123') {
-      throw new Error('Invalid email or password.');
+    if (data.requires_otp) {
+      // Handle OTP flow if needed, but for customers it's usually skipped
+      return data;
     }
 
     const sessionUser = {
-      ...MOCK_USER,
-      email: cleanEmail,
-      fullName: 'Simona Kattel',
-      avatar: 'SK',
+      id: data.user.id,
+      fullName: data.user.name,
+      email: data.user.email,
+      phone: data.user.phone,
+      avatar: data.user.initials,
+      storeId: data.user.storeId,
+      roles: data.user.roles,
+      verified: data.user.verified,
     };
 
     setUser(sessionUser);
+    await saveSession({
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      user: sessionUser
+    });
     await AsyncStorage.setItem('@invo6_user', JSON.stringify(sessionUser));
   };
 
- 
   // ── Register ─────────────────────────────────────────────
-  // Replace with: POST /api/auth/register { fullName, email, phone, password }
-  const register = async ({ fullName, email, phone, password }) => {
-    await new Promise(r => setTimeout(r, 800));
-    const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-    const newUser = { ...MOCK_USER, fullName, email, phone, avatar: initials };
-    setUser(newUser);
-    await AsyncStorage.setItem('@invo6_user', JSON.stringify(newUser));
+  const register = async ({ fullName, email, phone, password, username }) => {
+    const [first_name, ...last_parts] = fullName.split(' ');
+    const last_name = last_parts.join(' ');
+
+    await apiRequest('/auth/register', {
+      method: 'POST',
+      body: { 
+        first_name,
+        last_name: last_name || '',
+        email, 
+        phone, 
+        password,
+        username: username || email.split('@')[0]
+      },
+      withAuth: false
+    });
+
+    // After registration, log them in
+    return await login({ email, password });
   };
 
-  // ── Logout ───────────────────────────────────────────────
   const logout = async () => {
+    console.log("Auth: Logout initiated");
+    // 1. Instantly clear local state for responsive UI
     setUser(null);
-    await AsyncStorage.removeItem('@invo6_user');
+    
+    try {
+      const sessionStr = await AsyncStorage.getItem('@invo6_session');
+      await clearSession();
+      console.log("Auth: Local session cleared");
+
+      // 2. Background notify backend
+      if (sessionStr) {
+        const session = JSON.parse(sessionStr);
+        if (session.refreshToken) {
+          apiRequest('/auth/logout', {
+            method: 'POST',
+            body: { refresh_token: session.refreshToken }
+          }).catch(err => console.log("Auth: Backend logout notification failed (ignoring)"));
+        }
+      }
+    } catch (e) {
+      console.log("Auth: Logout cleanup completed with background error:", e.message);
+    }
   };
 
   // ── Refresh user (e.g. after profile update) ─────────────
-  // Replace with: GET /api/auth/me
   const refreshUser = async () => {
-    const stored = await AsyncStorage.getItem('@invo6_user');
-    if (stored) setUser(JSON.parse(stored));
+    try {
+      const data = await apiRequest('/auth/me');
+      const sessionUser = {
+        id: data.user.id,
+        fullName: data.user.name,
+        email: data.user.email,
+        phone: data.user.phone,
+        avatar: data.user.initials,
+        storeId: data.user.storeId,
+        verified: data.user.verified,
+      };
+      setUser(sessionUser);
+      await AsyncStorage.setItem('@invo6_user', JSON.stringify(sessionUser));
+    } catch (e) {
+      console.error("Refresh user failed", e);
+    }
   };
 
   return (
@@ -91,3 +131,4 @@ export function AuthProvider({ children }) {
 }
 
 export const useAuth = () => useContext(AuthContext);
+

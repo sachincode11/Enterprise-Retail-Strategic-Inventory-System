@@ -7,6 +7,8 @@ from .schemas import (
     TokenResponse,
     RefreshRequest,
     StaffCreate,
+    PasswordChangeRequest,
+    ForgotPasswordRequest,
 
     # User
     UserOut,
@@ -77,6 +79,13 @@ from .schemas import (
     # Generic
     MessageResponse,
     PaginatedResponse,
+
+    # Analytics
+    SpendingTrend,
+    CategorySpend,
+    TopStore,
+    CustomerAnalyticsOut,
+    CustomerSummaryOut,
 )
 
 __all__ = [
@@ -88,6 +97,8 @@ __all__ = [
     "TokenResponse",
     "RefreshRequest",
     "StaffCreate",
+    "PasswordChangeRequest",
+    "ForgotPasswordRequest",
 
     # User
     "UserOut",
@@ -158,4 +169,11 @@ __all__ = [
     # Generic
     "MessageResponse",
     "PaginatedResponse",
+
+    # Analytics
+    "SpendingTrend",
+    "CategorySpend",
+    "TopStore",
+    "CustomerAnalyticsOut",
+    "CustomerSummaryOut",
 ]

@@ -133,12 +133,16 @@ export function Avatar({ initials, size = 44 }) {
 // ─── Status Badge ──────────────────────────────────────────
 export function StatusBadge({ status }) {
   const colors = {
-    Paid:     { bg: '#f0fdf4', text: '#166534', border: '#bbf7d0' },
-    Refunded: { bg: '#fef3c7', text: '#92400e', border: '#fde68a' },
-    Pending:  { bg: '#eff6ff', text: '#1e40af', border: '#bfdbfe' },
-    Active:   { bg: '#f0fdf4', text: '#166534', border: '#bbf7d0' },
-    New:      { bg: '#eff6ff', text: '#1e40af', border: '#bfdbfe' },
-    Soon:     { bg: '#f5f3ff', text: '#5b21b6', border: '#ddd6fe' },
+    Paid:      { bg: '#f0fdf4', text: '#166534', border: '#bbf7d0' },
+    completed: { bg: '#f0fdf4', text: '#166534', border: '#bbf7d0' },
+    Refunded:  { bg: '#fef3c7', text: '#92400e', border: '#fde68a' },
+    refunded:  { bg: '#fef3c7', text: '#92400e', border: '#fde68a' },
+    Pending:   { bg: '#eff6ff', text: '#1e40af', border: '#bfdbfe' },
+    pending:   { bg: '#eff6ff', text: '#1e40af', border: '#bfdbfe' },
+    cancelled: { bg: '#fef2f2', text: '#991b1b', border: '#fecaca' },
+    Active:    { bg: '#f0fdf4', text: '#166534', border: '#bbf7d0' },
+    New:       { bg: '#eff6ff', text: '#1e40af', border: '#bfdbfe' },
+    Soon:      { bg: '#f5f3ff', text: '#5b21b6', border: '#ddd6fe' },
   };
   const c = colors[status] || { bg: '#f1f5f9', text: '#64748b', border: '#e2e8f0' };
   return (

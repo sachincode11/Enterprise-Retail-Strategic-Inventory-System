@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../hooks/useAuth';
@@ -8,6 +8,8 @@ import { useTheme } from '../hooks/useTheme';
 import { Avatar, Card, ChatFAB } from '../components/UI';
 import { Typography, Spacing, Radius, Shadow } from '../constants/theme';
 import AppHeader from '../components/AppHeader';
+import { transactionService } from '../services';
+import { useFocusEffect } from '@react-navigation/native';
 const MenuItem = ({ iconChar, label, onPress, danger, Colors }) => (
   <TouchableOpacity
     style={[styles.menuItem]}
@@ -25,25 +27,64 @@ const MenuItem = ({ iconChar, label, onPress, danger, Colors }) => (
 );
 
 export default function ProfileScreen({ navigation }) {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const { Colors } = useTheme();
+  const [summary, setSummary] = React.useState(null);
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  const loadData = async () => {
+    try {
+      setRefreshing(true);
+      const [sum, _] = await Promise.all([
+        transactionService.getMonthSummary(),
+        refreshUser ? refreshUser() : Promise.resolve()
+      ]);
+      setSummary(sum);
+    } catch (e) {
+      console.error("Profile load error:", e);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadData();
+    }, [])
+  );
 
   const handleLogout = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: logout },
-    ]);
+    const performLogout = () => logout();
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Are you sure you want to sign out?')) {
+        performLogout();
+      }
+    } else {
+      Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign Out', style: 'destructive', onPress: performLogout },
+      ]);
+    }
   };
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: Colors.bgBase }]} edges={['top']}>
+      <AppHeader />
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={loadData}
+            colors={[Colors.accentPrimary]}
+            tintColor={Colors.accentPrimary}
+          />
+        }
       >
         {/* Avatar & Info */}
         <View style={styles.avatarSection}>
-          <AppHeader />
           <View style={[styles.avatarRing, { borderColor: Colors.border }]}>
             <Avatar initials={user?.avatar || 'U'} size={72} />
           </View>
@@ -59,22 +100,31 @@ export default function ProfileScreen({ navigation }) {
 
         {/* Stats */}
         <View style={[styles.statsRow, { backgroundColor: Colors.bgCard, ...Shadow.sm }]}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: Colors.textPrimary }]}>{user?.orders ?? 24}</Text>
+          <TouchableOpacity 
+            style={styles.statItem} 
+            onPress={() => navigation.navigate('History')}
+          >
+            <Text style={[styles.statValue, { color: Colors.textPrimary }]}>{summary?.txnCount ?? 0}</Text>
             <Text style={[styles.statLabel, { color: Colors.textMuted }]}>ORDERS</Text>
-          </View>
+          </TouchableOpacity>
           <View style={[styles.statDivider, { backgroundColor: Colors.border }]} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: Colors.textPrimary }]}>
-              {(user?.totalSpent ?? 4820).toLocaleString()}
+          <TouchableOpacity 
+            style={styles.statItem}
+            onPress={() => navigation.navigate('Analytics')}
+          >
+            <Text style={[styles.statValue, { color: Colors.accentPrimary }]}>
+              {summary?.loyaltyPoints ?? 0}
             </Text>
-            <Text style={[styles.statLabel, { color: Colors.textMuted }]}>NPR SPENT</Text>
-          </View>
+            <Text style={[styles.statLabel, { color: Colors.textMuted }]}>POINTS</Text>
+          </TouchableOpacity>
           <View style={[styles.statDivider, { backgroundColor: Colors.border }]} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: Colors.success }]}>{user?.totalSaved ?? 340}</Text>
+          <TouchableOpacity 
+            style={styles.statItem}
+            onPress={() => navigation.navigate('Analytics')}
+          >
+            <Text style={[styles.statValue, { color: Colors.success }]}>{summary?.saved ?? 0}</Text>
             <Text style={[styles.statLabel, { color: Colors.textMuted }]}>NPR SAVED</Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Account Section */}

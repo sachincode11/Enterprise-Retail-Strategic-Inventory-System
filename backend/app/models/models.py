@@ -46,6 +46,7 @@ class User(Base):
     last_name     = Column(String(80),  nullable=True)
     phone         = Column(String(20),  nullable=True)
     is_active     = Column(Boolean,     nullable=False, default=True)
+    is_verified   = Column(Boolean,     nullable=False, default=False)
     created_at    = Column(DateTime,    nullable=False, server_default=func.now())
     updated_at    = Column(DateTime,    nullable=True,  onupdate=func.now())
 
@@ -261,6 +262,10 @@ class TransactionItem(Base):
     transaction  = relationship("Transaction", back_populates="items")
     product      = relationship("Product",     back_populates="transaction_items")
     discount_ref = relationship("Discount",    back_populates="transaction_items", foreign_keys=[discount_id])
+
+    @property
+    def product_name(self):
+        return self.product.product_name if self.product else "Unknown Product"
 
 
 # Transaction Discount  (session-level discounts) 13

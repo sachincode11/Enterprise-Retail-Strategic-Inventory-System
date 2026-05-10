@@ -19,7 +19,7 @@ from app.models import OTPToken, RefreshToken, Role, User, UserRole
 from app.schemas import (
     LoginRequest, MessageResponse, OTPVerifyRequest,
     RefreshRequest, RegisterRequest, TokenResponse, UserOut,
-    UserProfileUpdate, ResendOTPRequest
+    UserProfileUpdate, ResendOTPRequest, PasswordChangeRequest, ForgotPasswordRequest
 )
 
 from app.utils import  _get_role, _user_roles, _send_otp_email
@@ -64,7 +64,9 @@ def _session_user_payload(db: Session, user: User) -> dict:
         "initials": initials,
         "store": f"STORE-{store_id:03d}",
         "storeId": store_id,
+        "verified": user.is_verified,
     }
+
 
 # endpoints
 @router.post("/register", response_model=UserOut, status_code=201)
@@ -249,6 +251,15 @@ def update_my_profile(
     db.refresh(current_user)
     return {"user": _session_user_payload(db, current_user)}
 
+
+@router.get("/me")
+def get_my_profile(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Fetch the currently authenticated user's profile details."""
+    return {"user": _session_user_payload(db, current_user)}
+
 @router.post("/refresh", response_model=TokenResponse)
 def refresh_token(body: RefreshRequest, db: Session = Depends(get_db)):
     from app.core.security import decode_token
@@ -320,3 +331,38 @@ def dev_grant_role(
     ))
     db.commit()
     return {"message": f"Granted role {role.value} to user {email}."}
+
+@router.post("/change-password", response_model=MessageResponse)
+def change_password(
+    body: PasswordChangeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Change the currently authenticated user's password."""
+    if not verify_password(body.current_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Invalid current password.")
+    
+    current_user.password_hash = hash_password(body.new_password)
+    db.commit()
+    return MessageResponse(message="Password changed successfully.")
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+def forgot_password(
+    body: ForgotPasswordRequest,
+    background: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """Reset password and send a temporary one to the user's email."""
+    user = db.query(User).filter(User.email == body.email.lower(), User.is_active == True).first()
+    if not user:
+        return MessageResponse(message="If the email exists, a temporary password has been sent.")
+
+    temp_password = generate_otp()
+    user.password_hash = hash_password(temp_password)
+    db.commit()
+
+    background.add_task(_send_otp_email, user.email, temp_password, "Password Reset")
+    
+    return MessageResponse(message="A temporary password has been sent to your email.")
+

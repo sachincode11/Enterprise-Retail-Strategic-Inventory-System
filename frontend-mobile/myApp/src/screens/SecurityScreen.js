@@ -10,6 +10,7 @@ import Input from '../components/Input';
 import Button from '../components/Button';
 import { Toast } from '../components/UI';
 import { Typography, Spacing, Radius } from '../constants/theme';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function SecurityScreen({ navigation }) {
   const { user } = useAuth();
@@ -25,21 +26,28 @@ export default function SecurityScreen({ navigation }) {
   const update = (key) => (val) => setForm(f => ({ ...f, [key]: val }));
   const showToast = (msg, type = 'success') => setToast({ visible: true, message: msg, type });
 
+  const { refreshUser } = useAuth();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      refreshUser();
+    }, [])
+  );
+
   const handleSave = async () => {
     if (!form.currentPassword) return showToast('Enter your current password.', 'error');
     if (form.newPassword.length < 8) return showToast('New password must be at least 8 characters.', 'error');
     if (form.newPassword !== form.confirmPassword) return showToast('Passwords do not match.', 'error');
     try {
       setSaving(true);
-      // API-ready: replace with real backend call
       await userService.updatePassword(user?.id, {
         currentPassword: form.currentPassword,
         newPassword: form.newPassword,
       });
       showToast('Password updated successfully!');
       setForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (_) {
-      showToast('Failed to update password. Check your current password.', 'error');
+    } catch (err) {
+      showToast(err.message || 'Failed to update password.', 'error');
     } finally {
       setSaving(false);
     }
@@ -85,8 +93,16 @@ export default function SecurityScreen({ navigation }) {
             <Text style={[styles.accountLabel, { color: Colors.textMuted }]}>ACCOUNT</Text>
             <Text style={[styles.accountEmail, { color: Colors.textPrimary }]}>{user?.email}</Text>
           </View>
-          <View style={[styles.verifiedBadge, { backgroundColor: '#f0fdf4' }]}>
-            <Text style={styles.verifiedText}>Verified</Text>
+          <View style={[
+            styles.verifiedBadge, 
+            { backgroundColor: user?.verified ? '#f0fdf4' : '#fff7ed' }
+          ]}>
+            <Text style={[
+              styles.verifiedText, 
+              { color: user?.verified ? '#166534' : '#9a3412' }
+            ]}>
+              {user?.verified ? 'Verified' : 'Unverified'}
+            </Text>
           </View>
         </View>
 

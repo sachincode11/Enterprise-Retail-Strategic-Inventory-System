@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { offerService } from '../services';
+import { offerService, transactionService } from '../services';
 import { Card, Loader, ProgressBar, ChatFAB } from '../components/UI';
 import { useTheme } from '../hooks/useTheme';
 import { Typography, Spacing, Radius, Shadow } from '../constants/theme';
 import AppHeader from '../components/AppHeader';
+import { useFocusEffect } from '@react-navigation/native';
+
 // Loyalty points logic: 10 pts per NPR 1000; 500 pts = NPR 500 discount
 const POINTS_PER_THOUSAND = 10;
 const REDEMPTION_THRESHOLD = 500;
@@ -19,27 +21,45 @@ export default function OffersScreen({ navigation }) {
   const { Colors } = useTheme();
   const [activeTab, setActiveTab] = useState('All');
   const [offers, setOffers] = useState([]);
+  const [summary, setSummary] = useState({ loyaltyPoints: 0 });
   const [loading, setLoading] = useState(true);
 
-  // Mock loyalty state (backend-ready structure)
-  const loyaltyPoints = 340; // from user profile
+  // Derive loyalty state from summary
+  const loyaltyPoints = summary.loyaltyPoints || 0;
   const nextRedemptionAt = REDEMPTION_THRESHOLD;
   const pointsProgress = loyaltyPoints / nextRedemptionAt;
   const redeemable = loyaltyPoints >= REDEMPTION_THRESHOLD;
-  const pointsToGo = REDEMPTION_THRESHOLD - loyaltyPoints;
+  const pointsToGo = Math.max(0, REDEMPTION_THRESHOLD - loyaltyPoints);
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const data = await offerService.getOffers(activeTab === 'All' ? 'All' : activeTab);
-      // Filter: Deals tab shows non-loyalty, Loyalty tab shows loyalty-type
-      let filtered = data;
-      if (activeTab === 'Deals') filtered = data.filter(o => o.type !== 'loyalty');
-      if (activeTab === 'Loyalty') filtered = data.filter(o => o.type === 'loyalty');
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadData = async () => {
+    try {
+      setRefreshing(true);
+      const [offersData, summaryData] = await Promise.all([
+        offerService.getOffers(activeTab === 'All' ? 'All' : activeTab),
+        transactionService.getMonthSummary()
+      ]);
+      
+      let filtered = offersData;
+      if (activeTab === 'Deals') filtered = offersData.filter(o => o.type !== 'loyalty');
+      if (activeTab === 'Loyalty') filtered = offersData.filter(o => o.type === 'loyalty');
+      
       setOffers(filtered);
+      setSummary(summaryData);
+    } catch (err) {
+      console.error(err);
+    } finally {
       setLoading(false);
-    })();
-  }, [activeTab]);
+      setRefreshing(false);
+    }
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadData();
+    }, [activeTab])
+  );
 
   const featured = offers.find(o => o.featured);
   const rest = offers.filter(o => !o.featured && o.type !== 'loyalty');
@@ -100,7 +120,18 @@ export default function OffersScreen({ navigation }) {
       {loading ? (
         <View style={styles.centered}><Loader /></View>
       ) : (
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          contentContainerStyle={styles.content} 
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={loadData}
+              colors={[Colors.accentPrimary]}
+              tintColor={Colors.accentPrimary}
+            />
+          }
+        >
 
           {/* Loyalty Points Card — always visible */}
           {(activeTab === 'All' || activeTab === 'Loyalty') && (

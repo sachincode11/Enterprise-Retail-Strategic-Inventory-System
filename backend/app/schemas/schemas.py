@@ -59,6 +59,22 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def strong_password(cls, v: str) -> str:
+        if len(v) < 8 or not any(c.isdigit() for c in v):
+            raise ValueError("Password must be ≥8 chars and contain at least one digit.")
+        return v
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
 class OTPVerifyRequest(BaseModel):
     email: EmailStr
     otp_code: str
@@ -167,6 +183,13 @@ class StoreUpdate(BaseModel):
     contact_email: Optional[EmailStr] = None
     contact_phone: Optional[str] = None
     config: Optional[dict] = None
+
+
+class StoreMinimal(BaseModel):
+    store_id: int
+    store_name: str
+
+    model_config = {"from_attributes": True}
 
 
 # Category
@@ -328,6 +351,18 @@ class TransactionItemOut(BaseModel):
     unit_price_at_sale: Decimal
     discount: Decimal
     line_total: Decimal
+    product_name: Optional[str] = None  # Backward compatibility
+    product: Optional[ProductOut] = None
+
+    model_config = {"from_attributes": True}
+
+
+class PaymentOut(BaseModel):
+    payment_id: int
+    payment_method: PaymentMethod
+    amount: Decimal
+    payment_status: str
+    paid_at: Optional[datetime]
 
     model_config = {"from_attributes": True}
 
@@ -336,6 +371,7 @@ class TransactionOut(BaseModel):
     transaction_id: int
     invoice_number: str
     store_id: int
+    store: Optional[StoreMinimal] = None
     cashier_id: int
     customer_id: Optional[int]
     transaction_date: datetime
@@ -345,6 +381,7 @@ class TransactionOut(BaseModel):
     total_amount: Decimal
     status: TransactionStatus
     items: list[TransactionItemOut] = []
+    payments: list[PaymentOut] = []
 
     model_config = {"from_attributes": True}
 
@@ -506,6 +543,40 @@ class ScanOut(BaseModel):
     status: ScanStatus
 
     model_config = {"from_attributes": True}
+
+
+# Customer Analytics
+class SpendingTrend(BaseModel):
+    week: str
+    amount: float
+
+class CategorySpend(BaseModel):
+    name: str
+    amount: float
+    color: str
+
+class TopStore(BaseModel):
+    name: str
+    visits: int
+    spent: float
+
+class CustomerAnalyticsOut(BaseModel):
+    totalSpent: float
+    totalSaved: float
+    spentChange: float
+    savedChange: float
+    trend: list[SpendingTrend]
+    categories: list[CategorySpend]
+    topStore: TopStore
+
+
+class CustomerSummaryOut(BaseModel):
+    total: float
+    change: float
+    txnCount: int
+    avgSpend: float
+    saved: float
+    loyaltyPoints: int
 
 
 # Generic response wrappers

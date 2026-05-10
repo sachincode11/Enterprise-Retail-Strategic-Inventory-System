@@ -26,9 +26,27 @@ export default function NotificationsScreen({ navigation }) {
     })();
   }, []);
 
-  const markRead = (id) => {
+  const markRead = async (id) => {
+    // Optimistic UI update
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-    // API-ready: notificationService.markRead(id)
+    try {
+      await notificationService.markRead(id);
+    } catch (e) {
+      console.error("Failed to mark read:", e);
+    }
+  };
+
+  const markAllRead = async () => {
+    const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+    if (unreadIds.length === 0) return;
+
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    try {
+      // Parallelize mark read calls
+      await Promise.all(unreadIds.map(id => notificationService.markRead(id)));
+    } catch (e) {
+      console.error("Failed to mark all read:", e);
+    }
   };
 
   const renderItem = ({ item }) => (
@@ -72,7 +90,7 @@ export default function NotificationsScreen({ navigation }) {
           <Text style={[styles.backIcon, { color: Colors.textPrimary }]}>‹</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: Colors.textPrimary }]}>Notifications</Text>
-        <TouchableOpacity onPress={() => setNotifications(p => p.map(n => ({ ...n, read: true })))}>
+        <TouchableOpacity onPress={markAllRead}>
           <Text style={[styles.markAll, { color: Colors.accentPrimary }]}>Mark all</Text>
         </TouchableOpacity>
       </View>

@@ -186,6 +186,43 @@ function AppStack() {
   );
 }
 
+const linking = {
+  prefixes: ['http://localhost:8081', 'ersis://'],
+  config: {
+    screens: {
+      AuthStack: {
+        screens: {
+          Login: 'login',
+          Register: 'register',
+          OTP: 'otp',
+          PrivacyPolicy: 'privacy-policy',
+        },
+      },
+      AppStack: {
+        screens: {
+          MainTabs: {
+            path: '',
+            screens: {
+              Home: 'home',
+              History: 'history',
+              Analytics: 'analytics',
+              Deals: 'deals',
+              Profile: 'profile',
+            },
+          },
+          Receipt: 'receipt/:transactionId',
+          Chat: 'chat',
+          Notifications: 'notifications',
+          PersonalInfo: 'profile/info',
+          Security: 'profile/security',
+          Preferences: 'profile/preferences',
+          PrivacyPolicy: 'privacy',
+        },
+      },
+    },
+  },
+};
+
 // ─── Root Navigator ───────────────────
 export default function RootNavigator() {
   const { user, loading } = useAuth();
@@ -207,8 +244,16 @@ export default function RootNavigator() {
   }
 
   return (
-    <NavigationContainer>
-      {user ? <AppStack /> : <AuthStack />}
+    <NavigationContainer linking={linking}>
+      {user ? (
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="AppStack" component={AppStack} />
+        </Stack.Navigator>
+      ) : (
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="AuthStack" component={AuthStack} />
+        </Stack.Navigator>
+      )}
     </NavigationContainer>
   );
 }

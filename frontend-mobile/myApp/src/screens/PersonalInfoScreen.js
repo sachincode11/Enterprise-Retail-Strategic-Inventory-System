@@ -23,6 +23,24 @@ export default function PersonalInfoScreen({ navigation }) {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
+  // Load latest data on mount
+  React.useEffect(() => {
+    if (refreshUser) {
+      refreshUser();
+    }
+  }, []);
+
+  // Sync form with user data when it changes (e.g. after refresh or login)
+  React.useEffect(() => {
+    if (user) {
+      setForm({
+        fullName: user.fullName || '',
+        email: user.email || '',
+        phone: user.phone || '',
+      });
+    }
+  }, [user]);
+
   const update = (key) => (val) => setForm(f => ({ ...f, [key]: val }));
   const showToast = (message, type = 'success') => setToast({ visible: true, message, type });
 

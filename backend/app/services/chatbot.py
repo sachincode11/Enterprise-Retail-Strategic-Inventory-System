@@ -3,15 +3,11 @@ Chatbot Service — RAG-based AI Assistant
 Uses FAISS vector store + sentence embeddings + LLM API
 """
 
-import json
 import logging
 import os
 from datetime import datetime, timezone
 from typing import Optional
 
-import faiss
-import numpy as np
-from sentence_transformers import SentenceTransformer
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -37,28 +33,32 @@ class EmbeddingService:
     """Singleton for embedding generation."""
     
     _instance: Optional["EmbeddingService"] = None
-    _model: Optional[SentenceTransformer] = None
+    _model = None
     
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
     
-    def get_model(self) -> SentenceTransformer:
+    def get_model(self):
+        """Lazy load the sentence transformer model."""
         if self._model is None:
+            from sentence_transformers import SentenceTransformer
             model_name = settings.EMBEDDING_MODEL
             logger.info(f"Loading embedding model: {model_name}")
             self._model = SentenceTransformer(model_name)
         return self._model
     
-    def embed(self, text: str) -> np.ndarray:
+    def embed(self, text: str):
         """Generate embedding for a single text."""
+        import numpy as np
         model = self.get_model()
         embedding = model.encode(text, convert_to_numpy=True)
         return embedding.astype("float32")
-    
-    def embed_batch(self, texts: list[str]) -> np.ndarray:
+
+    def embed_batch(self, texts: list[str]):
         """Generate embeddings for multiple texts."""
+        import numpy as np
         model = self.get_model()
         embeddings = model.encode(texts, convert_to_numpy=True, show_progress_bar=False)
         return embeddings.astype("float32")
@@ -82,8 +82,10 @@ class FAISSVectorStore:
     def _get_mapping_path(self, store_id: int) -> str:
         return os.path.join(FAISS_INDEX_DIR, f"store_{store_id}_mapping.json")
     
-    def load_or_create_index(self, store_id: int, dimension: int = 384) -> faiss.Index:
+    def load_or_create_index(self, store_id: int, dimension: int = 384):
         """Load existing index or create new one."""
+        import faiss
+        import json
         if store_id in self._indexes:
             return self._indexes[store_id]
         
@@ -112,15 +114,17 @@ class FAISSVectorStore:
         mapping_path = self._get_mapping_path(store_id)
         
         faiss.write_index(self._indexes[store_id], index_path)
+        import json
         with open(mapping_path, "w") as f:
             json.dump(self._chunk_mappings[store_id], f)
         
         logger.info(f"Saved FAISS index for store {store_id}")
     
     def add_chunks(
-        self, store_id: int, chunk_ids: list[int], embeddings: np.ndarray
+        self, store_id: int, chunk_ids: list[int], embeddings
     ):
         """Add new chunks to the index."""
+        import faiss
         index = self.load_or_create_index(store_id, dimension=embeddings.shape[1])
         
         # Normalize for cosine similarity
@@ -133,9 +137,10 @@ class FAISSVectorStore:
         logger.info(f"Added {len(chunk_ids)} chunks to store {store_id} index")
     
     def search(
-        self, store_id: int, query_embedding: np.ndarray, top_k: int = TOP_K_RETRIEVAL
+        self, store_id: int, query_embedding, top_k: int = TOP_K_RETRIEVAL
     ) -> list[tuple[int, float]]:
         """Search for most similar chunks. Returns [(chunk_id, score), ...]"""
+        import faiss
         index = self.load_or_create_index(store_id)
         
         if index.ntotal == 0:

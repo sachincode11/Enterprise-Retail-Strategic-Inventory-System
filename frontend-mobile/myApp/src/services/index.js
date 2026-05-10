@@ -1,137 +1,224 @@
-// ─── Service layer — swap mock with real API calls ─────────
-// Replace BASE_URL and fetch calls when backend is ready.
+// ─── Service layer — integrated with real backend API ─────────
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiRequest } from './apiClient';
 
-import {
-  mockTransactions,
-  mockAnalytics,
-  mockOffers,
-  mockNotifications,
-  mockMonthSummary,
-} from '../mock/data';
-
-const delay = (ms = 300) => new Promise(r => setTimeout(r, ms));
+// Helper to get storeId (fallback to 1)
+const getStoreId = async () => {
+  try {
+    const sessionStr = await AsyncStorage.getItem('@invo6_session');
+    if (sessionStr) {
+      const session = JSON.parse(sessionStr);
+      return session.user?.storeId || 1;
+    }
+  } catch (e) {}
+  return 1;
+};
 
 // ─── Transaction Service ───────────────────────────────────
 export const transactionService = {
   async getRecentTransactions(limit = 5) {
-    await delay();
-    // API: GET /api/transactions?limit=N
-    return mockTransactions.slice(0, limit).map(t => ({
-      id: t.id,
-      store: t.store,
-      dateLabel: t.dateLabel,
-      total: t.total,
-      status: t.status,
-    }));
+    const data = await apiRequest(`/customer/transactions?size=${limit}`);
+    return data.map(t => {
+      const d = new Date(t.transaction_date);
+      return {
+        id: t.transaction_id,
+        store: t.store?.store_name || `Store ${t.store_id}`,
+        dateLabel: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        total: t.total_amount,
+        status: t.status,
+      };
+    });
   },
 
   async getTransactions({ period = 'all', search = '' } = {}) {
-    await delay();
-    // API: GET /api/transactions?period=&search=
-    let data = [...mockTransactions];
+    const data = await apiRequest(`/customer/transactions?size=50`);
+    
+    let filtered = data;
     if (search) {
       const q = search.toLowerCase();
-      data = data.filter(t =>
-        t.store.toLowerCase().includes(q) ||
-        t.txnNo.toLowerCase().includes(q)
+      filtered = filtered.filter(t => 
+        (t.invoice_number && t.invoice_number.toLowerCase().includes(q)) ||
+        (t.store?.store_name && t.store.store_name.toLowerCase().includes(q))
       );
     }
-    if (period === 'week') {
-      data = data.filter(t => t.date.includes('May 1'));
+    // Simple period filtering on frontend
+    const now = new Date();
+    if (period === 'refunds') {
+      filtered = filtered.filter(t => t.status === 'refunded');
+    } else if (period === 'week') {
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      filtered = filtered.filter(t => new Date(t.transaction_date) >= weekAgo);
     } else if (period === 'month') {
-      data = data.filter(t => t.month === 'May 2025');
-    } else if (period === 'refunds') {
-      data = data.filter(t => t.status === 'Refunded');
+      const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+      filtered = filtered.filter(t => new Date(t.transaction_date) >= monthAgo);
     }
-    return data;
+
+    return filtered.map(t => {
+      const d = new Date(t.transaction_date);
+      return {
+        id: t.transaction_id,
+        store: t.store?.store_name || `Store ${t.store_id}`,
+        txnNo: t.invoice_number,
+        date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        time: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        month: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        total: t.total_amount,
+        status: t.status,
+        items: t.items?.length || 0,
+        paymentMethod: t.payments?.[0]?.payment_method || 'Cash',
+      };
+    });
   },
 
   async getTransactionById(id) {
-    await delay();
-    // API: GET /api/transactions/:id
-    return mockTransactions.find(t => t.id === id) || mockTransactions[0];
+    const t = await apiRequest(`/customer/transactions/${id}`);
+    const d = new Date(t.transaction_date);
+    
+    return {
+      id: t.transaction_id,
+      store: t.store?.store_name || `Store ${t.store_id}`,
+      txnNo: t.invoice_number,
+      date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      time: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      total: t.total_amount,
+      subtotal: t.subtotal,
+      discount: t.discount_amount,
+      tax: t.tax_amount,
+      taxRate: 13, // Standard VAT
+      status: t.status,
+      paymentMethod: t.payments?.[0]?.payment_method || 'Cash',
+      lineItems: (t.items || []).map(item => ({
+        name: item.product?.product_name || `Product ${item.product_id}`,
+        qty: item.quantity,
+        unitPrice: item.unit_price_at_sale,
+        price: item.line_total
+      }))
+    };
   },
 
   async getMonthSummary() {
-    await delay();
-    // API: GET /api/analytics/summary
-    return mockMonthSummary;
+    try {
+      return await apiRequest(`/customer/summary`);
+    } catch (e) {
+      console.error("Error fetching summary:", e);
+      return { total: 0, txnCount: 0, avgSpend: 0, saved: 0, change: 0, loyaltyPoints: 0 };
+    }
   },
 };
 
 // ─── Analytics Service ─────────────────────────────────────
 export const analyticsService = {
   async getAnalytics(period = 'monthly') {
-    await delay();
-    // API: GET /api/analytics?period=
-    return mockAnalytics[period] || mockAnalytics.monthly;
+    try {
+      return await apiRequest(`/customer/analytics?period=${period}`);
+    } catch (e) {
+      console.error("Analytics Error:", e);
+      return null;
+    }
   },
 };
 
 // ─── Offer / Deal Service ──────────────────────────────────
 export const offerService = {
   async getOffers(filter = 'All') {
-    await delay();
-    // API: GET /api/offers?filter=
-    return mockOffers;
+    const storeId = await getStoreId();
+    const data = await apiRequest(`/stores/${storeId}/discounts`);
+    return data.map(d => ({
+      id: d.discount_id,
+      title: d.discount_name,
+      description: `${d.discount_type === 'percentage' ? d.discount_value + '%' : 'NPR ' + d.discount_value} off on ${d.applies_to}`,
+      type: d.applies_to === 'loyalty' ? 'loyalty' : 'cashback', // Simplified mapping
+      featured: d.discount_value > 20 || d.discount_type === 'fixed_amount',
+      status: d.is_active ? 'Active' : 'Expired',
+      autoApplied: true
+    }));
   },
 
   async getFeaturedOffer() {
-    await delay();
-    // API: GET /api/offers/featured
-    return mockOffers.find(o => o.featured) || null;
+    const offers = await this.getOffers();
+    return offers.find(o => o.featured) || offers[0] || null;
   },
 };
 
 // ─── Notification Service ──────────────────────────────────
 export const notificationService = {
   async getNotifications() {
-    await delay();
-    // API: GET /api/notifications
-    return mockNotifications;
+    const data = await apiRequest('/notifications');
+    const MAP_TYPE = {
+      transaction_receipt: 'transaction',
+      refund_processed: 'transaction',
+      low_stock_alert: 'system',
+      system_alert: 'system',
+      otp: 'system'
+    };
+
+    return data.map(n => {
+      const d = new Date(n.created_at);
+      const isToday = d.toLocaleDateString() === new Date().toLocaleDateString();
+      
+      return {
+        id: n.notification_id,
+        title: n.subject || 'Alert',
+        body: n.body,
+        type: MAP_TYPE[n.notification_type] || 'system',
+        read: n.status === 'read' || !!n.read_at,
+        timeLabel: isToday
+          ? d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+          : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      };
+    });
   },
 
   async markRead(id) {
-    await delay(100);
-    // API: PATCH /api/notifications/:id/read
-    return { success: true };
+    return await apiRequest(`/notifications/${id}/read`, { method: 'PATCH' });
   },
 };
 
 // ─── User Service ──────────────────────────────────────────
 export const userService = {
   async updateProfile(userId, data) {
-    await delay();
-    // API: PATCH /api/users/:id { fullName, email, phone }
-    return { success: true, ...data };
+    return await apiRequest('/auth/me', {
+      method: 'PATCH',
+      body: {
+        first_name: data.fullName?.split(' ')[0],
+        last_name: data.fullName?.split(' ').slice(1).join(' '),
+        email: data.email,
+        phone: data.phone,
+      }
+    });
   },
 
   async updatePassword(userId, { currentPassword, newPassword }) {
-    await delay();
-    // API: POST /api/users/:id/change-password
-    return { success: true };
+    return await apiRequest('/auth/change-password', {
+      method: 'POST',
+      body: { 
+        current_password: currentPassword, 
+        new_password: newPassword 
+      }
+    });
+  },
+
+  async forgotPassword(email) {
+    return await apiRequest('/auth/forgot-password', {
+      method: 'POST',
+      body: { email }
+    });
   },
 };
 
 // ─── Chat Service ──────────────────────────────────────────
 export const chatService = {
   async sendMessage(message, history = []) {
-    await delay(800);
-    // API: POST /api/chat { message, history }
-    // ── Mock responses for demo ──────────────────────────
-    const msg = message.toLowerCase();
-    if (msg.includes('point') || msg.includes('loyalt')) {
-      return '**Your loyalty balance is 340 points.**\n\nYou need 160 more points to unlock a NPR 500 discount. You earn 10 points for every NPR 1,000 spent at partner stores.';
-    }
-    if (msg.includes('recent') || msg.includes('purchase') || msg.includes('histor')) {
-      return "**Your most recent purchases:**\n\n· NPR 1,850 at Bhatbhateni Supermarket (May 1)\n· NPR 920 at Big Mart (Apr 30)\n· NPR 2,150 at Salesways (Apr 28)\n\nWould you like more details on any transaction?";
-    }
-    if (msg.includes('deal') || msg.includes('offer') || msg.includes('discount')) {
-      return '**Active deals right now:**\n\n· 10% off groceries this weekend\n· NPR 50 cashback via Esewa (NPR 500+)\n· Buy 2 Get 1 on beverages at City Mart\n\nVisit the Deals tab to see all available offers.';
-    }
-    if (msg.includes('hello') || msg.includes('hi') || msg.includes('hey')) {
-      return 'Hello! How can I assist you today? You can ask me about your purchases, loyalty points, or available deals.';
-    }
-    return "I can help with your purchase history, loyalty points, and available deals. Could you rephrase your question or try one of the suggestions above?";
+    const storeId = await getStoreId();
+    const response = await apiRequest('/chatbot/chat', {
+      method: 'POST',
+      body: { 
+        message, 
+        store_id: storeId,
+        history // Note: Backend might not support history yet, but passing for compatibility
+      }
+    });
+    return response.response;
   },
 };
+

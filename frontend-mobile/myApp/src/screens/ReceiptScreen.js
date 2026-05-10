@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system';
@@ -42,11 +42,28 @@ const buildReceiptText = (txn) => {
 const downloadReceipt = async (txn) => {
   try {
     const content = buildReceiptText(txn);
-    const fileName = `receipt_${txn.txnNo}_${Date.now()}.txt`;
+    const fileName = `receipt_${txn.txnNo || txn.id}.txt`;
+
+    // Web Download Logic
+    if (Platform.OS === 'web') {
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      return;
+    }
+
+    // Native Download/Share Logic
     const fileUri = `${FileSystem.documentDirectory}${fileName}`;
     await FileSystem.writeAsStringAsync(fileUri, content, {
       encoding: FileSystem.EncodingType.UTF8,
     });
+    
     const canShare = await Sharing.isAvailableAsync();
     if (canShare) {
       await Sharing.shareAsync(fileUri, {
@@ -56,7 +73,8 @@ const downloadReceipt = async (txn) => {
     } else {
       Alert.alert('Saved', `Receipt saved to: ${fileUri}`);
     }
-  } catch (_) {
+  } catch (err) {
+    console.error("Download Error:", err);
     Alert.alert('Error', 'Could not export receipt. Please try again.');
   }
 };

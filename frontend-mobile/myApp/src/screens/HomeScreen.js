@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Platform,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../hooks/useAuth';
@@ -125,7 +125,7 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.summaryRow}>
               <View>
                 <Text style={[styles.summaryAmount, { color: Colors.textPrimary }]}>
-                  NPR {summary.total.toLocaleString()}
+                  NPR {(summary.total || 0).toLocaleString()}
                 </Text>
                 <Text style={[styles.summaryChange, { color: Colors.textMuted }]}>
                   +{summary.change}% from last month

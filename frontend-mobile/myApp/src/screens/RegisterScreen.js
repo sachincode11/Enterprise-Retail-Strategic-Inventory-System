@@ -8,10 +8,12 @@ import Button from '../components/Button';
 import Input from '../components/Input';
 import { Toast } from '../components/UI';
 import { useTheme } from '../hooks/useTheme';
+import { useAuth } from '../hooks/useAuth';
 import { Typography, Spacing, Radius } from '../constants/theme';
 
 export default function RegisterScreen({ navigation }) {
   const { Colors } = useTheme();
+  const { register } = useAuth();
   const [form, setForm] = useState({
     fullName: '', email: '', phone: '', password: '', confirmPassword: '',
   });
@@ -55,11 +57,19 @@ export default function RegisterScreen({ navigation }) {
     }
 
     setLoading(true);
-
-    setTimeout(() => {
+    try {
+      await register({
+        fullName: form.fullName,
+        email: form.email,
+        phone: form.phone,
+        password: form.password,
+      });
+      // Navigation will be handled by AuthProvider (rendering App stack)
+    } catch (e) {
+      showToast(e.message || 'Registration failed. Try again.');
+    } finally {
       setLoading(false);
-      navigation.navigate('OTP', { formData: form });
-    }, 600);
+    }
   };
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: Colors.bgCard }]} edges={['top']}>

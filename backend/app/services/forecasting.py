@@ -7,12 +7,6 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-import numpy as np
-import pandas as pd
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_absolute_error, mean_squared_error
-from sklearn.model_selection import train_test_split
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -24,19 +18,11 @@ logger = logging.getLogger(__name__)
 # Feature Engineering
 def prepare_training_data(
     db: Session, store_id: int, product_id: Optional[int] = None
-) -> pd.DataFrame:
+):
     """
     Prepare training data from historical transactions.
-    
-    Returns DataFrame with columns:
-      - date
-      - product_id
-      - quantity_sold
-      - day_of_week (0-6)
-      - day_of_month (1-31)
-      - month (1-12)
-      - is_weekend (0 or 1)
     """
+    import pandas as pd
     # Build query for completed transactions
     query = (
         db.query(
@@ -88,13 +74,16 @@ def prepare_training_data(
 # Model Training
 
 def train_model(
-    df: pd.DataFrame, model_type: str = "random_forest"
+    df, model_type: str = "random_forest"
 ) -> tuple[object, float, float]:
     """
     Train a regression model on the prepared data.
-    
-    Returns: (trained_model, rmse, mae)
     """
+    import numpy as np
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.linear_model import LinearRegression
+    from sklearn.metrics import mean_absolute_error, mean_squared_error
+    from sklearn.model_selection import train_test_split
     if df.empty or len(df) < 10:
         raise ValueError("Insufficient data for training (need at least 10 data points)")
     
@@ -177,6 +166,8 @@ def generate_forecast(
     model, rmse, mae = train_model(df, model_type)
     
     # 3. Generate future dates
+    import pandas as pd
+    import numpy as np
     last_date = df["date"].max()
     future_dates = [last_date + timedelta(days=i + 1) for i in range(forecast_days)]
     
