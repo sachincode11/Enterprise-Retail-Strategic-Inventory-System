@@ -95,8 +95,6 @@ export default function Inventory() {
           <tbody>
             {paged.map(item => {
               const isEditing = editId === item.id;
-              const max = Math.max(item.stock, 50);
-              const pct = Math.min((item.stock / max) * 100, 100);
               return (
                 <tr key={item.id}>
                   <td className="font-medium text-sm">{item.name}</td>
@@ -111,12 +109,7 @@ export default function Inventory() {
                         <button onClick={cancelEdit} className="text-xs text-[#94a3b8] px-2 py-1">Cancel</button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold w-8">{item.stock}</span>
-                        <div className="w-20 progress-bar">
-                          <div className="progress-bar-fill" style={{ width: `${pct}%`, background: item.status === 'Out of Stock' ? '#dc2626' : item.status === 'Low Stock' ? '#d97706' : '#1e3a5f' }} />
-                        </div>
-                      </div>
+                      <span className="text-sm font-semibold">{item.stock}</span>
                     )}
                   </td>
                   <td className="text-sm" style={{ color: '#475569' }}>{item.supplier}</td>

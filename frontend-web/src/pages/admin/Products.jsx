@@ -123,15 +123,7 @@ export default function Products() {
                     <td className="text-sm">{p.category}</td>
                     <td className="text-sm font-mono font-semibold">{currencySymbol} {p.priceNum?.toLocaleString('en-IN')}</td>
                     <td>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold w-8">{p.stock}</span>
-                        <div className="w-16 progress-bar">
-                          <div className="progress-bar-fill" style={{
-                            width: `${Math.min((p.stock / 50) * 100, 100)}%`,
-                            background: p.status === 'Out of Stock' ? '#dc2626' : p.status === 'Low Stock' ? '#d97706' : '#1e3a5f',
-                          }} />
-                        </div>
-                      </div>
+                      <span className="text-sm font-semibold">{p.stock}</span>
                     </td>
                     <td className="text-sm text-[#475569]">{p.supplier}</td>
                     <td><Badge status={p.status} /></td>
