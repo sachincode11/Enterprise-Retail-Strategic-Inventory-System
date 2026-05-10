@@ -277,6 +277,23 @@ export async function logout() {
   return toApiEnvelope({ loggedOut: true }, 200, 'Success');
 }
 
+export async function changePassword(current_password, new_password) {
+  if (USE_MOCK) {
+    lsSet('invosix_admin_password', new_password);
+    return toApiEnvelope({ message: 'Password changed successfully' }, 200, 'Success');
+  }
+
+  try {
+    const payload = await apiRequest('/auth/change-password', {
+      method: 'POST',
+      body: { current_password, new_password },
+    });
+    return toApiEnvelope(payload, 200, payload.message || 'Password changed successfully');
+  } catch (error) {
+    throw normalizeServiceError(error, 'Password change failed');
+  }
+}
+
 export async function updateProfile(profile) {
   if (USE_MOCK) {
     const session = lsGet(SESSION_KEY, null);

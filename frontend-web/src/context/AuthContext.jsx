@@ -7,6 +7,7 @@ import {
   verifyOtp as verifyOtpService,
   resendOtp as resendOtpService,
   updateProfile as updateProfileService,
+  changePassword as changePasswordService,
   getSession,
   getPendingLogin,
 } from '../services/authService';
@@ -88,6 +89,20 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  const changePassword = useCallback(async (current_password, new_password) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await changePasswordService(current_password, new_password);
+      return res;
+    } catch (err) {
+      setError(err?.message || 'Password change failed');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const stayLoggedIn = useCallback(() => {
     setShowWarning(false);
   }, []);
@@ -142,7 +157,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{ 
-      user, login, logout, verifyOtp, resendOtp, updateProfile, 
+      user, login, logout, verifyOtp, resendOtp, updateProfile, changePassword,
       loading, error, setError, 
       showWarning, stayLoggedIn 
     }}>

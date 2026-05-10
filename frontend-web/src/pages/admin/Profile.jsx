@@ -29,7 +29,7 @@ function Field({ label, value, onChange, type = 'text', readOnly }) {
 }
 
 export default function Profile() {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, changePassword } = useAuth();
   const [editing, setEditing] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
@@ -86,14 +86,17 @@ export default function Profile() {
     }
   };
 
-  const handleChangePassword = () => {
-    const stored = lsGet('invosix_admin_password', 'admin123');
-    if (pwForm.current !== stored) { showToast('Current password is incorrect.'); return; }
-    if (pwForm.next.length < 6) { showToast('New password must be at least 6 characters.'); return; }
-    if (pwForm.next !== pwForm.confirm) { showToast('Passwords do not match.'); return; }
-    lsSet('invosix_admin_password', pwForm.next);
-    setPwForm({ current: '', next: '', confirm: '' });
-    showToast('Password changed successfully.');
+  const handleChangePassword = async () => {
+    if (!pwForm.current) { showToast('Current password is required.', 'error'); return; }
+    if (pwForm.next.length < 8) { showToast('New password must be at least 8 characters.', 'error'); return; }
+    if (pwForm.next !== pwForm.confirm) { showToast('Passwords do not match.', 'error'); return; }
+    try {
+      await changePassword(pwForm.current, pwForm.next);
+      setPwForm({ current: '', next: '', confirm: '' });
+      showToast('Password changed successfully.');
+    } catch (error) {
+      showToast(error?.message || 'Failed to change password.', 'error');
+    }
   };
 
   return (
