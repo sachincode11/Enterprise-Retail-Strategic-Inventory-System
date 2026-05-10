@@ -1,10 +1,9 @@
-// src/pages/cashier/Transactions.jsx — IMPROVED: live data, receipt modal, refund with PIN, export
+// src/pages/cashier/Transactions.jsx — live data, receipt modal, refund confirm, export
 import { useState } from 'react';
 import CashierLayout from '../../layouts/CashierLayout';
 import { Badge, Modal } from '../../components/common';
 import { useApp } from '../../context/AppContext';
 import { exportCSV } from '../../utils/exportData';
-import PinModal from './PinModal';
 
 function ReceiptModal({ isOpen, onClose, txn }) {
   if (!txn) return null;
@@ -41,14 +40,15 @@ function ReceiptModal({ isOpen, onClose, txn }) {
 }
 
 export default function Transactions() {
-  const { transactions, refundTransaction } = useApp();
+  const { transactions, refundTransaction, refreshTransactions } = useApp();
 
   const [search, setSearch]             = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [receiptTxn, setReceiptTxn]     = useState(null);
   const [refundTarget, setRefundTarget] = useState(null);
-  const [pinOpen, setPinOpen]           = useState(false);
+  const [confirmOpen, setConfirmOpen]   = useState(false);
   const [refunding, setRefunding]       = useState(null);
+  const [refundError, setRefundError]   = useState('');
 
   const filtered = transactions.filter(t => {
     const q = search.toLowerCase();
@@ -63,15 +63,44 @@ export default function Transactions() {
 
   const handleRefundClick = (txn) => {
     setRefundTarget(txn);
-    setPinOpen(true);
+    setConfirmOpen(true);
   };
 
   const handleRefundConfirm = async () => {
     if (!refundTarget) return;
     setRefunding(refundTarget.id);
-    await refundTransaction(refundTarget.id);
-    setRefunding(null);
-    setRefundTarget(null);
+    setRefundError('');
+    try {
+      // Use the first item from the transaction as the refund item.
+      // items_raw contains the full item objects from the backend.
+      const items = refundTarget.items_raw || [];
+      if (items.length > 0) {
+        // Refund each item in the transaction
+        for (const item of items) {
+          await refundTransaction(refundTarget.id, {
+            product_id: item.product_id,
+            quantity: item.quantity,
+            reason: 'customer_change_mind',
+            notes: 'Cashier full-transaction refund',
+          });
+        }
+      } else {
+        // Fallback: no item data available — just call with a minimal payload
+        // This triggers the mock path which simply sets status to Refunded
+        await refundTransaction(refundTarget.id, {
+          product_id: null,
+          quantity: 1,
+          reason: 'other',
+          notes: 'Cashier refund',
+        });
+      }
+      setConfirmOpen(false);
+      setRefundTarget(null);
+    } catch (err) {
+      setRefundError(err.message || 'Refund failed. Please try again.');
+    } finally {
+      setRefunding(null);
+    }
   };
 
   const handleExport = () => {
@@ -174,17 +203,36 @@ export default function Transactions() {
       {/* Receipt modal */}
       <ReceiptModal isOpen={!!receiptTxn} onClose={() => setReceiptTxn(null)} txn={receiptTxn} />
 
-      {/* PIN modal for refund */}
-      <PinModal
-        isOpen={pinOpen}
-        onClose={() => { setPinOpen(false); setRefundTarget(null); }}
-        title="Confirm Refund"
-        subtitle={`Enter your PIN to refund ${refundTarget?.amount || ''} for ${refundTarget?.customer || ''}`}
-        onSuccess={async () => {
-          setPinOpen(false);
-          await handleRefundConfirm();
-        }}
-      />
+      {/* Refund confirmation modal */}
+      <Modal isOpen={confirmOpen} onClose={() => { if (!refunding) { setConfirmOpen(false); setRefundTarget(null); setRefundError(''); } }} title="Confirm Refund">
+        <div className="space-y-4">
+          <p className="text-sm text-[#475569]">
+            Are you sure you want to refund <span className="font-semibold text-[#dc2626]">{refundTarget?.amount || ''}</span> for <span className="font-semibold text-[#0f172a]">{refundTarget?.customer || ''}</span>?
+          </p>
+          <p className="text-xs text-[#94a3b8]">This action cannot be undone.</p>
+          
+          {refundError && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-xs font-medium">
+              {refundError}
+            </div>
+          )}
+
+          <div className="flex gap-2 justify-end pt-2">
+            <button 
+              onClick={() => { setConfirmOpen(false); setRefundTarget(null); setRefundError(''); }}
+              disabled={!!refunding}
+              className="px-4 py-2 text-sm border border-[#e2e8f0] rounded-lg text-[#475569] hover:bg-[#f8fafc] transition-colors disabled:opacity-50">
+              Cancel
+            </button>
+            <button
+              onClick={handleRefundConfirm}
+              disabled={!!refunding}
+              className="px-4 py-2 text-sm bg-[#dc2626] text-white rounded-lg font-semibold hover:bg-[#b91c1c] transition-colors flex items-center gap-2 disabled:opacity-50">
+              {refunding ? 'Processing...' : 'Confirm Refund'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </CashierLayout>
   );
 }

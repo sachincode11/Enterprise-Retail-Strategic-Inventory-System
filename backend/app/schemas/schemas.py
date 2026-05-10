@@ -306,9 +306,11 @@ class DiscountOut(BaseModel):
     discount_type: DiscountType
     discount_value: Decimal
     applies_to: DiscountAppliesTo
-    min_purchase_amount: Optional[Decimal]
-    valid_from: Optional[date]
-    valid_until: Optional[date]
+    product_id: Optional[int] = None
+    category_id: Optional[int] = None
+    min_purchase_amount: Optional[Decimal] = None
+    valid_from: Optional[date] = None
+    valid_until: Optional[date] = None
     is_active: bool
 
     model_config = {"from_attributes": True}
@@ -332,6 +334,7 @@ class TransactionItemIn(BaseModel):
     product_id: int
     quantity: int
     discount_id: Optional[int] = None
+    line_discount: Optional[Decimal] = 0.0
 
 
 class TransactionCreate(BaseModel):
@@ -342,6 +345,7 @@ class TransactionCreate(BaseModel):
     payment_method: PaymentMethod
     discount_ids: list[int] = []             # session-level discounts
     manual_discount_percent: Optional[float] = 0.0
+    manual_discount_amount: Optional[Decimal] = 0.0
 
 
 class TransactionItemOut(BaseModel):

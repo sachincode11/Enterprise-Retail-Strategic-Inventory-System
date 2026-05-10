@@ -103,9 +103,12 @@ export async function addTransaction(txn) {
         payment_method: mapPaymentMethod(txn.method),
         discount_ids: txn.discount_ids || [],
         manual_discount_percent: txn.manual_discount_percent || 0,
+        manual_discount_amount: txn.manual_discount_amount || 0,
         items: (txn.items || []).map(i => ({
           product_id: Number(i.product_id),
           quantity: Number(i.quantity || 1),
+          discount_id: i.discount_id || null,
+          line_discount: Number(i.line_discount || 0),
         })),
       },
     });

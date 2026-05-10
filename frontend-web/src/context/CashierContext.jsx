@@ -38,13 +38,62 @@ export function CashierProvider({ children }) {
   useEffect(() => { lsSet('invosix_pos_sel_discount', selectedDiscount); }, [selectedDiscount]);
   useEffect(() => { lsSet('invosix_pos_customer', selectedCustomer); }, [selectedCustomer]);
 
-  const addToCart = (product) => {
+  const addToCart = (product, discounts = []) => {
     const priceSource = product.priceNum ?? product.price;
     const numericPrice = Number(
       typeof priceSource === 'number'
         ? priceSource
         : String(priceSource || '').replace(/[^0-9.]/g, '')
     ) || 0;
+
+    // Check for product-level or category-level discounts
+    let lineDiscount = 0;
+    let appliedDiscountId = null;
+    
+    // Normalize discounts list
+    const relevantDiscounts = (discounts || []).filter(d => {
+      const active = d.is_active === true || d.is_active === 1 || String(d.status).toLowerCase() === 'active';
+      return active;
+    });
+    
+    const prodId = Number(product.id || product.product_id || product.productId);
+    const catId  = Number(product.category_id || product.categoryId);
+    const pName  = String(product.name || product.product_name || '').toLowerCase().trim();
+
+    // Priority: Product-specific discount > Category-specific discount
+    const productDiscount = relevantDiscounts.find(d => {
+      const dApplies = String(d.applies_to || d.appliesTo || '').toLowerCase();
+      if (dApplies !== 'product') return false;
+      
+      const dProdId  = Number(d.product_id || d.productId);
+      const dName    = String(d.name || d.discount_name || '').toLowerCase();
+      
+      // Try ID match, then fallback to name match
+      return (dProdId > 0 && dProdId === prodId) || (pName && dName.includes(pName));
+    });
+
+    const categoryDiscount = !productDiscount ? relevantDiscounts.find(d => {
+      const dApplies = String(d.applies_to || d.appliesTo || '').toLowerCase();
+      if (dApplies !== 'category') return false;
+      
+      const dCatId   = Number(d.category_id || d.categoryId);
+      return dCatId > 0 && dCatId === catId;
+    }) : null;
+
+    const activeDiscount = productDiscount || categoryDiscount;
+
+    if (activeDiscount) {
+      appliedDiscountId = activeDiscount.id || activeDiscount.discount_id;
+      const dType = String(activeDiscount.discount_type || activeDiscount.type || '').toLowerCase();
+      const rawVal = activeDiscount.discount_value || activeDiscount.value || 0;
+      const dVal  = typeof rawVal === 'string' ? parseFloat(rawVal.replace(/[^0-9.]/g, '')) : Number(rawVal);
+      
+      if (dType.includes('percent')) {
+        lineDiscount = numericPrice * (dVal / 100);
+      } else {
+        lineDiscount = dVal;
+      }
+    }
 
     setCart(prev => {
       const existing = prev.find(i => i.id === product.id);
@@ -53,13 +102,26 @@ export function CashierProvider({ children }) {
           alert(`Cannot add more "${product.name}". Max stock reached.`);
           return prev;
         }
-        return prev.map(i => i.id === product.id ? { ...i, qty: i.qty + 1, price: numericPrice } : i);
+        return prev.map(i => i.id === product.id ? { 
+          ...i, 
+          qty: i.qty + 1, 
+          price: numericPrice,
+          lineDiscount,
+          discountId: appliedDiscountId
+        } : i);
       }
       if ((product.stock ?? 0) <= 0) {
         alert(`"${product.name}" is out of stock.`);
         return prev;
       }
-      return [...prev, { ...product, price: numericPrice, qty: 1, stock: product.stock }];
+      return [...prev, { 
+        ...product, 
+        price: numericPrice, 
+        qty: 1, 
+        stock: product.stock,
+        lineDiscount,
+        discountId: appliedDiscountId
+      }];
     });
   };
 
@@ -113,24 +175,41 @@ export function CashierProvider({ children }) {
 
   const voidCart = () => clearCart();
 
-  const subtotal    = cart.reduce((sum, i) => sum + Number(i.price || 0) * i.qty, 0);
+  const subtotal    = cart.reduce((sum, i) => {
+    const lineGross = Number(i.price || 0) * i.qty;
+    const lineDisc  = Number(i.lineDiscount || 0) * i.qty;
+    return sum + (lineGross - lineDisc);
+  }, 0);
   
   let discountAmt = 0;
   if (selectedDiscount) {
-    if (selectedDiscount.discount_type === 'percentage') {
-      discountAmt = subtotal * (Number(selectedDiscount.discount_value) / 100);
+    const dType = String(selectedDiscount.discount_type || selectedDiscount.type || '').toLowerCase();
+    const rawVal = selectedDiscount.discount_value || selectedDiscount.value || 0;
+    const dVal  = typeof rawVal === 'string' ? parseFloat(rawVal.replace(/[^0-9.]/g, '')) : Number(rawVal);
+    
+    if (dType.includes('percent')) {
+      discountAmt = subtotal * (dVal / 100);
     } else {
-      discountAmt = Number(selectedDiscount.discount_value);
+      discountAmt = dVal;
     }
   } else if (discount) {
-    discountAmt = subtotal * (discount / 100);
+    if (typeof discount === 'object' && discount !== null) {
+      const dVal = Number(discount.value || 0);
+      const dType = String(discount.type || '').toLowerCase();
+      
+      if (dType.includes('percent')) {
+        discountAmt = subtotal * (dVal / 100);
+      } else {
+        discountAmt = dVal;
+      }
+    } else if (typeof discount === 'number') {
+      discountAmt = subtotal * (discount / 100);
+    }
   }
 
   const tax         = cart.reduce((sum, i) => {
-    const linePrice = Number(i.price || 0) * i.qty;
-    // If we have a global discount, we should apply it proportionally or handle it as backend does
-    // Backend: tax = line_total * tax_rate, where line_total is before session discount.
-    return sum + (linePrice * (Number(i.tax_rate || 0) / 100));
+    const lineNet = (Number(i.price || 0) - Number(i.lineDiscount || 0)) * i.qty;
+    return sum + (lineNet * (Number(i.tax_rate || 0) / 100));
   }, 0);
   const total       = subtotal + tax - discountAmt;
   const change      = tendered - total;

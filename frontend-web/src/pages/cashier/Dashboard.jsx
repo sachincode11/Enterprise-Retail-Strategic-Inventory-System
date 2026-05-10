@@ -7,16 +7,22 @@ import { exportCSV } from '../../utils/exportData';
 
 // BAR CHART (replaces line)
 function BarChart({ data }) {
-  const max = Math.max(...data.map(d => d.value));
+  const maxVal = Math.max(...data.map(d => d.value));
+  const max = maxVal || 1; // Prevent division by zero
   return (
     <div className="flex items-end gap-1.5 h-28 px-1">
       {data.map((d, i) => {
         const pct = (d.value / max) * 100;
-        const isPeak = d.value === max;
+        const isPeak = d.value === maxVal && maxVal > 0;
         return (
           <div key={i} className="flex-1 flex flex-col items-center gap-1" style={{ height: '100%', justifyContent: 'flex-end' }}>
-            <div className="w-full rounded-t transition-all duration-300"
-              style={{ height: `${pct}%`, background: isPeak ? '#1e3a5f' : '#bfdbfe', minHeight: 4 }} />
+            <div className="w-full rounded-t transition-all duration-300 relative group"
+              style={{ height: `${pct}%`, background: isPeak ? '#1e3a5f' : '#bfdbfe', minHeight: 4 }}>
+              {/* Tooltip on hover */}
+              <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#0f172a] text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-10">
+                Rs {d.value.toLocaleString()}
+              </div>
+            </div>
             <span className={`text-[9px] font-mono ${isPeak ? 'text-[#1e3a5f] font-bold' : 'text-[#94a3b8]'}`}>{d.hour}</span>
           </div>
         );
@@ -35,10 +41,14 @@ export default function Dashboard() {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kathmandu',
   }) : '...';
 
+  // Filter transactions for today only (Nepal Time)
+  const todayDateStr = isValidDate ? nowNP.toISOString().split('T')[0] : '';
+  const todayTransactions = transactions.filter(t => t.rawDate && t.rawDate.startsWith(todayDateStr));
+
   // Compute today's live stats from real transactions
-  const paidTxns   = transactions.filter(t => t.status === 'Paid');
+  const paidTxns   = todayTransactions.filter(t => t.status === 'Paid');
   const todayRev   = paidTxns.reduce((s, t) => s + (parseInt((t.amount || '').replace(/[^0-9]/g, ''), 10) || 0), 0);
-  const refundCount= transactions.filter(t => t.status === 'Refunded').length;
+  const refundCount= todayTransactions.filter(t => t.status === 'Refunded').length;
   const avgBasket  = paidTxns.length > 0 ? Math.round(todayRev / paidTxns.length) : 0;
 
   const lowStockAlerts = products.filter(p => p.status === 'Low Stock' || p.status === 'Out of Stock').slice(0, 5);
@@ -46,15 +56,16 @@ export default function Dashboard() {
 
   // Compute top products from sold quantities in transactions
   const productSaleMap = {};
-  transactions.forEach(t => {
-    if (t.itemDetails) {
-      t.itemDetails.forEach(item => {
-        productSaleMap[item.id] = (productSaleMap[item.id] || 0) + (item.qty || 1);
+  todayTransactions.forEach(t => {
+    if (t.items_raw) {
+      t.items_raw.forEach(item => {
+        productSaleMap[item.product_id] = (productSaleMap[item.product_id] || 0) + (item.quantity || 1);
       });
     }
   });
   const topProducts = products
     .map(p => ({ ...p, soldUnits: productSaleMap[p.id] || 0 }))
+    .filter(p => p.soldUnits > 0)
     .sort((a, b) => b.soldUnits - a.soldUnits)
     .slice(0, 4)
     .map(p => ({
@@ -63,17 +74,33 @@ export default function Dashboard() {
       revenue: `Rs ${(p.soldUnits * (p.priceNum || 0)).toLocaleString('en-IN')}`,
     }));
 
-  // Build hourly bar data from transactions (mock hour distribution for now)
-  const hourlyData = [
-    { hour: '9',  value: 4200  },
-    { hour: '10', value: 6100  },
-    { hour: '11', value: 7200  },
-    { hour: '12', value: 12400 },
-    { hour: '13', value: 9800  },
-    { hour: '14', value: 8600  },
-    { hour: '15', value: 7900  },
-    { hour: '16', value: 6800  },
-  ];
+  // Build hourly bar data from transactions
+  const hourlySlots = {};
+  // Initialize slots 8 AM to 8 PM
+  for (let h = 8; h <= 20; h++) hourlySlots[h] = 0;
+
+  paidTxns.forEach(t => {
+    if (!t.rawDate) return;
+    const d = new Date(t.rawDate);
+    const hour = d.getHours();
+    if (hour >= 8 && hour <= 20) {
+      const amt = (parseInt((t.amount || '').replace(/[^0-9]/g, ''), 10) || 0);
+      hourlySlots[hour] += amt;
+    }
+  });
+
+  const hourlyData = Object.keys(hourlySlots).map(h => {
+    const hr = parseInt(h, 10);
+    const label = hr === 12 ? '12p' : hr > 12 ? `${hr-12}p` : `${hr}a`;
+    return {
+      hour: label,
+      value: hourlySlots[h]
+    };
+  });
+
+  const peakHourVal = Math.max(...hourlyData.map(d => d.value));
+  const peakHourItem = hourlyData.find(d => d.value === peakHourVal && d.value > 0);
+  const peakHourLabel = peakHourItem ? peakHourItem.hour : 'N/A';
 
   const handleExport = () => {
     const data = transactions.map(t => ({
@@ -116,7 +143,7 @@ export default function Dashboard() {
               <span className="text-xs text-[#94a3b8] font-mono">Today · Bar Chart</span>
             </div>
             <BarChart data={hourlyData} />
-            <p className="text-xs text-[#94a3b8] mt-3 font-mono">Peak: 12:00–1:00 PM · Rs 12,400</p>
+            <p className="text-xs text-[#94a3b8] mt-3 font-mono">Peak: {peakHourLabel} · Rs {peakHourVal.toLocaleString('en-IN')}</p>
           </Card>
 
           <Card className="p-5">

@@ -7,7 +7,7 @@ import { Badge } from '../../components/common';
 
 export default function Products() {
   const { addToCart, setCurrentPage } = useCashier();
-  const { products } = useApp();
+  const { products, discounts } = useApp();
 
   const [search,   setSearch]   = useState('');
   const [category, setCategory] = useState('All');
@@ -24,7 +24,7 @@ export default function Products() {
 
   const handleAdd = (product) => {
     if (product.stock === 0) return;
-    addToCart(product);
+    addToCart(product, discounts);
     setAdded(prev => ({ ...prev, [product.id]: true }));
     setTimeout(() => setAdded(prev => ({ ...prev, [product.id]: false })), 1000);
   };

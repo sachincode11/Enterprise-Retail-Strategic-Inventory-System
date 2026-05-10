@@ -112,6 +112,11 @@ export function AppProvider({ children }) {
     if (res.data) setCategories(res.data);
   }, []);
 
+  const refreshDiscounts = useCallback(async () => {
+    const res = await getDiscounts();
+    if (res.data) setDiscounts(res.data);
+  }, []);
+
   // Sync critical display settings to localStorage for utilities (format.js)
   useEffect(() => {
     if (settings) {
@@ -333,6 +338,7 @@ export function AppProvider({ children }) {
       receiveOrder: handleReceiveOrder,
       // Discounts
       discounts,
+      refreshDiscounts,
       addDiscount: handleAddDiscount,
       updateDiscount: handleUpdateDiscount,
       deleteDiscount: handleDeleteDiscount,

@@ -108,7 +108,7 @@ def create_transaction(
             )
 
         unit_price = float(product.unit_price)
-        line_discount = 0.0
+        line_discount = float(item_in.line_discount or 0.0)
         line_total = unit_price * item_in.quantity - line_discount
         tax = line_total * float(product.tax_rate) / 100
 
@@ -133,10 +133,11 @@ def create_transaction(
                 session_discount += amt
                 applied_predefined.append((disc, amt))
                 
-    # 2. Manual override (only if no predefined applied, or as addition?)
-    # Usually manual overrides are separate. Let's add it.
+    # 2. Manual override
     if body.manual_discount_percent:
         session_discount += subtotal * float(body.manual_discount_percent) / 100
+    if body.manual_discount_amount:
+        session_discount += float(body.manual_discount_amount)
 
     total = subtotal + tax_total - session_discount
 
@@ -318,7 +319,7 @@ def process_refund(
             inventory_id=inv.inventory_id,
             product_id=body.product_id,
             store_id=store_id,
-            movement_type=MovementType.refund,
+            movement_type=MovementType.return_,
             quantity_change=body.quantity_returned,
             quantity_before=before,
             quantity_after=inv.quantity_in_stock,

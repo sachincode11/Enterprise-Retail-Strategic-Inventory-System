@@ -51,6 +51,8 @@ function mapDiscountFromBackend(d) {
     valid_until: d.valid_until,
     min_purchase_amount: d.min_purchase_amount,
     is_active: d.is_active,
+    product_id: d.product_id,
+    category_id: d.category_id,
   };
 }
 
