@@ -37,6 +37,7 @@ import S4 from './S4';
 import S5 from './S5';
 import S6 from './S6';
 import S7 from './S7';
+import S8 from './S8';
 
 const pageMap = {
   dashboard: Dashboard,
@@ -67,7 +68,7 @@ const pageMap = {
   notifications: Notifications,
   'new-order': NewOrder,
   settings: S1,
-  S1, S2, S3, S4, S5, S6, S7,
+  S1, S2, S3, S4, S5, S6, S7, S8,
 };
 
 function AdminRouter() {

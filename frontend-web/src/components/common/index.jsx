@@ -269,7 +269,9 @@ export function BarChart({ data = [], height = 120 }) {
                 style={{ height: barH, background: '#1e3a5f', animationDelay: `${i * 0.05}s` }}
                 title={`${d.label || d.month}: ${d.value?.toLocaleString()}`}
               />
-              <span className="text-[9px] text-[#94a3b8] whitespace-nowrap">{d.label || d.month}</span>
+              <span className="text-[8px] text-[#94a3b8] truncate w-full text-center" title={d.label || d.month}>
+                {d.label || d.month}
+              </span>
             </div>
           );
         })}

@@ -159,16 +159,16 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-4">
-        <StatCard label="Today's Revenue" value={`${currencySymbol} ${todayRevenue.toLocaleString('en-IN')}`} progress={72} navy />
-        <StatCard label="Total Transactions" value={transactions.length} progress={45} />
-        <StatCard label="Total Products" value={products.length} progress={55} />
-        <StatCard label="Low Stock Items" value={lowStockItems.length} progress={30} />
+        <StatCard label="Today's Revenue" value={`${currencySymbol} ${todayRevenue.toLocaleString('en-IN')}`} navy />
+        <StatCard label="Total Transactions" value={transactions.length} />
+        <StatCard label="Total Products" value={products.length} />
+        <StatCard label="Low Stock Items" value={lowStockItems.length} />
       </div>
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <StatCard label="Paid Transactions" value={transactions.filter(t => t.status === 'Paid').length} progress={82} navy />
-        <StatCard label="Active Products" value={products.filter(p => p.status === 'Active').length} progress={55} />
-        <StatCard label="Staff On Shift" value={staffOnShift.length} progress={60} />
-        <StatCard label="Pending Orders" value={pendingOrders} progress={20} />
+        <StatCard label="Paid Transactions" value={transactions.filter(t => t.status === 'Paid').length} navy />
+        <StatCard label="Active Products" value={products.filter(p => p.status === 'Active').length} />
+        <StatCard label="Staff On Shift" value={staffOnShift.length} />
+        <StatCard label="Pending Orders" value={pendingOrders} />
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-4">

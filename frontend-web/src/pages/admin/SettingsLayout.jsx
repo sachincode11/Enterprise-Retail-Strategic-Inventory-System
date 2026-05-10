@@ -10,6 +10,7 @@ const settingsSections = [
   { id: 'S5', label: 'Notifications',  icon: NotifIcon },
   { id: 'S6', label: 'Security',       icon: SecIcon   },
   { id: 'S7', label: 'Integrations',   icon: IntIcon   },
+  { id: 'S8', label: 'Knowledge Base', icon: KnowIcon  },
 ];
 
 export function SettingsLayout({ activeId, children, onSave = () => {} }) {
@@ -61,3 +62,4 @@ function RoleIcon({ active })  { return <svg width="14" height="14" viewBox="0 0
 function NotifIcon({ active }) { return <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity: active ? 1 : 0.5 }}><path d="M7 1a5 5 0 00-5 5v2.5l-1 1.5h12l-1-1.5V6a5 5 0 00-5-5z"/><path d="M5.5 12a1.5 1.5 0 003 0"/></svg>; }
 function SecIcon({ active })   { return <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity: active ? 1 : 0.5 }}><path d="M7 1l5 2v4c0 3-5 6-5 6S2 10 2 7V3l5-2z"/></svg>; }
 function IntIcon({ active })   { return <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity: active ? 1 : 0.5 }}><circle cx="3" cy="7" r="2"/><circle cx="11" cy="3" r="2"/><circle cx="11" cy="11" r="2"/><path d="M5 7h2M9 3H7l-2 4M9 11H7" strokeLinecap="round"/></svg>; }
+function KnowIcon({ active })  { return <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity: active ? 1 : 0.5 }}><path d="M2 3h10v8H2V3zM2 5h10M5 8h4M5 10h2"/></svg>; }

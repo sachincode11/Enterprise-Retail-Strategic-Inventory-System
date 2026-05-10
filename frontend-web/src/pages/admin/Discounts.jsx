@@ -94,7 +94,7 @@ export default function Discounts() {
       />
       <div className="grid grid-cols-3 gap-4 mb-6">
         <StatCard label="Active Discounts"     value={activeCount} />
-        <StatCard label="Live Campaigns"       value={discounts.length} progress={80} />
+        <StatCard label="Live Campaigns"       value={discounts.length} />
         <StatCard label="Avg. Savings"         value="Rs 450" />
       </div>
 

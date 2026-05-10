@@ -90,10 +90,10 @@ export default function Products() {
           />
 
           <div className="grid grid-cols-4 gap-4 mb-5">
-            <StatCard label="Total Products" value={products.length} progress={55} />
-            <StatCard label="Active" value={products.filter(p => p.status === 'Active').length} progress={75} navy />
-            <StatCard label="Low Stock" value={products.filter(p => p.status === 'Low Stock').length} progress={25} />
-            <StatCard label="Out of Stock" value={products.filter(p => p.status === 'Out of Stock').length} progress={10} />
+            <StatCard label="Total Products" value={products.length} />
+            <StatCard label="Active" value={products.filter(p => p.status === 'Active').length} navy />
+            <StatCard label="Low Stock" value={products.filter(p => p.status === 'Low Stock').length} />
+            <StatCard label="Out of Stock" value={products.filter(p => p.status === 'Out of Stock').length} />
           </div>
 
           <div className="flex items-center gap-3 mb-4 flex-wrap">

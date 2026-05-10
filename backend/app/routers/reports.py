@@ -85,21 +85,26 @@ def get_report_dashboard(
     monthly_data = {}
     for t in paid_txns:
         m_idx = t.transaction_date.month - 1
-        m_name = months[m_idx]
-        monthly_data[m_name] = monthly_data.get(m_name, 0) + float(t.total_amount)
+        year = t.transaction_date.year
+        key = f"{months[m_idx]} {year}"
+        monthly_data[key] = monthly_data.get(key, 0) + float(t.total_amount)
         
     # We show the months within the range
     curr = start_date
-    seen_months = []
+    seen_keys = []
     while curr <= end_date:
-        m_name = months[curr.month - 1]
-        if m_name not in seen_months:
+        key = f"{months[curr.month - 1]} {curr.year}"
+        if key not in seen_keys:
             monthly_trend.append({
-                "name": m_name,
-                "uv": monthly_data.get(m_name, 0)
+                "label": key,
+                "value": monthly_data.get(key, 0)
             })
-            seen_months.append(m_name)
-        curr += timedelta(days=28) # Approximate month jump
+            seen_keys.append(key)
+        # Advance to first day of next month to ensure we hit all months
+        if curr.month == 12:
+            curr = curr.replace(year=curr.year + 1, month=1, day=1)
+        else:
+            curr = curr.replace(month=curr.month + 1, day=1)
         
     # 3. Payment Method Split
     payment_split = []

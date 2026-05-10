@@ -45,9 +45,9 @@ export default function Customers() {
         actions={<Button variant="secondary" onClick={handleExport}>↓ Export CSV</Button>}
       />
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <StatCard label="Total Registered"    value={registered.toLocaleString()} progress={70} />
+        <StatCard label="Total Registered"    value={registered.toLocaleString()} />
         <StatCard label="Guests (This Month)" value={guests.toLocaleString()} />
-        <StatCard label="Total Customers"     value={customers.length.toLocaleString()} progress={60} />
+        <StatCard label="Total Customers"     value={customers.length.toLocaleString()} />
         <StatCard label="Total Lifetime Value" value={`Rs ${totalValue.toLocaleString()}`} />
       </div>
       <div className="flex items-center gap-3 mb-4 flex-wrap">

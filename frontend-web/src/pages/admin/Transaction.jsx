@@ -112,9 +112,9 @@ export default function Transaction() {
       />
 
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <StatCard label="Total Transactions" value={(transactions || []).length} progress={100} />
-        <StatCard label="Paid"               value={(transactions || []).filter(t => t.status === 'Paid').length} progress={70} navy />
-        <StatCard label="Refunds"            value={(transactions || []).filter(t => t.status === 'Refunded').length} progress={10} />
+        <StatCard label="Total Transactions" value={(transactions || []).length} />
+        <StatCard label="Paid"               value={(transactions || []).filter(t => t.status === 'Paid').length} navy />
+        <StatCard label="Refunds"            value={(transactions || []).filter(t => t.status === 'Refunded').length} />
         <StatCard label="Total Revenue"      value={`Rs ${totalRevenue.toLocaleString('en-IN')}`} />
       </div>
 

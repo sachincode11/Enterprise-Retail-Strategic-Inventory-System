@@ -61,9 +61,9 @@ export default function Reports() {
       />
 
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <StatCard label="Total Revenue"  value={`Rs ${totalRevenue.toLocaleString('en-IN')}`} progress={80} navy />
-        <StatCard label="Transactions"   value={transactionsCount.toLocaleString()} progress={60} />
-        <StatCard label="Avg. Basket"    value={`Rs ${avgBasket.toLocaleString('en-IN')}`} progress={55} />
+        <StatCard label="Total Revenue"  value={`Rs ${totalRevenue.toLocaleString('en-IN')}`} navy />
+        <StatCard label="Transactions"   value={transactionsCount.toLocaleString()} />
+        <StatCard label="Avg. Basket"    value={`Rs ${avgBasket.toLocaleString('en-IN')}`} />
         <StatCard label="Refund Rate"    value={`${refundRate}%`} progress={parseFloat(refundRate)} />
       </div>
 

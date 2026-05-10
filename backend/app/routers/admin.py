@@ -317,8 +317,22 @@ def create_faq(store_id: str, body: FAQCreate, db: Session = Depends(get_db),
     return f
 
 
+@faq_router.patch("/{faq_id}", response_model=FAQOut)
+def update_faq(store_id: str, faq_id: int, body: FAQCreate, db: Session = Depends(get_db),
+               _: User = Depends(require_admin)):
+    f = db.query(StoreFAQ).filter(StoreFAQ.faq_id == faq_id,
+                                   StoreFAQ.store_id == store_id).first()
+    if not f:
+        raise HTTPException(404, "FAQ not found.")
+    for k, v in body.model_dump(exclude_unset=True).items():
+        setattr(f, k, v)
+    db.commit()
+    db.refresh(f)
+    return f
+
+
 @faq_router.delete("/{faq_id}", response_model=MessageResponse)
-def delete_faq(store_id: str, faq_id: str, db: Session = Depends(get_db),
+def delete_faq(store_id: str, faq_id: int, db: Session = Depends(get_db),
                _: User = Depends(require_admin)):
     f = db.query(StoreFAQ).filter(StoreFAQ.faq_id == faq_id,
                                    StoreFAQ.store_id == store_id).first()
@@ -347,6 +361,32 @@ def create_policy(store_id: str, body: PolicyCreate,
     db.commit()
     db.refresh(p)
     return p
+
+
+@policy_router.patch("/{policy_id}", response_model=PolicyOut)
+def update_policy(store_id: str, policy_id: int, body: PolicyCreate,
+                  db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    p = db.query(StorePolicy).filter(StorePolicy.policy_id == policy_id,
+                                      StorePolicy.store_id == store_id).first()
+    if not p:
+        raise HTTPException(404, "Policy not found.")
+    for k, v in body.model_dump(exclude_unset=True).items():
+        setattr(p, k, v)
+    db.commit()
+    db.refresh(p)
+    return p
+
+
+@policy_router.delete("/{policy_id}", response_model=MessageResponse)
+def delete_policy(store_id: str, policy_id: int, db: Session = Depends(get_db),
+                  _: User = Depends(require_admin)):
+    p = db.query(StorePolicy).filter(StorePolicy.policy_id == policy_id,
+                                      StorePolicy.store_id == store_id).first()
+    if not p:
+        raise HTTPException(404, "Policy not found.")
+    p.is_active = False
+    db.commit()
+    return MessageResponse(message="Policy deleted.")
 
 
 # Notifications

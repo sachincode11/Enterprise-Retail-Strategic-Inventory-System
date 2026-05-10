@@ -6,3 +6,4 @@ backend/seed_users.py
 backend/seed_transactions.py
 backend/seed_products.py
 backend/seed_ai.py
+backend/seed_knowledge_base.py

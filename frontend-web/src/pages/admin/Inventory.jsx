@@ -67,9 +67,9 @@ export default function Inventory() {
       />
       <div className="grid grid-cols-4 gap-4 mb-6">
         <StatCard label="Total SKUs"    value={products.length} />
-        <StatCard label="In Stock"      value={inStock}    progress={Math.round((inStock/Math.max(products.length,1))*100)} />
-        <StatCard label="Low Stock"     value={lowStock}   progress={Math.round((lowStock/Math.max(products.length,1))*100)} />
-        <StatCard label="Out of Stock"  value={outOfStock} progress={Math.round((outOfStock/Math.max(products.length,1))*100)} />
+        <StatCard label="In Stock"      value={inStock} />
+        <StatCard label="Low Stock"     value={lowStock} />
+        <StatCard label="Out of Stock"  value={outOfStock} />
       </div>
       <div className="flex items-center gap-3 mb-4 flex-wrap">
         <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}

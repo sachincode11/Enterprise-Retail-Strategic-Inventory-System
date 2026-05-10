@@ -39,8 +39,8 @@ export default function Staff() {
       />
       <div className="grid grid-cols-3 gap-4 mb-6">
         <StatCard label="Total Staff"       value={staff?.length ?? '—'} />
-        <StatCard label="On Shift Today"    value={staff?.filter(s => s.shift === 'On Shift').length ?? '—'} progress={44} />
-        <StatCard label="Active"            value={staff?.filter(s => s.status === 'Active').length ?? '—'} progress={80} />
+        <StatCard label="On Shift Today"    value={staff?.filter(s => s.shift === 'On Shift').length ?? '—'} />
+        <StatCard label="Active"            value={staff?.filter(s => s.status === 'Active').length ?? '—'} />
       </div>
 
       <div className="flex items-center gap-3 mb-4">

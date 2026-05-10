@@ -528,6 +528,7 @@ class PolicyOut(BaseModel):
     policy_id: int
     store_id: int
     policy_name: str
+    content: str
     access_level: PolicyAccessLevel
     is_active: bool
 

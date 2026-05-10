@@ -50,9 +50,9 @@ export default function TransactionHistory() {
       />
 
       <div className="grid grid-cols-4 gap-4 mb-5">
-        <StatCard label="Total Transactions" value={transactions.length.toLocaleString()} progress={100} />
-        <StatCard label="Paid"               value={transactions.filter(t => t.status === 'Paid').length.toLocaleString()} progress={92} navy />
-        <StatCard label="Refunded"           value={refundCount.toLocaleString()} progress={refundCount} />
+        <StatCard label="Total Transactions" value={transactions.length.toLocaleString()} />
+        <StatCard label="Paid"               value={transactions.filter(t => t.status === 'Paid').length.toLocaleString()} navy />
+        <StatCard label="Refunded"           value={refundCount.toLocaleString()} />
         <StatCard label="Total Revenue"      value={`Rs ${totalRevenue.toLocaleString('en-IN')}`} />
       </div>
 

@@ -73,9 +73,9 @@ export default function ViewCustomer() {
 
       {/* Live stats */}
       <div className="grid grid-cols-4 gap-4 mb-4">
-        <StatCard label="Total Orders"     value={customerTxns.length || c.orders} progress={60} />
-        <StatCard label="Lifetime Spend"   value={realSpend > 0 ? `Rs ${realSpend.toLocaleString('en-IN')}` : c.value} progress={70} navy />
-        <StatCard label="Refunds"          value={customerTxns.filter(t => t.status === 'Refunded').length} progress={5} />
+        <StatCard label="Total Orders"     value={customerTxns.length || c.orders} />
+        <StatCard label="Lifetime Spend"   value={realSpend > 0 ? `Rs ${realSpend.toLocaleString('en-IN')}` : c.value} navy />
+        <StatCard label="Refunds"          value={customerTxns.filter(t => t.status === 'Refunded').length} />
         <StatCard label="Preferred Method" value={customerTxns[0]?.method || 'Cash'} />
       </div>
 

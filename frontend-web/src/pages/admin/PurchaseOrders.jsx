@@ -46,8 +46,8 @@ export default function PurchaseOrders() {
         actions={<Button variant="primary" onClick={() => setCurrentPage('new-order')}>+ New Order</Button>}
       />
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <StatCard label="Pending Orders"  value={pendingCount}  progress={Math.round((pendingCount/Math.max(orders.length,1))*100)} />
-        <StatCard label="Received"        value={receivedCount} progress={Math.round((receivedCount/Math.max(orders.length,1))*100)} />
+        <StatCard label="Pending Orders"  value={pendingCount} />
+        <StatCard label="Received"        value={receivedCount} />
         <StatCard label="Total Orders"    value={orders.length} />
       </div>
       <div className="flex items-center gap-3 mb-4">
