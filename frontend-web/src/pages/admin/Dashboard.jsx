@@ -47,7 +47,11 @@ export default function Dashboard() {
   const lowStockItems = products.filter(p => p.status === 'Low Stock' || p.status === 'Out of Stock').slice(0, 5);
   const pendingOrders = orders.filter(o => o.status === 'Pending').length;
   const todayRevenue = transactions
-    .filter(t => t.status === 'Paid')
+    .filter(t => {
+      if (t.status !== 'Paid') return false;
+      const tDate = new Date(t.rawDate || t.datetime);
+      return formatDate(tDate) === formatDate(nowNP);
+    })
     .reduce((s, t) => {
       const n = parseInt((t.amount || '').replace(/[^0-9]/g, ''), 10) || 0;
       return s + n;
@@ -64,7 +68,7 @@ export default function Dashboard() {
     }
     transactions.forEach(t => {
       if (t.status !== 'Paid') return;
-      const d = new Date(t.datetime || '');
+      const d = new Date(t.rawDate || t.datetime || '');
       if (isNaN(d.getTime())) return;
       const key = formatDate(d);
       if (key in buckets) {
@@ -75,14 +79,20 @@ export default function Dashboard() {
     return Object.entries(buckets).map(([label, value]) => ({ label, value }));
   })();
 
-  // Top products: rank by number of times sold in transactions
+  // Top products: rank by units sold in current month
   const productSaleMap = {};
+  const currentMonth = nowNP.getMonth();
+  const currentYear = nowNP.getFullYear();
+
   transactions.forEach(t => {
-    if (t.itemDetails) {
-      t.itemDetails.forEach(item => {
-        productSaleMap[item.id] = (productSaleMap[item.id] || 0) + (item.qty || 1);
-      });
-    }
+    if (t.status !== 'Paid') return;
+    const tDate = new Date(t.rawDate || t.datetime);
+    if (tDate.getMonth() !== currentMonth || tDate.getFullYear() !== currentYear) return;
+
+    (t.items_raw || []).forEach(item => {
+      const pid = item.product_id;
+      productSaleMap[pid] = (productSaleMap[pid] || 0) + (item.quantity || 1);
+    });
   });
   const topProducts = products
     .map(p => ({ ...p, soldUnits: productSaleMap[p.id] || 0 }))

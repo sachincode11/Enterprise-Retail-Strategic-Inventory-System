@@ -24,6 +24,7 @@ function mapTxnFromBackend(txn) {
     customer: txn.customer_id ? `Customer #${txn.customer_id}` : (txn.guest_customer?.name || 'Walk-in Guest'),
     cashier: txn.cashier_id ? `Cashier #${txn.cashier_id}` : '—',
     datetime: formatDateTime(txn.transaction_date),
+    rawDate: txn.transaction_date, // Keep raw ISO string for comparisons
     items: txn.items?.length || 0,
     items_raw: txn.items || [], // Full item objects for detail view
     method: method.charAt(0).toUpperCase() + method.slice(1),
