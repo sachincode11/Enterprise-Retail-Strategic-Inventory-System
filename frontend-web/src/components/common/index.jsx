@@ -257,19 +257,23 @@ export function ProgressRow({ name, revenue, pct }) {
 export function BarChart({ data = [], height = 120 }) {
   if (!data.length) return null;
   const max = Math.max(...data.map(d => d.value || 0));
+  const formatter = new Intl.NumberFormat('en-IN', { notation: 'compact', maximumFractionDigits: 1 });
   return (
-    <div className="w-full overflow-x-auto">
-      <div className="flex items-end gap-2" style={{ height: height + 24, minWidth: data.length * 44 }}>
+    <div className="w-full overflow-x-auto pt-4 pb-2 px-2">
+      <div className="flex items-end gap-3" style={{ height: height + 24, minWidth: data.length * 52 }}>
         {data.map((d, i) => {
           const barH = max > 0 ? Math.max(4, (d.value / max) * height) : 4;
           return (
-            <div key={i} className="flex flex-col items-center flex-1 gap-1">
+            <div key={i} className="flex flex-col items-center flex-1 gap-1.5 group relative">
+              <span className="text-[10px] font-semibold text-[#475569] mb-0.5" title={d.value?.toLocaleString('en-IN')}>
+                {formatter.format(d.value || 0)}
+              </span>
               <div
-                className="w-full rounded-t-sm chart-bar"
+                className="w-full rounded-t-md chart-bar transition-all hover:bg-[#3b82f6]"
                 style={{ height: barH, background: '#1e3a5f', animationDelay: `${i * 0.05}s` }}
-                title={`${d.label || d.month}: ${d.value?.toLocaleString()}`}
+                title={`${d.label || d.month}: Rs ${d.value?.toLocaleString('en-IN')}`}
               />
-              <span className="text-[8px] text-[#94a3b8] truncate w-full text-center" title={d.label || d.month}>
+              <span className="text-xs font-medium text-[#64748b] truncate w-full text-center" title={d.label || d.month}>
                 {d.label || d.month}
               </span>
             </div>
