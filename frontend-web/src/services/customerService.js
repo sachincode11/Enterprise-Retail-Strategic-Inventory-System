@@ -11,9 +11,7 @@ function mapCustomerFromBackend(u) {
     name,
     phone: u.phone || '—',
     email: u.email,
-    orders: 0,
-    lastVisit: '—',
-    value: 'Rs 0',
+
     type: 'Registered',
     is_active: u.is_active,
   };

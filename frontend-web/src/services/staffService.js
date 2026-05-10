@@ -23,9 +23,7 @@ function mapStaffFromBackend(s) {
     phone: s.phone || '—',
     role: roleName || 'Staff',
     store: `STORE-${String(s.store_id || 1).padStart(3, '0')}`,
-    shift: '—',
     status: s.is_active ? 'Active' : 'Inactive',
-    lastLogin: '—',
   };
 }
 

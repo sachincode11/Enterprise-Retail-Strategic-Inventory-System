@@ -8,14 +8,22 @@ import { exportCSV } from '../../utils/exportData';
 
 export default function Customers() {
   const { setCurrentPage, navigateTo } = useAdmin();
-  const { customers } = useApp();
+  const { customers, transactions } = useApp();
 
   const [search, setSearch]         = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [page, setPage]             = useState(1);
   const PAGE_SIZE = 10;
 
-  const filtered = customers.filter(c => {
+  // Enrich customer data with real transaction metrics from the global state
+  const enriched = customers.map(c => {
+    const myTxns = transactions.filter(t => (t.customerId && t.customerId === c.id) || (t.customer?.toLowerCase() === c.name?.toLowerCase()));
+    const totalVal = myTxns.reduce((sum, t) => sum + (parseInt((t.amount || '').replace(/[^0-9]/g, ''), 10) || 0), 0);
+    const lastVisit = myTxns.length > 0 ? myTxns[0].datetime || myTxns[0].date : '—';
+    return { ...c, orders: myTxns.length, value: `Rs ${totalVal.toLocaleString()}`, lastVisit };
+  });
+
+  const filtered = enriched.filter(c => {
     const q = search.toLowerCase();
     const matchSearch = !q || c.name.toLowerCase().includes(q) || (c.phone || '').includes(q) || (c.email || '').toLowerCase().includes(q);
     const matchType = !typeFilter || c.type === typeFilter;
@@ -27,13 +35,13 @@ export default function Customers() {
 
   const registered = customers.filter(c => c.type === 'Registered').length;
   const guests     = customers.filter(c => c.type === 'Guest').length;
-  const totalValue = customers.reduce((s, c) => {
+  const totalValue = enriched.reduce((s, c) => {
     const n = parseInt((c.value || '').replace(/[^0-9]/g, ''), 10) || 0;
     return s + n;
   }, 0);
 
   const handleExport = () => {
-    const data = customers.map(c => ({ Name: c.name, Phone: c.phone, Email: c.email, Orders: c.orders, 'Last Visit': c.lastVisit, 'Lifetime Value': c.value, Type: c.type }));
+    const data = enriched.map(c => ({ Name: c.name, Phone: c.phone, Email: c.email, Orders: c.orders, 'Last Visit': c.lastVisit, 'Lifetime Value': c.value, Type: c.type }));
     exportCSV(data, `customers-${new Date().toISOString().slice(0,10)}`);
   };
 

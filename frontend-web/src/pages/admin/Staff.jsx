@@ -37,9 +37,8 @@ export default function Staff() {
           </>
         }
       />
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 gap-4 mb-6">
         <StatCard label="Total Staff"       value={staff?.length ?? '—'} />
-        <StatCard label="On Shift Today"    value={staff?.filter(s => s.shift === 'On Shift').length ?? '—'} />
         <StatCard label="Active"            value={staff?.filter(s => s.status === 'Active').length ?? '—'} />
       </div>
 
@@ -55,11 +54,11 @@ export default function Staff() {
         {loading ? <LoadingSpinner /> : (
           <table className="data-table">
             <thead>
-              <tr><th>Staff Member</th><th>Email</th><th>Role</th><th>Store</th><th>Shift Today</th><th>Status</th><th>Last Login</th><th></th></tr>
+              <tr><th>Staff Member</th><th>Email</th><th>Role</th><th>Store</th><th>Status</th><th></th></tr>
             </thead>
             <tbody>
               {filtered.length === 0
-                ? <tr><td colSpan={8}><EmptyState message="No staff found." /></td></tr>
+                ? <tr><td colSpan={6}><EmptyState message="No staff found." /></td></tr>
                 : filtered.map(s => (
                   <tr key={s.id}>
                     <td>
@@ -71,9 +70,7 @@ export default function Staff() {
                     <td className="text-sm" style={{ color: '#475569' }}>{s.email}</td>
                     <td><Badge status={s.role} /></td>
                     <td className="text-sm mono" style={{ color: '#475569' }}>{s.store}</td>
-                    <td>{s.shift === '—' ? <span className="text-sm" style={{ color: '#94a3b8' }}>—</span> : <Badge status={s.shift} />}</td>
                     <td><Badge status={s.status} /></td>
-                    <td className="text-sm" style={{ color: '#475569' }}>{s.lastLogin}</td>
                     <td>
                       <div className="flex gap-1">
                         <button className="btn-outline" onClick={() => navigateTo('edit-staff', s)}>Edit</button>

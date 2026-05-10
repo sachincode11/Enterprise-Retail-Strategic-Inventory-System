@@ -21,7 +21,8 @@ function mapTxnFromBackend(txn) {
   return {
     id: txn.invoice_number || `#TXN-${txn.transaction_id}`,
     backendId: txn.transaction_id,
-    customer: txn.customer_id ? `Customer #${txn.customer_id}` : (txn.guest_customer?.name || 'Walk-in Guest'),
+    customerId: txn.customer_id,
+    customer: txn.customer_id ? (txn.customer_name || `Customer #${txn.customer_id}`) : (txn.guest_customer?.name || 'Walk-in Guest'),
     cashier: txn.cashier_id ? `Cashier #${txn.cashier_id}` : '—',
     datetime: formatDateTime(txn.transaction_date),
     rawDate: txn.transaction_date, // Keep raw ISO string for comparisons
