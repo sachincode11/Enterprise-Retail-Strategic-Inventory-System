@@ -82,19 +82,25 @@ void ErsisHttpClient::postHeartbeat(int rssi, uint32_t uptimeS) {
     if (WiFi.status() != WL_CONNECTED) return;
 
     ::HTTPClient http;
-    char url[256];
+    char url[512]; // Increased size to be safe
+    String ip = WiFi.localIP().toString();
+    
+    // Include scan count in heartbeat so the UI updates live scan history
     snprintf(url, sizeof(url),
-             "%s/api/v1/iot/health?device_id=%s&store_id=%s&ip_address=%s&rssi=%d&uptime_s=%lu&firmware=%s",
+             "%s/api/v1/iot/health?device_id=%s&store_id=%s&ip_address=%s&rssi=%d&scans=%lu&uptime_s=%lu&firmware=%s",
              API_BASE_URL, FW_DEVICE_ID, API_STORE_ID, 
-             WiFi.localIP().toString().c_str(), rssi, uptimeS, FW_VERSION);
+             ip.c_str(), rssi, deviceStatus.getScanCount(), uptimeS, FW_VERSION);
 
     http.begin(url);
     int code = http.GET();
     if (code > 0) {
-        LOG_DEBUG("HTTP", "Heartbeat sent (RSSI=%d)", rssi);
+        LOG_INFO(TAG, "Heartbeat OK (Code: %d, RSSI: %d)", code, rssi);
+    } else {
+        LOG_ERROR(TAG, "Heartbeat FAILED: %s", http.errorToString(code).c_str());
     }
     http.end();
 }
+
 
 const char* ErsisHttpClient::resultString(HttpResult r) {
     switch (r) {

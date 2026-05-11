@@ -240,17 +240,30 @@ npm run dev
 ```
 Open **http://localhost:5173** in your browser.
 
-### Step 5 – MQTT (IoT, optional)
-If you need the barcode scanner feature, install Mosquitto locally:
-- **Windows**: [mosquitto.org/download](https://mosquitto.org/download/)
-- **macOS**: `brew install mosquitto`
-- **Linux**: `sudo apt install mosquitto`
+### Step 5 – IoT Barcode Scanner (optional)
 
-Update `backend/.env`:
-```env
-MQTT_BROKER_HOST=localhost
-MQTT_BROKER_PORT=1883
-```
+The ESP32 GM67 barcode scanner connects over **WiFi + HTTP** — no MQTT broker is required for the scanner integration.
+
+**Quick setup:**
+
+1. Edit `iot/Scanner/include/Config.h`:
+   ```cpp
+   #define WIFI_SSID     "YourWiFiSSID"
+   #define WIFI_PASSWORD "YourWiFiPassword"
+   #define API_BASE_URL  "http://192.168.x.x:8000"   // your machine's LAN IP
+   ```
+
+2. Flash the firmware via PlatformIO in VS Code (`iot/Scanner/` folder → Upload).
+
+3. Start the backend with LAN access enabled (replace `localhost` with `0.0.0.0`):
+   ```bash
+   cd backend
+   python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+   ```
+
+4. Open the cashier settings at `/#/cashier/s3` — the device will appear with a green **Online** badge within 30 s.
+
+> For the complete wiring diagram, build instructions, troubleshooting, and security configuration, see **[IOT_GUIDE.md](./IOT_GUIDE.md)**.
 
 ### Step 6 – Mobile app
 With the backend running, follow the **[Mobile App section](#-mobile-app-react-native--expo)** above to start the Expo dev server.
@@ -280,3 +293,17 @@ With the backend running, follow the **[Mobile App section](#-mobile-app-react-n
 | `expo: command not found` | Run `npx expo start` instead, or install globally: `npm install -g expo-cli` |
 | Expo Go shows "Something went wrong" | Check backend is running; verify API URL in app config matches backend address |
 | Metro bundler port conflict | Add `--port 8082` to the `npx expo start` command |
+
+### IoT Scanner
+
+| Symptom | Fix |
+| :--- | :--- |
+| ESP32 won't connect to WiFi | Verify `WIFI_SSID` / `WIFI_PASSWORD` in `Config.h`. ESP32 only supports **2.4 GHz** networks. |
+| HTTP error: connection refused | Backend is not running, or `API_BASE_URL` IP is wrong. Must match your machine's LAN IP. |
+| HTTP error: timeout | Firewall is blocking port 8000. Run `start-backend.bat` which binds to `0.0.0.0`. |
+| 403 Forbidden response | `IOT_DEVICE_SECRET` in `Config.h` doesn't match `backend/.env`. |
+| 404 Not Found on scan | Barcode is not in the database for that `store_id`. Add the product first. |
+| POS badge shows "No Device" | Wait 30–45 s after ESP32 boots; or check heartbeat in Serial Monitor. |
+| Product not added to cart | Refresh the POS page to reconnect the WebSocket, then scan again. |
+
+> For full diagnostics and advanced configuration, see **[IOT_GUIDE.md](./IOT_GUIDE.md)**.

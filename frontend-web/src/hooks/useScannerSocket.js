@@ -43,13 +43,18 @@ export default function useScannerSocket(onScan) {
 
   useEffect(() => {
     const storeId = getStoreId();
-    const wsUrl = `${window.location.origin.replace(/^http/, 'ws')}/api/iot/ws/${storeId}`;
+    // Use explicit /api/v1 to avoid proxy rewrite ambiguities
+    const wsUrl = `${window.location.origin.replace(/^http/, 'ws')}/api/v1/iot/ws/${storeId}`;
 
     // ------------------------------------------------------------------
     // Derive the base API URL for health polling (http, not ws)
     // ------------------------------------------------------------------
     const apiBase = window.location.origin;
-    const healthUrl = `${apiBase}/api/iot/health`;
+    const healthUrl = `${apiBase}/api/v1/iot/health`;
+
+    console.log(`[ScannerWS] Initializing for Store ${storeId}`);
+    console.log(`[ScannerWS] WS URL: ${wsUrl}`);
+    console.log(`[ScannerWS] Health URL: ${healthUrl}`);
 
     // ------------------------------------------------------------------
     // Health polling — checks if a real ESP32 device has pinged recently
@@ -57,25 +62,36 @@ export default function useScannerSocket(onScan) {
     const pollHealth = async () => {
       try {
         const res = await fetch(healthUrl, { credentials: 'include' });
-        if (!res.ok) { setDeviceSeen(false); return; }
+        if (!res.ok) { 
+          console.warn(`[ScannerWS] Health check failed: ${res.status}`);
+          setDeviceSeen(false); 
+          return; 
+        }
         const data = await res.json();
-
+        
+        // Check if any device for our store has been seen recently
         const devices = data.registered_devices || [];
-        const now = Date.now();
+        const activeDevice = devices.find(d => 
+          Number(d.store_id) === Number(storeId) && d.status === 'Online'
+        );
 
-        // Check if any device for this store has checked in recently
-        const hasLiveDevice = devices.some((d) => {
-          if (String(d.store_id) !== String(storeId)) return false;
-          if (!d.last_seen) return false;
-          const age = now - new Date(d.last_seen).getTime();
-          return age < DEVICE_TIMEOUT_MS;
-        });
-
-        setDeviceSeen(hasLiveDevice);
-      } catch {
+        if (activeDevice) {
+          if (!deviceSeen) console.log(`[ScannerWS] Device found: ${activeDevice.device_id} (RSSI: ${activeDevice.rssi})`);
+          setDeviceSeen(true);
+        } else {
+          if (deviceSeen) console.log(`[ScannerWS] No active devices found for Store ${storeId}`);
+          setDeviceSeen(false);
+          if (devices.length > 0) {
+             console.log(`[ScannerWS] Registry has ${devices.length} devices, but none match Store ${storeId} + Online status.`);
+             console.table(devices);
+          }
+        }
+      } catch (err) {
+        console.error(`[ScannerWS] Health poll error:`, err);
         setDeviceSeen(false);
       }
     };
+
 
     // ------------------------------------------------------------------
     // WebSocket message handler

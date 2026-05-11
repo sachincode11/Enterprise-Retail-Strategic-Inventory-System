@@ -11,7 +11,7 @@
 | **Backend API** | Python 3.13 · FastAPI · SQLAlchemy · MySQL 8.0 |
 | **Authentication** | JWT (Access + Refresh tokens) · OTP / 2FA (Email) |
 | **AI / ML** | Groq LLM · FAISS (RAG) · Sentence Transformers · Prophet (Forecasting) |
-| **IoT** | MQTT (Mosquitto) · ESP32 Barcode Scanners |
+| **IoT** | ESP32 · GM67 Barcode Scanner · WiFi/HTTP · WebSocket |
 | **Web Frontend** | React 19 · Vite · TailwindCSS |
 | **Mobile App** | React Native · Expo (iOS / Android / Web) |
 | **DevOps** | Docker · Docker Compose |
@@ -31,7 +31,9 @@
 - Report generation & CSV export
 
 ### 💳 Cashier POS Interface
-- Real-time barcode scanning via IoT (MQTT)
+- Real-time barcode scanning via IoT (ESP32 WiFi scanner → WebSocket)
+- **Scanner status indicator** — live Online/Offline/No Device badge in POS header
+- **IoT Devices settings panel** — heartbeat monitoring, RSSI signal strength, firmware info
 - Customer search & quick registration
 - Cart management with discount application
 - Multi-payment method checkout
@@ -72,7 +74,11 @@ Enterprise-Retail-Strategic-Inventory-System/
 │       ├── hooks/            # useAuth, useTheme
 │       ├── services/         # API service layer
 │       └── navigation/       # Stack & tab navigators
-├── iot/                      # ESP32 firmware & MQTT integration
+├── iot/                      # ESP32 GM67 firmware (PlatformIO / Arduino)
+│   └── Scanner/
+│       ├── src/              # main.cpp, WifiManager, HttpClient, BarcodeProcessor
+│       ├── include/          # Config.h — all device settings in one file
+│       └── platformio.ini    # Build config & board selection
 ├── mosquitto/                # MQTT broker config
 ├── docker-compose.yml        # Production orchestration
 ├── docker-compose.dev.yml    # Development override (hot-reload)
@@ -156,6 +162,31 @@ Scan the QR code with **Expo Go** on your phone.
 
 ---
 
+### IoT Barcode Scanner
+
+The ESP32 GM67 scanner connects over WiFi and pushes scans to the POS in real time.
+
+```bash
+# 1. Edit firmware config
+#    iot/Scanner/include/Config.h:
+#      WIFI_SSID, WIFI_PASSWORD, API_BASE_URL (your LAN IP)
+
+# 2. Flash via PlatformIO in VS Code
+#    Open iot/Scanner/ → click Upload
+
+# 3. Start backend on LAN
+cd backend
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+
+# 4. Check cashier settings → IoT Devices (/#/cashier/s3)
+#    Device appears green within 30 s
+```
+
+> See **[IOT_GUIDE.md](./IOT_GUIDE.md)** for full wiring diagrams, troubleshooting, and security configuration.
+
+---
+
 ## 🔑 Default Credentials
 
 After seeding, use these accounts:
@@ -173,9 +204,8 @@ After seeding, use these accounts:
 ## 📖 Documentation
 
 - **[SETUP_GUIDE.md](./SETUP_GUIDE.md)** — Full setup instructions for Docker, manual, and mobile
+- **[IOT_GUIDE.md](./IOT_GUIDE.md)** — Complete ESP32 wiring, firmware, and connection guide
 - **[PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)** — Detailed file/folder documentation
-- **[iot_integration_guide.md](./iot_integration_guide.md)** — IoT barcode scanner MQTT integration guide
-- **[esp32_firmware_architecture.md](./esp32_firmware_architecture.md)** — IoT barcode scanner design
 - **http://localhost:8000/docs** — Live Swagger API documentation (when running)
 
 ---
