@@ -1,0 +1,40 @@
+# =============================================================
+# ERSIS – Root .dockerignore
+# Applied when docker compose builds from the project root.
+# =============================================================
+
+# Git history
+.git/
+.gitignore
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Python virtualenv (each service builds its own)
+**/.venv/
+**/venv/
+**/__pycache__/
+**/*.py[cod]
+
+# Node modules (each service installs its own)
+**/node_modules/
+
+# Built artifacts
+**/dist/
+**/build/
+
+# Expo mobile app (not dockerized)
+frontend-mobile/
+
+# IoT firmware (not a Docker service)
+iot/
+
+# Compiled static FAISS indexes (rebuilt by seed in container)
+backend/faiss_indexes/
+
+# Docs & scratch
+*.md
+backend/scratch/

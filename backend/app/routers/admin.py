@@ -697,7 +697,7 @@ def list_customers(
     return customer_users
 
 
-# ── Store detail ──────────────────────────────────────────────────────────────
+# ── Store detail
 store_router = APIRouter(prefix="/stores", tags=["Stores"])
 
 

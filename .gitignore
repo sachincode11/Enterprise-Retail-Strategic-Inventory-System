@@ -50,3 +50,13 @@ frontend-mobile/myApp/yarn-error.log*
 backend/scratch/
 api.json
 ersis.sql
+
+# --- Docker ---
+# Root .env used by docker-compose for secret substitution
+.env
+# Mosquitto runtime data & logs (bind-mounted, not tracked)
+mosquitto/data/*
+mosquitto/log/*
+# Keep the placeholder files
+!mosquitto/data/.gitkeep
+!mosquitto/log/.gitkeep

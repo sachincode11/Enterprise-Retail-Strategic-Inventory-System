@@ -56,7 +56,12 @@ class Settings(BaseSettings):
     FAISS_INDEX_DIR: str
 
     model_config = SettingsConfigDict(
-        env_file=os.path.join(BASE_DIR, ".env"),
+        # In Docker, environment variables are injected directly by docker-compose
+        # (via env_file: and environment: directives), so the .env file may not
+        # exist inside the container. Setting env_ignore_empty=False and
+        # env_file to a list with the path (pydantic-settings silently skips
+        # missing files in the list form) handles both cases.
+        env_file=[os.path.join(BASE_DIR, ".env")],
         env_file_encoding="utf-8",
         extra="ignore",
     )
