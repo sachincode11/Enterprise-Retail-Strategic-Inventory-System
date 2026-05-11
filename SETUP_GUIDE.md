@@ -23,7 +23,7 @@ Docker spins up the **web stack** — MySQL, MQTT broker, FastAPI backend, and t
 
 ### Step 1 – Clone the repository
 ```bash
-git clone <repository_url>
+git clone https://github.com/sachincode11/Enterprise-Retail-Strategic-Inventory-System.git
 cd Enterprise-Retail-Strategic-Inventory-System
 ```
 
@@ -180,7 +180,7 @@ Use this method only if Docker Desktop is not available on your machine.
 
 ### Step 1 – Clone & enter the project
 ```bash
-git clone <repository_url>
+git clone https://github.com/sachincode11/Enterprise-Retail-Strategic-Inventory-System.git
 cd Enterprise-Retail-Strategic-Inventory-System
 ```
 
