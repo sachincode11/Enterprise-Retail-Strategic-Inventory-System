@@ -9,13 +9,22 @@ import useScannerSocket from '../../hooks/useScannerSocket';
 function CustomerPanel({ selectedCustomer, setSelectedCustomer }) {
   const [tab, setTab] = useState('Registered');
   const [search, setSearch] = useState('');
-  const { customers } = useApp();
-  const registered = customers.filter(c => c.type === 'Registered');
+  const { customers, addCustomer, refreshCustomers } = useApp();
+  const [isAdding, setIsAdding] = useState(false);
+  const [newCust, setNewCust] = useState({ name: '', email: '', phone: '' });
+  const [loading, setLoading] = useState(false);
+  const registered = (customers || []).filter(c => c.type === 'Registered');
   const [guestInfo, setGuestInfo] = useState({ name: 'Walk-in Guest', phone: '' });
 
   const shown = tab === 'Guest'
     ? []
-    : registered.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
+    : (search.trim() === '' 
+        ? registered.slice(0, 5) 
+        : registered.filter(c => 
+            c.name.toLowerCase().includes(search.toLowerCase()) || 
+            String(c.phone || '').includes(search) || 
+            String(c.id).includes(search)
+          ));
 
   return (
     <div>
@@ -47,16 +56,68 @@ function CustomerPanel({ selectedCustomer, setSelectedCustomer }) {
         </div>
       )}
       {tab === 'Registered' && !selectedCustomer && (
-        <div className="space-y-1 max-h-28 overflow-y-auto">
+        <div className="space-y-1 max-h-40 overflow-y-auto">
           {shown.map((c) => (
             <button key={c.id} onClick={() => setSelectedCustomer(c)}
-              className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-[#eff6ff] transition-colors">
+              className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-[#eff6ff] transition-colors border border-transparent hover:border-[#bfdbfe]">
               <span className="font-medium text-[#0f172a]">{c.name}</span>
-              <span className="text-[#94a3b8] ml-2">{c.phone}</span>
+              <span className="text-[#94a3b8] ml-2 font-mono text-[10px]">{c.phone}</span>
             </button>
           ))}
+          {shown.length === 0 && search && (
+            <div className="py-4 text-center border-2 border-dashed border-[#e2e8f0] rounded-xl bg-[#f8fafc]">
+              <p className="text-xs text-[#94a3b8] mb-2 font-medium">Customer not found</p>
+              <button onClick={() => { setIsAdding(true); setNewCust(prev => ({ ...prev, phone: search })); }}
+                className="text-[10px] font-bold text-[#1e3a5f] hover:text-[#0f172a] uppercase tracking-wider bg-white px-3 py-1.5 rounded-lg border border-[#e2e8f0] shadow-sm transition-all">
+                + Register New
+              </button>
+            </div>
+          )}
+          {shown.length === 0 && !search && (
+            <div className="py-8 text-center border border-dashed border-[#e2e8f0] rounded-lg">
+              <p className="text-[10px] text-[#94a3b8] uppercase tracking-widest font-bold">No registered customers</p>
+              <button onClick={() => refreshCustomers()} className="text-[10px] text-[#1e3a5f] mt-1 hover:underline">Sync List</button>
+            </div>
+          )}
         </div>
       )}
+
+      <Modal isOpen={isAdding} onClose={() => setIsAdding(false)} title="Quick Register Customer">
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-widest px-1">Full Name</label>
+            <input value={newCust.name} onChange={e => setNewCust({...newCust, name: e.target.value})} placeholder="e.g. John Doe" className="w-full px-3 py-2.5 text-sm bg-[#f8fafc] border border-[#e2e8f0] rounded-xl outline-none focus:border-[#1e3a5f] transition-all" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-widest px-1">Phone Number</label>
+            <input value={newCust.phone} onChange={e => setNewCust({...newCust, phone: e.target.value})} placeholder="e.g. 9841..." className="w-full px-3 py-2.5 text-sm font-mono bg-[#f8fafc] border border-[#e2e8f0] rounded-xl outline-none focus:border-[#1e3a5f] transition-all" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-widest px-1">Email Address</label>
+            <input value={newCust.email} onChange={e => setNewCust({...newCust, email: e.target.value})} placeholder="e.g. john@example.com" className="w-full px-3 py-2.5 text-sm bg-[#f8fafc] border border-[#e2e8f0] rounded-xl outline-none focus:border-[#1e3a5f] transition-all" />
+          </div>
+          
+          <div className="flex gap-2 pt-2">
+            <button onClick={() => setIsAdding(false)} className="flex-1 py-3 text-sm font-medium text-[#475569] hover:bg-[#f1f5f9] rounded-xl transition-colors">Cancel</button>
+            <button 
+              disabled={!newCust.name || !newCust.phone || loading}
+              onClick={async () => {
+                setLoading(true);
+                try {
+                  const res = await addCustomer(newCust);
+                  setSelectedCustomer(res);
+                  setIsAdding(false);
+                  setNewCust({ name: '', email: '', phone: '' });
+                } catch (err) { alert(err.message || 'Failed to add customer'); }
+                finally { setLoading(false); }
+              }}
+              className="flex-1 py-3 bg-[#1e3a5f] text-white text-sm font-bold rounded-xl hover:bg-[#16324f] disabled:opacity-50 shadow-lg shadow-blue-900/20 transition-all"
+            >
+              {loading ? 'Processing...' : 'Register & Select'}
+            </button>
+          </div>
+        </div>
+      </Modal>
       {selectedCustomer && (
         <div className="bg-[#f1f5f9] rounded-lg p-3 flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-[#1e3a5f] flex items-center justify-center text-sm font-bold text-white">
@@ -305,7 +366,7 @@ export default function POS() {
   // include addToCart from cashier context
   // (merged into the main destructure to avoid multiple hook calls)
 
-  const { addTransaction, products, currencySymbol, refreshDiscounts, discounts } = useApp();
+  const { addTransaction, products, currencySymbol, refreshDiscounts, discounts, refreshCustomers } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [discountOpen, setDiscountOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
@@ -314,10 +375,11 @@ export default function POS() {
   const [heldOpen, setHeldOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Sync discounts on mount
+  // Sync data on mount
   useEffect(() => {
     refreshDiscounts();
-  }, [refreshDiscounts]);
+    refreshCustomers();
+  }, [refreshDiscounts, refreshCustomers]);
 
   // Initialize IoT Scanner WebSocket
   const { status: scannerStatus } = useScannerSocket((scannedProduct) => {

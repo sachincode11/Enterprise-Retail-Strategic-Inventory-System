@@ -58,8 +58,10 @@ export async function getTransactions() {
     const mapped = txns.map(mapTxnFromBackend);
     saveStored(mapped);
     return toApiEnvelope(mapped);
-  } catch {
-    return fakeApi(getStored());
+  } catch (error) {
+    console.error("[TransactionService] getTransactions failed:", error);
+    if (USE_MOCK) return fakeApi(getStored());
+    throw normalizeServiceError(error, 'Failed to fetch transactions from database');
   }
 }
 

@@ -31,8 +31,10 @@ export async function getCustomers() {
     const mapped = items.map(mapCustomerFromBackend);
     saveStored(mapped);
     return toApiEnvelope(mapped);
-  } catch {
-    return toApiEnvelope(getStored());
+  } catch (error) {
+    console.error("[CustomerService] getCustomers failed:", error);
+    // There is no explicit USE_MOCK flag in this service, so we throw.
+    throw normalizeServiceError(error, 'Failed to fetch customers from database');
   }
 }
 

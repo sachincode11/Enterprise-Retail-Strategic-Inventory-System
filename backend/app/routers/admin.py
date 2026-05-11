@@ -679,7 +679,7 @@ customer_router = APIRouter(
 def list_customers(
     store_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_cashier),
 ):
     """Return all registered customer users (customer role)."""
     customer_users = (
@@ -688,6 +688,7 @@ def list_customers(
         .join(Role, UserRoleModel.role_id == Role.role_id)
         .filter(
             Role.role_name == UserRoleEnum.customer.value,
+            UserRoleModel.store_id == store_id,
             UserRoleModel.is_active == True,
             User.is_active == True,
         )

@@ -6,7 +6,7 @@ import { lsGet, lsSet } from '../utils/storage';
 import { products as mockProducts, store } from '../data/mockData';
 import { apiRequest, getStoreId, normalizeServiceError, toApiEnvelope } from './apiClient';
 
-const USE_MOCK = false;
+const USE_MOCK = import.meta.env.VITE_USE_MOCK_PRODUCTS === 'true';
 const LS_KEY = 'invosix_products';
 const DEFAULT_PAGE_SIZE = 100;
 
@@ -184,8 +184,10 @@ export async function getProducts() {
     const mapped = allItems.map(p => mapProductFromBackend(p, stockMap, categoryMap, supplierMap));
     saveStored(mapped);
     return toApiEnvelope(mapped);
-  } catch {
-    return fakeApi(getStored());
+  } catch (error) {
+    console.error("[ProductService] getProducts failed:", error);
+    if (USE_MOCK) return fakeApi(getStored());
+    throw normalizeServiceError(error, 'Failed to fetch products from database');
   }
 }
 

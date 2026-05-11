@@ -7,7 +7,7 @@ import { getProducts, updateProduct, addProduct, deleteProduct, adjustInventory,
 import { getTransactions, addTransaction as addTxnService, voidTransaction, refundTransaction } from '../services/transactionService';
 import { getOrders, addOrder as addOrderService, updateOrderStatus } from '../services/orderService';
 import { getDiscounts, addDiscount as addDiscountService, updateDiscount, deleteDiscount } from '../services/discountService';
-import { getCustomers } from '../services/customerService';
+import { getCustomers, addCustomer as addCustomerService } from '../services/customerService';
 import { getStaff } from '../services/staffService';
 import { getStoreInfo } from '../services/storeService';
 import { getSettings } from '../services/settingsService';
@@ -80,6 +80,13 @@ export function AppProvider({ children }) {
         getCustomers(), getStaff(), getStoreInfo(), getSettings(),
       ]);
 
+      // Log any service failures
+      [p, t, o, d, c, s, si, st].forEach((res, i) => {
+        if (res.status === 'rejected') {
+          console.error(`Backend Service ${i} failed:`, res.reason);
+        }
+      });
+
       setProducts(p.status === 'fulfilled' ? (p.value?.data || []) : []);
       setTransactions(t.status === 'fulfilled' ? (t.value?.data || []) : []);
       setOrders(o.status === 'fulfilled' ? (o.value?.data || []) : []);
@@ -115,6 +122,11 @@ export function AppProvider({ children }) {
   const refreshDiscounts = useCallback(async () => {
     const res = await getDiscounts();
     if (res.data) setDiscounts(res.data);
+  }, []);
+
+  const refreshCustomers = useCallback(async () => {
+    const res = await getCustomers();
+    if (res.data) setCustomers(res.data);
   }, []);
 
   // Sync critical display settings to localStorage for utilities (format.js) and handle Theme
@@ -271,6 +283,12 @@ export function AppProvider({ children }) {
     }
   }, []);
 
+  const handleAddCustomer = useCallback(async (cust) => {
+    const res = await addCustomerService(cust);
+    setCustomers(prev => [res.data, ...prev]);
+    return res.data;
+  }, []);
+
   // ── Orders ────────────────────────────────────────────────────────────────
   const handleAddOrder = useCallback(async (order) => {
     const res = await addOrderService(order);
@@ -327,6 +345,7 @@ export function AppProvider({ children }) {
       refreshSettings,
       currencySymbol,
       dateFormat,
+
       // Products
       products,
       addProduct: handleAddProduct,
@@ -353,6 +372,8 @@ export function AppProvider({ children }) {
       deleteDiscount: handleDeleteDiscount,
       // Customers
       customers,
+      refreshCustomers,
+      addCustomer: handleAddCustomer,
       // Staff
       staff,
     }}>
