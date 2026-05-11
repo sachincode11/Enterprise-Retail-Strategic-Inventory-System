@@ -17,7 +17,7 @@ function saveStored(data) { lsSet(LS_KEY, data); }
 function mapTxnFromBackend(txn) {
   const amount = Number(txn.total_amount || 0);
   const method = txn.payments?.[0]?.payment_method || 'Cash';
-  
+
   return {
     id: txn.invoice_number || `#TXN-${txn.transaction_id}`,
     backendId: txn.transaction_id,
@@ -51,10 +51,10 @@ export async function getTransactions() {
     const storeId = getStoreId();
     // Fetch a larger batch (up to 100 as per backend limit) to show more records
     const res = await apiRequest(`/stores/${storeId}/transactions?page=1&size=100`);
-    
+
     // Support both old flat array and new PaginatedResponse shape
     const txns = Array.isArray(res) ? res : (res.items || []);
-    
+
     const mapped = txns.map(mapTxnFromBackend);
     saveStored(mapped);
     return toApiEnvelope(mapped);
@@ -77,7 +77,7 @@ export async function getTransactionDetails(id) {
     const storeId = getStoreId();
     const source = getStored().find(t => t.id === id);
     const backendId = source?.backendId || id;
-    
+
     const txn = await apiRequest(`/stores/${storeId}/transactions/${backendId}`);
     return toApiEnvelope(mapTxnFromBackend(txn));
   } catch (error) {

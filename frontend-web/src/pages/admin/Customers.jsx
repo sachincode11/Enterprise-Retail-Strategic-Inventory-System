@@ -8,11 +8,11 @@ import { exportCSV } from '../../utils/exportData';
 
 export default function Customers() {
   const { setCurrentPage, navigateTo } = useAdmin();
-  const { customers, transactions } = useApp();
+  const { customers, transactions, nowNP } = useApp();
 
-  const [search, setSearch]         = useState('');
+  const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
-  const [page, setPage]             = useState(1);
+  const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
 
   // Enrich customer data with real transaction metrics from the global state
@@ -33,8 +33,17 @@ export default function Customers() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const registered = customers.filter(c => c.type === 'Registered').length;
-  const guests     = customers.filter(c => c.type === 'Guest').length;
+  const now = nowNP || new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  const registered = customers.length;
+  const guestsThisMonth = transactions.filter(t => {
+    if (t.customerId || t.status === 'Voided') return false;
+    const d = new Date(t.rawDate || t.datetime);
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  }).length;
+
   const totalValue = enriched.reduce((s, c) => {
     const n = parseInt((c.value || '').replace(/[^0-9]/g, ''), 10) || 0;
     return s + n;
@@ -51,7 +60,7 @@ export default function Customers() {
 
   const handleExport = () => {
     const data = enriched.map(c => ({ Name: c.name, Phone: c.phone, Email: c.email, Orders: c.orders, 'Last Visit': c.lastVisit, 'Lifetime Value': c.value, Type: c.type }));
-    exportCSV(data, `customers-${new Date().toISOString().slice(0,10)}`);
+    exportCSV(data, `customers-${new Date().toISOString().slice(0, 10)}`);
   };
 
   return (
@@ -62,9 +71,9 @@ export default function Customers() {
         actions={<Button variant="secondary" onClick={handleExport}>↓ Export CSV</Button>}
       />
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <StatCard label="Total Registered"    value={registered.toLocaleString()} />
-        <StatCard label="Guests (This Month)" value={guests.toLocaleString()} />
-        <StatCard label="Total Customers"     value={customers.length.toLocaleString()} />
+        <StatCard label="Total Registered" value={registered.toLocaleString()} />
+        <StatCard label="Guests (This Month)" value={guestsThisMonth.toLocaleString()} />
+        <StatCard label="Total Customers" value={(registered + guestsThisMonth).toLocaleString()} />
         <StatCard label="Total Lifetime Value" value={`Rs ${totalValue.toLocaleString()}`} />
       </div>
       <div className="flex items-center gap-3 mb-4 flex-wrap">
@@ -104,9 +113,9 @@ export default function Customers() {
           </tbody>
         </table>
         <Pagination current={page} total={totalPages}
-          label={`Showing ${filtered.length > 0 ? (page-1)*PAGE_SIZE+1 : 0}–${Math.min(page*PAGE_SIZE, filtered.length)} of ${filtered.length} customers`}
+          label={`Showing ${filtered.length > 0 ? (page - 1) * PAGE_SIZE + 1 : 0}–${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length} customers`}
           onPage={setPage}
-          onPrev={() => setPage(p => Math.max(1,p-1))} onNext={() => setPage(p => Math.min(totalPages,p+1))} />
+          onPrev={() => setPage(p => Math.max(1, p - 1))} onNext={() => setPage(p => Math.min(totalPages, p + 1))} />
       </div>
     </AdminLayout>
   );
