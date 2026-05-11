@@ -303,26 +303,47 @@ async def iot_health(
     Health ping endpoint polled by the ESP32 heartbeat (optional) and
     displayed by the S3IoTDevices settings page.
 
-    The ESP32 can call GET /api/v1/iot/health?device_id=...&store_id=...
+    The ESP32 calls GET /api/v1/iot/health?device_id=...&store_id=...
     to register its presence without sending a barcode.
 
     Returns all registered devices for the S3IoTDevices frontend page.
+    Status is computed dynamically: a device is 'Online' if its last_seen
+    timestamp is within the past 45 seconds, otherwise 'Offline'.
     """
+    STALE_THRESHOLD_SECONDS = 45
+
     if device_id:
+        existing = _device_registry.get(device_id, {})
+        # Preserve the running scan count — only update if a newer (higher) value arrives
+        best_scans = max(existing.get("scans", 0), scans)
         _device_registry[device_id] = {
             "device_id":  device_id,
-            "store_id":   store_id,
-            "ip_address": ip_address,
-            "rssi":       rssi,
-            "scans":      scans,
-            "uptime_s":   uptime_s,
-            "firmware":   firmware,
+            "store_id":   store_id   or existing.get("store_id",   ""),
+            "ip_address": ip_address or existing.get("ip_address", ""),
+            "rssi":       rssi       if rssi  != 0 else existing.get("rssi",     0),
+            "scans":      best_scans,
+            "uptime_s":   uptime_s   if uptime_s != 0 else existing.get("uptime_s", 0),
+            "firmware":   firmware   or existing.get("firmware",   ""),
             "last_seen":  datetime.now(timezone.utc).isoformat(),
-            "status":     "Connected",
         }
 
+    # Annotate each device with a computed status before returning
+    now = datetime.now(timezone.utc)
+    annotated = []
+    for d in _device_registry.values():
+        entry = dict(d)
+        try:
+            last = datetime.fromisoformat(entry["last_seen"])
+            age  = (now - last).total_seconds()
+            entry["status"] = "Online" if age <= STALE_THRESHOLD_SECONDS else "Offline"
+        except Exception:
+            entry["status"] = "Offline"
+        annotated.append(entry)
+
     return {
-        "ws_connections": {sid: manager.client_count(sid)
-                           for sid in manager._connections},
-        "registered_devices": list(_device_registry.values()),
+        "ws_connections":    {sid: manager.client_count(sid)
+                              for sid in manager._connections
+                              if manager.client_count(sid) > 0},
+        "registered_devices": annotated,
     }
+

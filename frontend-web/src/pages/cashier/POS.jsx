@@ -18,13 +18,13 @@ function CustomerPanel({ selectedCustomer, setSelectedCustomer }) {
 
   const shown = tab === 'Guest'
     ? []
-    : (search.trim() === '' 
-        ? registered.slice(0, 5) 
-        : registered.filter(c => 
-            c.name.toLowerCase().includes(search.toLowerCase()) || 
-            String(c.phone || '').includes(search) || 
-            String(c.id).includes(search)
-          ));
+    : (search.trim() === ''
+      ? registered.slice(0, 5)
+      : registered.filter(c =>
+        c.name.toLowerCase().includes(search.toLowerCase()) ||
+        String(c.phone || '').includes(search) ||
+        String(c.id).includes(search)
+      ));
 
   return (
     <div>
@@ -86,20 +86,20 @@ function CustomerPanel({ selectedCustomer, setSelectedCustomer }) {
         <div className="space-y-4">
           <div className="space-y-1">
             <label className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-widest px-1">Full Name</label>
-            <input value={newCust.name} onChange={e => setNewCust({...newCust, name: e.target.value})} placeholder="e.g. John Doe" className="w-full px-3 py-2.5 text-sm bg-[#f8fafc] border border-[#e2e8f0] rounded-xl outline-none focus:border-[#1e3a5f] transition-all" />
+            <input value={newCust.name} onChange={e => setNewCust({ ...newCust, name: e.target.value })} placeholder="e.g. John Doe" className="w-full px-3 py-2.5 text-sm bg-[#f8fafc] border border-[#e2e8f0] rounded-xl outline-none focus:border-[#1e3a5f] transition-all" />
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-widest px-1">Phone Number</label>
-            <input value={newCust.phone} onChange={e => setNewCust({...newCust, phone: e.target.value})} placeholder="e.g. 9841..." className="w-full px-3 py-2.5 text-sm font-mono bg-[#f8fafc] border border-[#e2e8f0] rounded-xl outline-none focus:border-[#1e3a5f] transition-all" />
+            <input value={newCust.phone} onChange={e => setNewCust({ ...newCust, phone: e.target.value })} placeholder="e.g. 9841..." className="w-full px-3 py-2.5 text-sm font-mono bg-[#f8fafc] border border-[#e2e8f0] rounded-xl outline-none focus:border-[#1e3a5f] transition-all" />
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-widest px-1">Email Address</label>
-            <input value={newCust.email} onChange={e => setNewCust({...newCust, email: e.target.value})} placeholder="e.g. john@example.com" className="w-full px-3 py-2.5 text-sm bg-[#f8fafc] border border-[#e2e8f0] rounded-xl outline-none focus:border-[#1e3a5f] transition-all" />
+            <input value={newCust.email} onChange={e => setNewCust({ ...newCust, email: e.target.value })} placeholder="e.g. john@example.com" className="w-full px-3 py-2.5 text-sm bg-[#f8fafc] border border-[#e2e8f0] rounded-xl outline-none focus:border-[#1e3a5f] transition-all" />
           </div>
-          
+
           <div className="flex gap-2 pt-2">
             <button onClick={() => setIsAdding(false)} className="flex-1 py-3 text-sm font-medium text-[#475569] hover:bg-[#f1f5f9] rounded-xl transition-colors">Cancel</button>
-            <button 
+            <button
               disabled={!newCust.name || !newCust.phone || loading}
               onClick={async () => {
                 setLoading(true);
@@ -289,7 +289,7 @@ function HeldModal({ isOpen, onClose, heldList, onResume, onRemove }) {
             </div>
             <div className="flex items-center gap-2">
               <button onClick={() => onRemove(h.id)} className="p-2 text-[#94a3b8] hover:text-[#dc2626] transition-colors">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
               </button>
               <button onClick={() => { onResume(h.id); onClose(); }} className="px-4 py-2 bg-[#1e3a5f] text-white text-xs font-bold rounded-lg hover:bg-[#16324f] transition-all">
                 Resume
@@ -335,16 +335,30 @@ function QRModal({ isOpen, onClose, total, onConfirm }) {
 
 function ScannerStatus({ status }) {
   const colors = {
-    connected: '#22c55e',
-    connecting: '#eab308',
-    disconnected: '#ef4444',
+    connected:    '#22c55e',   // green  — WS open + device pinged recently
+    no_device:    '#f97316',   // orange — WS open but no physical device seen
+    connecting:   '#eab308',   // yellow — WS still opening
+    disconnected: '#ef4444',   // red    — WS closed
+  };
+
+  const labels = {
+    connected:    'Scanner: Online',
+    no_device:    'Scanner: No Device',
+    connecting:   'Scanner: Connecting',
+    disconnected: 'Scanner: Offline',
   };
 
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg">
-      <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: colors[status] || '#94a3b8' }}></div>
+      <div
+        className="w-2 h-2 rounded-full"
+        style={{
+          background: colors[status] || '#94a3b8',
+          animation: status === 'connecting' ? 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite' : 'none',
+        }}
+      />
       <span className="text-[10px] font-mono font-bold text-[#475569] uppercase tracking-wider">
-        IoT Scanner: {status}
+        {labels[status] || 'Scanner: Unknown'}
       </span>
     </div>
   );

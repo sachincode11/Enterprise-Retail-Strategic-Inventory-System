@@ -35,6 +35,7 @@ export default function EditProduct() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
   const [imagePreview, setImagePreview] = useState(null);
+  const [imageError, setImageError] = useState(null);
   const fileInputRef = useRef(null);
 
   const set = key => e => setForm(prev => ({ ...prev, [key]: e.target.value }));
@@ -138,13 +139,40 @@ export default function EditProduct() {
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
+    setImageError(null);
     if (file) {
+      // Check size (2MB)
       if (file.size > 2 * 1024 * 1024) {
+        setImageError('Image is too large. Max size is 2MB.');
         showToast('Image size must be less than 2MB', 'error');
+        if (fileInputRef.current) fileInputRef.current.value = '';
         return;
       }
+
+      // Check format
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        setImageError('Invalid format. Please use JPG, PNG or WEBP.');
+        showToast('Unsupported image format', 'error');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+
       const reader = new FileReader();
-      reader.onloadend = () => setImagePreview(reader.result);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          // Optional: check dimensions if "fit" refers to resolution
+          if (img.width < 100 || img.height < 100) {
+            setImageError('Image is too small. Minimum 100x100px required.');
+            showToast('Image dimensions are too small', 'error');
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+          }
+          setImagePreview(event.target.result);
+        };
+        img.src = event.target.result;
+      };
       reader.readAsDataURL(file);
     }
   };
@@ -244,7 +272,7 @@ export default function EditProduct() {
                   </div>
                   <button 
                     className="absolute top-3 right-3 bg-white rounded-full p-1 shadow-md hover:bg-gray-100 text-red-500"
-                    onClick={(e) => { e.stopPropagation(); setImagePreview(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                    onClick={(e) => { e.stopPropagation(); setImagePreview(null); setImageError(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
                     title="Remove Image"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -252,9 +280,12 @@ export default function EditProduct() {
                 </div>
               ) : (
                 <>
-                  <svg className="mx-auto mb-2 text-[#94a3b8]" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></svg>
-                  <p className="text-xs text-[#94a3b8]">Click to upload image</p>
-                  <p className="text-xs text-[#94a3b8] mt-1">PNG, JPG up to 2MB</p>
+                  <svg className={`mx-auto mb-2 ${imageError ? 'text-red-400' : 'text-[#94a3b8]'}`} width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></svg>
+                  <p className={`text-xs ${imageError ? 'text-red-500 font-medium' : 'text-[#94a3b8]'}`}>
+                    {imageError || 'Click to upload image'}
+                  </p>
+                  {!imageError && <p className="text-xs text-[#94a3b8] mt-1">PNG, JPG up to 2MB</p>}
+                  {imageError && <p className="text-[10px] text-red-400 mt-1 uppercase tracking-wider font-bold">Try another file</p>}
                 </>
               )}
             </div>

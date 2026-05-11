@@ -109,11 +109,11 @@ constexpr char VALID_BARCODE_CHARSET_END   = 0x7E;  ///< Tilde (inclusive)
 // If not set via build flags, the defaults below are used (safe for dev).
 
 #ifndef WIFI_SSID
-  #define WIFI_SSID     "ALHN-F3D0"
+  #define WIFI_SSID     "ayurvedaoushadhalaya_2.4"
 #endif
 
 #ifndef WIFI_PASSWORD
-  #define WIFI_PASSWORD "XMQT2sU2tP"
+  #define WIFI_PASSWORD "CLEB2D7787"
 #endif
 
 /// How long to wait for a WiFi connection before giving up (ms).
@@ -132,7 +132,7 @@ constexpr uint32_t WIFI_WATCHDOG_INTERVAL_MS = 10000U;
 // the product via WebSocket to any connected cashier frontends.
 
 #ifndef API_BASE_URL
-  #define API_BASE_URL  "http://192.168.1.79:8000"
+  #define API_BASE_URL  "http://192.168.1.77:8000"
 #endif
 
 #ifndef API_STORE_ID
