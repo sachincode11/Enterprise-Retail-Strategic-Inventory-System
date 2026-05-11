@@ -215,8 +215,29 @@ export function PageHeader({ breadcrumb, title, actions }) {
 
 // ── Pagination ────────────────────────────────────────────────
 export function Pagination({ current = 1, total = 1, label = '', onPage, onPrev, onNext }) {
-  const goPrev = onPrev || (() => onPage && onPage(Math.max(1, current - 1)));
-  const goNext = onNext || (() => onPage && onPage(Math.min(total, current + 1)));
+  const goPrev = () => {
+    if (current > 1) {
+      if (onPrev) onPrev();
+      else if (onPage) onPage(current - 1);
+    }
+  };
+  const goNext = () => {
+    if (current < total) {
+      if (onNext) onNext();
+      else if (onPage) onPage(current + 1);
+    }
+  };
+
+  // Generate page numbers to show (sliding window of 5)
+  let pages = [];
+  if (total <= 5) {
+    pages = Array.from({ length: total }, (_, i) => i + 1);
+  } else {
+    if (current <= 3) pages = [1, 2, 3, 4, 5];
+    else if (current >= total - 2) pages = [total - 4, total - 3, total - 2, total - 1, total];
+    else pages = [current - 2, current - 1, current, current + 1, current + 2];
+  }
+
   return (
     <div className="flex items-center justify-between px-5 py-3 border-t" style={{ borderColor: '#e2e8f0' }}>
       <span className="text-xs text-[#94a3b8]">{label}</span>
@@ -224,7 +245,7 @@ export function Pagination({ current = 1, total = 1, label = '', onPage, onPrev,
         <button onClick={goPrev} disabled={current <= 1}
           className="w-7 h-7 rounded border flex items-center justify-center text-xs transition-all hover:bg-[#eff6ff] disabled:opacity-40"
           style={{ borderColor: '#e2e8f0', color: '#475569' }}>‹</button>
-        {Array.from({ length: Math.min(total, 5) }, (_, i) => i + 1).map(p => (
+        {pages.map(p => (
           <button key={p} onClick={() => onPage && onPage(p)}
             className="w-7 h-7 rounded border flex items-center justify-center text-xs transition-all"
             style={{ borderColor: p === current ? '#1e3a5f' : '#e2e8f0', background: p === current ? '#1e3a5f' : 'white', color: p === current ? 'white' : '#475569' }}

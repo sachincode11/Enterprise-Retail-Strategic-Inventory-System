@@ -2,18 +2,21 @@
 
 > **Enterprise Retail & Strategic Inventory System**
 
-There are two ways to run this project. Choose the one that fits your situation:
+There are two ways to run the **web stack** of this project. The **mobile app** always runs separately via Expo regardless of which method you choose.
 
 | Method | Best for | Prerequisites |
 | :--- | :--- | :--- |
-| 🐳 **[Docker](#-method-1-docker-recommended)** | Everyone – zero local installs needed | Docker Desktop |
-| 🔧 **[Manual](#-method-2-manual-local-setup)** | When Docker is unavailable | Python 3.13, Node 20, MySQL 8, uv |
+| **[Docker](#-method-1-docker-recommended)** | Everyone – zero local installs needed | Docker Desktop |
+| **[Manual](#-method-2-manual-local-setup)** | When Docker is unavailable | Python 3.13, Node 20, MySQL 8, uv |
+| **[Mobile App](#-mobile-app-react-native--expo)** | Always run separately via Expo | Node 20, Expo CLI or Expo Go |
 
 ---
 
-## 🐳 Method 1: Docker (Recommended)
+## Method 1: Docker (Recommended)
 
-Docker spins up **all four services** (MySQL, MQTT broker, FastAPI backend, React frontend) with a single command. Nothing needs to be installed on your machine except Docker Desktop.
+Docker spins up the **web stack** — MySQL, MQTT broker, FastAPI backend, and the React/Vite web frontend — with a single command. Nothing needs to be installed on your machine except Docker Desktop.
+
+> **Note:** The **mobile app** (`frontend-mobile/`) is **not included in Docker**. It is a React Native / Expo project that must be run separately with Expo CLI. See the [Mobile App section](#-mobile-app-react-native--expo) below.
 
 ### Prerequisites
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
@@ -67,12 +70,13 @@ This populates MySQL with:
 - AI forecasts and chatbot data
 
 ### Step 5 – Open the app
-| Service | URL |
-| :--- | :--- |
-| **Web App** | http://localhost |
-| **API Docs (Swagger)** | http://localhost:8000/docs |
-| **MySQL** (GUI tools) | `localhost:3306` |
-| **MQTT Broker** | `localhost:1883` |
+| Service | URL | Notes |
+| :--- | :--- | :--- |
+| **Web App** | http://localhost | React/Vite admin & cashier UI |
+| **API Docs (Swagger)** | http://localhost:8000/docs | FastAPI backend |
+| **MySQL** (GUI tools) | `localhost:3306` | Use Workbench/DBeaver |
+| **MQTT Broker** | `localhost:1883` | IoT barcode scanners |
+| **Mobile App** | — | Run separately via Expo (see below) |
 
 ---
 
@@ -86,8 +90,8 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 | Service | URL | Auto-reload on save? |
 | :--- | :--- | :--- |
-| Frontend (Vite) | http://localhost:5173 | ✅ Yes |
-| Backend (uvicorn) | http://localhost:8000 | ✅ Yes |
+| Frontend (Vite) | http://localhost:5173 | Yes |
+| Backend (uvicorn) | http://localhost:8000 | Yes |
 | API Docs | http://localhost:8000/docs | — |
 
 ### Useful Docker commands
@@ -112,6 +116,43 @@ docker compose exec backend bash
 
 ---
 
+## Mobile App (React Native / Expo)
+
+The mobile customer-facing app lives in `frontend-mobile/myApp/` and is built with **React Native + Expo**. It **cannot be Dockerized** — Expo requires a native runtime (Android emulator, iOS simulator, or a physical device via **Expo Go**).
+
+The mobile app communicates with the backend API, so the backend must already be running (either via Docker or manually) before you start the app.
+
+### Prerequisites
+- Node.js **20 LTS**
+- Expo Go app installed on your phone **or** an Android/iOS emulator
+
+### Run the mobile app
+```bash
+cd frontend-mobile/myApp
+npm install
+npx expo start
+```
+This opens the **Expo Dev Tools** in your browser and displays a QR code.
+
+| Target | How to open |
+| :--- | :--- |
+| **Physical device** | Scan the QR code with the Expo Go app (iOS / Android) |
+| **Android emulator** | Press `a` in the Expo terminal |
+| **iOS simulator** | Press `i` in the Expo terminal (macOS only) |
+| **Web browser** | Press `w` in the Expo terminal |
+
+### Connecting to the backend
+
+The app talks to the backend API. Make sure the `API_URL` in the app points to the correct backend address:
+
+- **Docker (local machine):** `http://localhost:8000`
+- **Docker (physical device):** `http://<your-machine-LAN-IP>:8000` *(use `ipconfig` / `ifconfig` to find your IP)*
+- **Manual setup:** `http://127.0.0.1:8000`
+
+> **Tip:** When testing on a physical device, your phone and computer must be on the **same Wi-Fi network**. `localhost` will not work from a phone — use your machine's LAN IP instead.
+
+---
+
 ## Default Login Credentials
 
 After running `seed.py`, use these accounts:
@@ -124,7 +165,7 @@ After running `seed.py`, use these accounts:
 
 ---
 
-## 🔧 Method 2: Manual (Local Setup)
+## Method 2: Manual (Local Setup)
 
 Use this method only if Docker Desktop is not available on your machine.
 
@@ -204,9 +245,14 @@ MQTT_BROKER_HOST=localhost
 MQTT_BROKER_PORT=1883
 ```
 
+### Step 6 – Mobile app
+With the backend running, follow the **[Mobile App section](#-mobile-app-react-native--expo)** above to start the Expo dev server.
+
 ---
 
 ## Troubleshooting
+
+### Docker / Web
 
 | Symptom | Fix |
 | :--- | :--- |
@@ -217,3 +263,13 @@ MQTT_BROKER_PORT=1883
 | `uv sync` fails | Run `uv lock` locally to refresh `uv.lock`, commit it, then rebuild |
 | Port 80 already in use | Change `"80:80"` → `"8080:80"` in `docker-compose.yml` and open http://localhost:8080 |
 | FAISS index not found | Run `docker compose exec backend python seed.py` (or `python seed_ai.py` locally) |
+
+### Mobile App
+
+| Symptom | Fix |
+| :--- | :--- |
+| QR code scan fails / can't connect | Ensure your phone and computer are on the **same Wi-Fi network** |
+| `Network request failed` on device | Replace `localhost` with your machine's LAN IP (e.g. `192.168.x.x:8000`) in the app config |
+| `expo: command not found` | Run `npx expo start` instead, or install globally: `npm install -g expo-cli` |
+| Expo Go shows "Something went wrong" | Check backend is running; verify API URL in app config matches backend address |
+| Metro bundler port conflict | Add `--port 8082` to the `npx expo start` command |

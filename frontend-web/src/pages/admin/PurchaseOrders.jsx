@@ -103,7 +103,8 @@ export default function PurchaseOrders() {
           </tbody>
         </table>
         <Pagination current={page} total={totalPages}
-          label={`Showing ${(page-1)*PAGE_SIZE+1}–${Math.min(page*PAGE_SIZE,filtered.length)} of ${filtered.length} orders`}
+          label={`Showing ${filtered.length > 0 ? (page-1)*PAGE_SIZE+1 : 0}–${Math.min(page*PAGE_SIZE,filtered.length)} of ${filtered.length} orders`}
+          onPage={setPage}
           onPrev={() => setPage(p => Math.max(1,p-1))} onNext={() => setPage(p => Math.min(totalPages,p+1))} />
       </div>
     </AdminLayout>

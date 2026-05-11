@@ -1,5 +1,5 @@
 // src/pages/admin/Customers.jsx — IMPROVED: real data, search+filter, export
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { PageHeader, Badge, Button, StatCard, Pagination } from '../../components/common';
 import { useAdmin } from '../../context/AdminContext';
@@ -39,6 +39,15 @@ export default function Customers() {
     const n = parseInt((c.value || '').replace(/[^0-9]/g, ''), 10) || 0;
     return s + n;
   }, 0);
+
+  // Sync page state if it goes out of bounds after filtering
+  useEffect(() => {
+    if (totalPages > 0 && page > totalPages) {
+      setPage(totalPages);
+    } else if (totalPages === 0 && page !== 1) {
+      setPage(1);
+    }
+  }, [page, totalPages]);
 
   const handleExport = () => {
     const data = enriched.map(c => ({ Name: c.name, Phone: c.phone, Email: c.email, Orders: c.orders, 'Last Visit': c.lastVisit, 'Lifetime Value': c.value, Type: c.type }));
@@ -95,7 +104,8 @@ export default function Customers() {
           </tbody>
         </table>
         <Pagination current={page} total={totalPages}
-          label={`Showing ${(page-1)*PAGE_SIZE+1}–${Math.min(page*PAGE_SIZE, filtered.length)} of ${filtered.length} customers`}
+          label={`Showing ${filtered.length > 0 ? (page-1)*PAGE_SIZE+1 : 0}–${Math.min(page*PAGE_SIZE, filtered.length)} of ${filtered.length} customers`}
+          onPage={setPage}
           onPrev={() => setPage(p => Math.max(1,p-1))} onNext={() => setPage(p => Math.min(totalPages,p+1))} />
       </div>
     </AdminLayout>

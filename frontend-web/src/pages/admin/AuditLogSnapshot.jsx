@@ -26,7 +26,11 @@ const extendedLog = [
 export default function AuditLogSnapshot() {
   const { setCurrentPage } = useAdmin();
   const [filter, setFilter] = useState('All');
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 10;
   const filtered = filter === 'All' ? extendedLog : extendedLog.filter(e => e.severity === filter);
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   return (
     <AdminLayout>
@@ -60,7 +64,7 @@ export default function AuditLogSnapshot() {
         <input type="date"                    className="input-field" style={{ maxWidth:160 }} />
         <div className="flex gap-1 ml-auto">
           {['All','Info','Warning','Critical'].map(f => (
-            <button key={f} onClick={() => setFilter(f)}
+            <button key={f} onClick={() => { setFilter(f); setPage(1); }}
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
               style={filter===f ? {background:'#1e3a5f',color:'#fff'} : {background:'#fff',border:'1px solid #e2e8f0',color:'#475569'}}
             >{f}</button>
@@ -71,7 +75,7 @@ export default function AuditLogSnapshot() {
         <table className="data-table">
           <thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Detail</th><th>Severity</th></tr></thead>
           <tbody>
-            {filtered.map((entry, i) => {
+            {paginated.map((entry, i) => {
               const sev = severityColor[entry.severity] || severityColor.Info;
               return (
                 <tr key={i}>
@@ -83,9 +87,12 @@ export default function AuditLogSnapshot() {
                 </tr>
               );
             })}
+            {paginated.length === 0 && (
+              <tr><td colSpan={5} className="text-center py-10 text-sm text-[#94a3b8]">No events found</td></tr>
+            )}
           </tbody>
         </table>
-        <Pagination current={1} total={2} label={`Showing ${filtered.length} of ${extendedLog.length} events`} />
+        <Pagination current={page} total={totalPages} label={`Showing ${Math.min((page-1)*PER_PAGE+1, filtered.length)}–${Math.min(page*PER_PAGE, filtered.length)} of ${filtered.length} events`} onPage={setPage} />
       </div>
     </AdminLayout>
   );
