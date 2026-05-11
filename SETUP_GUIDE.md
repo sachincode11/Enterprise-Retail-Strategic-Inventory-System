@@ -196,6 +196,9 @@ cd Enterprise-Retail-Strategic-Inventory-System
 cd backend
 
 # Copy and configure environment
+# For window cmd
+copy .env.example .env
+# For Linux
 cp .env.example .env
 # Edit .env: set DATABASE_URL, GROQ_API_KEY, SMTP_*, JWT_SECRET_KEY
 ```
