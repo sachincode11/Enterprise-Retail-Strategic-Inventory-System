@@ -1,2 +1,52 @@
+# --- General ---
 .env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+Thumbs.db
+
+# --- Python / Backend ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+backend/faiss_indexes/
+
+# --- Node.js / Frontend ---
 node_modules/
+dist/
+dist-ssr/
+*.local
+.npm
+.eslintcache
+.stylelintcache
+frontend-web/dist/
+
+# --- Mobile (Expo/React Native) ---
+frontend-mobile/myApp/.expo/
+frontend-mobile/myApp/node_modules/
+frontend-mobile/myApp/dist/
+frontend-mobile/myApp/npm-debug.log*
+frontend-mobile/myApp/yarn-debug.log*
+frontend-mobile/myApp/yarn-error.log*
+
+# --- IDEs ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.project
+.settings/
+.classpath
+
+# --- Project Specific ---
+backend/scratch/
+api.json
+ersis.sql

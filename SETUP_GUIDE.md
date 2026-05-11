@@ -17,83 +17,80 @@ This guide provides step-by-step instructions on how to clone the Enterprise-Ret
 
 ---
 
-## 2. MySQL Database Setup (via MySQL Workbench)
+## 2. MySQL Database Setup
 
-The application uses MySQL. We need to create a database named `ersis` and import the initial schema from the `ersis.sql` file.
+The application uses MySQL. The backend is configured to automatically create the database schema (tables) upon first run.
 
 ### Step 2.1: Create the Database
-1. Open **MySQL Workbench** and connect to your local MySQL server (default user is usually `root`).
-2. In the query window, run the following SQL command to create the database:
+1. Open your MySQL client (e.g., **MySQL Workbench** or terminal).
+2. Connect to your local MySQL server (default user is usually `root`).
+3. Run the following SQL command to create the database:
    ```sql
    CREATE DATABASE ersis;
    ```
-3. Refresh the schemas panel on the left side to see the new `ersis` database.
 
-### Step 2.2: Import the Database Schema
-1. In MySQL Workbench, go to **Server** -> **Data Import** from the top menu.
-2. Select **Import from Self-Contained File**.
-3. Browse and select the `ersis.sql` file located in the root of the cloned project folder.
-4. Under "Default Target Schema", choose `ersis` from the dropdown list.
-5. Click **Start Import** in the bottom right corner.
-6. Once the import is successful, the `ersis` database will be populated with all the necessary tables.
-
-### Step 2.3: Configure the Backend Environment Variables
+### Step 2.2: Configure Environment Variables
 1. Navigate to the `backend/` folder.
-2. Open the `.env` file. Ensure that the `DATABASE_URL` matches your local MySQL credentials. For example:
-   ```env
-   DATABASE_URL=mysql+pymysql://root:password@localhost/ersis
+2. Copy the example environment file:
+   ```bash
+   cp .env.example .env
    ```
-   *(Change `root` and `password` to your actual MySQL username and password).*
+3. Open the newly created `.env` file and ensure the `DATABASE_URL` matches your local credentials:
+   ```env
+   DATABASE_URL=mysql+pymysql://root:YOUR_PASSWORD@localhost/ersis
+   ```
+   *(Replace `YOUR_PASSWORD` with your actual MySQL password).*
+
+4. Similarly, navigate to `frontend-web/` and copy its example file:
+   ```bash
+   cd ../frontend-web
+   cp .env.example .env
+   ```
 
 ---
 
-## 3. Backend Setup & Running `seed.py`
+## 3. Backend Setup & Global Seeding
 
-The backend is built with Python and FastAPI. It uses `uv` for package management.
+The backend is built with Python and FastAPI. It uses `uv` for ultra-fast package management.
 
 ### Step 3.1: Install Dependencies
-1. Open a terminal and navigate to the `backend/` folder:
+1. Navigate to the `backend/` folder:
    ```bash
    cd backend
    ```
-2. The backend uses **uv** for ultra-fast Python package management. You need to install `uv` first if you don't have it.
+2. Install `uv` if you don't have it:
    ```bash
    pip install uv
    ```
-
-3. Create a virtual environment using `uv`:
+3. Initialize the virtual environment and sync dependencies:
    ```bash
    uv venv
-   ```
-4. Activate the virtual environment:
-   - **On Windows**:
-     ```cmd
-     .venv\Scripts\activate
-     ```
-   - **On macOS/Linux**:
-     ```bash
-     source .venv/bin/activate
-     ```
-5. Install the exact project requirements from the lockfile:
-   ```bash
    uv sync
    ```
+4. Activate the virtual environment:
+   - **Windows**: `.venv\Scripts\activate`
+   - **macOS/Linux**: `source .venv/bin/activate`
 
-### Step 3.2: Seed the Database
-To populate the database with initial users, products, stores, and suppliers, run the `seed.py` script.
-1. Ensure your virtual environment is activated and your MySQL server is running.
+### Step 3.2: Run the Global Seeder
+Instead of importing a static SQL file, we use a master `seed.py` script to build and populate the database with fresh test data.
+1. Ensure your MySQL server is running and the `ersis` database is created.
 2. Inside the `backend/` directory, run:
    ```bash
    python seed.py
    ```
-3. You should see terminal output indicating that the records have been successfully inserted into the database.
+3. This will create all tables and seed the database with:
+   - Admin, Cashiers, and 10 Customers.
+   - Products, Categories, and Suppliers.
+   - 80 Historical Transactions (past 2 months).
+   - Knowledge Base (FAQs and Store Policies).
+   - AI Forecasts and Chatbot data.
 
 ### Step 3.3: Run the Backend Server
-1. With the virtual environment activated, start the FastAPI server:
+1. Start the FastAPI server:
    ```bash
    python -m uvicorn app.main:app --reload
    ```
-2. The backend server will start running at `http://127.0.0.1:8000`. You can visit `http://127.0.0.1:8000/docs` to see the interactive Swagger UI.
+2. The server will start at `http://127.0.0.1:8000`. Documentation is available at `http://127.0.0.1:8000/docs`.
 
 ---
 
@@ -101,30 +98,27 @@ To populate the database with initial users, products, stores, and suppliers, ru
 
 The frontend is built with React and Vite.
 
-1. Open a **new terminal window** (keep the backend running in the previous terminal).
+1. Open a **new terminal window** (keep the backend running).
 2. Navigate to the `frontend-web/` directory:
    ```bash
    cd frontend-web
    ```
-3. Install the NPM dependencies:
+3. Install dependencies and start the dev server:
    ```bash
    npm install
-   ```
-4. Start the frontend development server:
-   ```bash
    npm run dev
    ```
-5. The terminal will output a local URL (typically `http://localhost:5173`). Open this URL in your web browser to access the ERSIS application.
+4. Open the URL provided (typically `http://localhost:5173`) in your browser.
 
 ---
 
 ## Default Login Credentials
-After seeding the database, you can log in using the following default credentials (verify in your `seed.py` file if these change):
-- **Admin Access:**
-  - Username/Email: `admin@example.com` or `admin`
-  - Password: *(Check `seed.py` or the database for the exact password, typically `password123` or similar).*
-- **Cashier Access:**
-  - Username/Email: `cashier1@example.com` or `cashier1`
-  - Password: *(Check `seed.py`)*
+After running the `seed.py` script, you can use these accounts to explore the system:
+
+| Role | Email / Username | Password |
+| :--- | :--- | :--- |
+| **Admin** | `admin_seed@store.np` | `Password@123` |
+| **Cashier** | `cashier_seed1@store.np` | `Password@123` |
+| **Customer** | `customer_seed1@store.np` | `Password@123` |
 
 Happy Coding!
