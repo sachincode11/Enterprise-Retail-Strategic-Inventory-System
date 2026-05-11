@@ -143,13 +143,16 @@ This opens the **Expo Dev Tools** in your browser and displays a QR code.
 
 ### Connecting to the backend
 
-The app talks to the backend API. Make sure the `API_URL` in the app points to the correct backend address:
+The mobile app automatically detects your computer's IP address when running via **Expo Go**.
 
-- **Docker (local machine):** `http://localhost:8000`
-- **Docker (physical device):** `http://<your-machine-LAN-IP>:8000` *(use `ipconfig` / `ifconfig` to find your IP)*
-- **Manual setup:** `http://127.0.0.1:8000`
+- **Automatic Detection:** Check your terminal logs for: `[Config] Detected Backend URL: http://192.168.x.x:8000/api/v1`
+- **Manual Override:** If auto-detection fails, update `frontend-mobile/myApp/src/constants/config.js`.
 
-> **Tip:** When testing on a physical device, your phone and computer must be on the **same Wi-Fi network**. `localhost` will not work from a phone — use your machine's LAN IP instead.
+> [!IMPORTANT]
+> **Physical Device Requirements:**
+> 1. Your phone and computer must be on the **same Wi-Fi network**.
+> 2. You must allow **Port 8000** in your computer's firewall.
+> 3. If running manually (not Docker), you must use the `--host 0.0.0.0` flag (see below).
 
 ---
 
@@ -219,7 +222,8 @@ source .venv/bin/activate
 python seed.py
 
 # Start the API server
-python -m uvicorn app.main:app --reload
+# --host 0.0.0.0 is REQUIRED to connect from a real mobile phone
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 API is live at **http://127.0.0.1:8000** · Docs at **http://127.0.0.1:8000/docs**
 

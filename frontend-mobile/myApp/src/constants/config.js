@@ -13,19 +13,14 @@ const getBaseUrl = () => {
   if (Platform.OS === 'web') return 'http://localhost:8000/api/v1';
 
   // 2. Try to get the host IP from Expo's manifest
-  // hostUri typically looks like "192.168.1.50:8081"
   const hostUri = Constants.expoConfig?.hostUri || Constants.manifest2?.extra?.expoGo?.debuggerHost || Constants.manifest?.hostUri;
   
-  if (hostUri) {
-    const ip = hostUri.split(':')[0];
-    return `http://${ip}:8000/api/v1`;
-  }
+  const url = hostUri ? `http://${hostUri.split(':')[0]}:8000/api/v1` : 
+              Platform.OS === 'android' ? 'http://10.0.2.2:8000/api/v1' : 
+              'http://localhost:8000/api/v1';
 
-  // 3. Fallback for Android Emulator if hostUri is missing
-  if (Platform.OS === 'android') return 'http://10.0.2.2:8000/api/v1';
-
-  // 4. Final fallback
-  return 'http://localhost:8000/api/v1';
+  console.log(`[Config] Detected Backend URL: ${url}`);
+  return url;
 };
 
 export const API_CONFIG = {

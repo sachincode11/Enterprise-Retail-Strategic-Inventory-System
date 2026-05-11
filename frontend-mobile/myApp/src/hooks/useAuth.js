@@ -14,6 +14,12 @@ export function AuthProvider({ children }) {
       try {
         const stored = await AsyncStorage.getItem('@invo6_user');
         if (stored) setUser(JSON.parse(stored));
+        
+        // Test backend connectivity
+        apiRequest('/health', { withAuth: false })
+          .then(res => console.log("[Auth] Backend connection verified:", res.status))
+          .catch(err => console.error("[Auth] Backend connection failed! Check your LAN IP and Firewall.", err.message));
+          
       } catch (_) {}
       setLoading(false);
     })();
