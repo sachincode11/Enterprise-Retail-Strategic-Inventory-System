@@ -1,0 +1,4424 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+    "title": "Enterprise Retail & Strategic Inventory System",
+    "description": "Backend API for the Enterprise Retail & Strategic Inventory System – a cost-effective, secure, IoT-enabled billing and inventory platform.",
+    "version": "1.0.0"
+    },
+    "paths": {
+    "/api/v1/auth/register": {
+    "post": {
+    "tags": [
+    "Auth"
+    ],
+    "summary": "Register",
+    "description": "Self-registration for customers (mobile app).\nShopkeeper / cashier accounts are created by the admin.",
+    "operationId": "register_api_v1_auth_register_post",
+    "requestBody": {
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/RegisterRequest"
+    }
+    }
+    },
+    "required": true
+    },
+    "responses": {
+    "201": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/UserOut"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/auth/login": {
+    "post": {
+    "tags": [
+    "Auth"
+    ],
+    "summary": "Login",
+    "description": "Step 1 of login.\n- Customer  → returns tokens immediately.\n- Admin / Cashier → sends OTP email; client must call /auth/verify-otp next.",
+    "operationId": "login_api_v1_auth_login_post",
+    "requestBody": {
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/LoginRequest"
+    }
+    }
+    },
+    "required": true
+    },
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {}
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/auth/verify-otp": {
+    "post": {
+    "tags": [
+    "Auth"
+    ],
+    "summary": "Verify Otp Endpoint",
+    "description": "Step 2 – submit OTP to get tokens.",
+    "operationId": "verify_otp_endpoint_api_v1_auth_verify_otp_post",
+    "requestBody": {
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/OTPVerifyRequest"
+    }
+    }
+    },
+    "required": true
+    },
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {}
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/auth/refresh": {
+    "post": {
+    "tags": [
+    "Auth"
+    ],
+    "summary": "Refresh Token",
+    "operationId": "refresh_token_api_v1_auth_refresh_post",
+    "requestBody": {
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/RefreshRequest"
+    }
+    }
+    },
+    "required": true
+    },
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/TokenResponse"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/auth/logout": {
+    "post": {
+    "tags": [
+    "Auth"
+    ],
+    "summary": "Logout",
+    "operationId": "logout_api_v1_auth_logout_post",
+    "requestBody": {
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/RefreshRequest"
+    }
+    }
+    },
+    "required": true
+    },
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/MessageResponse"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    },
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ]
+    }
+    },
+    "/api/v1/stores/{store_id}/categories": {
+    "get": {
+    "tags": [
+    "Categories"
+    ],
+    "summary": "List Categories",
+    "operationId": "list_categories_api_v1_stores__store_id__categories_get",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "type": "array",
+    "items": {
+    "$ref": "#/components/schemas/CategoryOut"
+    },
+    "title": "Response List Categories Api V1 Stores  Store Id  Categories Get"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    },
+    "post": {
+    "tags": [
+    "Categories"
+    ],
+    "summary": "Create Category",
+    "operationId": "create_category_api_v1_stores__store_id__categories_post",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    }
+    ],
+    "requestBody": {
+    "required": true,
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/CategoryCreate"
+    }
+    }
+    }
+    },
+    "responses": {
+    "201": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/CategoryOut"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/stores/{store_id}/categories/{category_id}": {
+    "delete": {
+    "tags": [
+    "Categories"
+    ],
+    "summary": "Delete Category",
+    "operationId": "delete_category_api_v1_stores__store_id__categories__category_id__delete",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    },
+    {
+    "name": "category_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Category Id"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/MessageResponse"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/stores/{store_id}/products": {
+    "get": {
+    "tags": [
+    "Products"
+    ],
+    "summary": "List Products",
+    "operationId": "list_products_api_v1_stores__store_id__products_get",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    },
+    {
+    "name": "page",
+    "in": "query",
+    "required": false,
+    "schema": {
+    "type": "integer",
+    "minimum": 1,
+    "default": 1,
+    "title": "Page"
+    }
+    },
+    {
+    "name": "size",
+    "in": "query",
+    "required": false,
+    "schema": {
+    "type": "integer",
+    "maximum": 100,
+    "minimum": 1,
+    "default": 20,
+    "title": "Size"
+    }
+    },
+    {
+    "name": "search",
+    "in": "query",
+    "required": false,
+    "schema": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Search"
+    }
+    },
+    {
+    "name": "category_id",
+    "in": "query",
+    "required": false,
+    "schema": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Category Id"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/PaginatedResponse"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    },
+    "post": {
+    "tags": [
+    "Products"
+    ],
+    "summary": "Create Product",
+    "operationId": "create_product_api_v1_stores__store_id__products_post",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    }
+    ],
+    "requestBody": {
+    "required": true,
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/ProductCreate"
+    }
+    }
+    }
+    },
+    "responses": {
+    "201": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/ProductOut"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/stores/{store_id}/products/{product_id}": {
+    "get": {
+    "tags": [
+    "Products"
+    ],
+    "summary": "Get Product",
+    "operationId": "get_product_api_v1_stores__store_id__products__product_id__get",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    },
+    {
+    "name": "product_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Product Id"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/ProductOut"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    },
+    "patch": {
+    "tags": [
+    "Products"
+    ],
+    "summary": "Update Product",
+    "operationId": "update_product_api_v1_stores__store_id__products__product_id__patch",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    },
+    {
+    "name": "product_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Product Id"
+    }
+    }
+    ],
+    "requestBody": {
+    "required": true,
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/ProductUpdate"
+    }
+    }
+    }
+    },
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/ProductOut"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    },
+    "delete": {
+    "tags": [
+    "Products"
+    ],
+    "summary": "Deactivate Product",
+    "description": "Soft-delete: set is_active = False.",
+    "operationId": "deactivate_product_api_v1_stores__store_id__products__product_id__delete",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    },
+    {
+    "name": "product_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Product Id"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/MessageResponse"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/stores/{store_id}/products/barcode/{barcode}": {
+    "get": {
+    "tags": [
+    "Products"
+    ],
+    "summary": "Get Product By Barcode",
+    "operationId": "get_product_by_barcode_api_v1_stores__store_id__products_barcode__barcode__get",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    },
+    {
+    "name": "barcode",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Barcode"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/ProductOut"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/stores/{store_id}/inventory": {
+    "get": {
+    "tags": [
+    "Inventory"
+    ],
+    "summary": "List Inventory",
+    "operationId": "list_inventory_api_v1_stores__store_id__inventory_get",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    },
+    {
+    "name": "low_stock",
+    "in": "query",
+    "required": false,
+    "schema": {
+    "type": "boolean",
+    "default": false,
+    "title": "Low Stock"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "type": "array",
+    "items": {
+    "$ref": "#/components/schemas/InventoryOut"
+    },
+    "title": "Response List Inventory Api V1 Stores  Store Id  Inventory Get"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/stores/{store_id}/inventory/{product_id}/adjust": {
+    "post": {
+    "tags": [
+    "Inventory"
+    ],
+    "summary": "Adjust Inventory",
+    "operationId": "adjust_inventory_api_v1_stores__store_id__inventory__product_id__adjust_post",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    },
+    {
+    "name": "product_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Product Id"
+    }
+    }
+    ],
+    "requestBody": {
+    "required": true,
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/InventoryAdjust"
+    }
+    }
+    }
+    },
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/InventoryOut"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/stores/{store_id}/transactions": {
+    "get": {
+    "tags": [
+    "Transactions"
+    ],
+    "summary": "List Transactions",
+    "operationId": "list_transactions_api_v1_stores__store_id__transactions_get",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    },
+    {
+    "name": "page",
+    "in": "query",
+    "required": false,
+    "schema": {
+    "type": "integer",
+    "minimum": 1,
+    "default": 1,
+    "title": "Page"
+    }
+    },
+    {
+    "name": "size",
+    "in": "query",
+    "required": false,
+    "schema": {
+    "type": "integer",
+    "maximum": 100,
+    "minimum": 1,
+    "default": 20,
+    "title": "Size"
+    }
+    },
+    {
+    "name": "customer_id",
+    "in": "query",
+    "required": false,
+    "schema": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Customer Id"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "type": "array",
+    "items": {
+    "$ref": "#/components/schemas/TransactionOut"
+    },
+    "title": "Response List Transactions Api V1 Stores  Store Id  Transactions Get"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    },
+    "post": {
+    "tags": [
+    "Transactions"
+    ],
+    "summary": "Create Transaction",
+    "description": "Create and complete a billing transaction.\nValidates stock, computes totals, records payment, decrements inventory.",
+    "operationId": "create_transaction_api_v1_stores__store_id__transactions_post",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    }
+    ],
+    "requestBody": {
+    "required": true,
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/TransactionCreate"
+    }
+    }
+    }
+    },
+    "responses": {
+    "201": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/TransactionOut"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/stores/{store_id}/transactions/{transaction_id}": {
+    "get": {
+    "tags": [
+    "Transactions"
+    ],
+    "summary": "Get Transaction",
+    "operationId": "get_transaction_api_v1_stores__store_id__transactions__transaction_id__get",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    },
+    {
+    "name": "transaction_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Transaction Id"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/TransactionOut"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/stores/{store_id}/refunds": {
+    "post": {
+    "tags": [
+    "Refunds"
+    ],
+    "summary": "Process Refund",
+    "operationId": "process_refund_api_v1_stores__store_id__refunds_post",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    }
+    ],
+    "requestBody": {
+    "required": true,
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/RefundCreate"
+    }
+    }
+    }
+    },
+    "responses": {
+    "201": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {}
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/stores/{store_id}/suppliers": {
+    "get": {
+    "tags": [
+    "Suppliers"
+    ],
+    "summary": "List Suppliers",
+    "operationId": "list_suppliers_api_v1_stores__store_id__suppliers_get",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "type": "array",
+    "items": {
+    "$ref": "#/components/schemas/SupplierOut"
+    },
+    "title": "Response List Suppliers Api V1 Stores  Store Id  Suppliers Get"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    },
+    "post": {
+    "tags": [
+    "Suppliers"
+    ],
+    "summary": "Create Supplier",
+    "operationId": "create_supplier_api_v1_stores__store_id__suppliers_post",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    }
+    ],
+    "requestBody": {
+    "required": true,
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/SupplierCreate"
+    }
+    }
+    }
+    },
+    "responses": {
+    "201": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/SupplierOut"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/stores/{store_id}/suppliers/{supplier_id}": {
+    "patch": {
+    "tags": [
+    "Suppliers"
+    ],
+    "summary": "Update Supplier",
+    "operationId": "update_supplier_api_v1_stores__store_id__suppliers__supplier_id__patch",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    },
+    {
+    "name": "supplier_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Supplier Id"
+    }
+    }
+    ],
+    "requestBody": {
+    "required": true,
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/SupplierCreate"
+    }
+    }
+    }
+    },
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/SupplierOut"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    },
+    "delete": {
+    "tags": [
+    "Suppliers"
+    ],
+    "summary": "Delete Supplier",
+    "operationId": "delete_supplier_api_v1_stores__store_id__suppliers__supplier_id__delete",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    },
+    {
+    "name": "supplier_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Supplier Id"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/MessageResponse"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/stores/{store_id}/purchase-orders": {
+    "get": {
+    "tags": [
+    "Purchase Orders"
+    ],
+    "summary": "List Orders",
+    "operationId": "list_orders_api_v1_stores__store_id__purchase_orders_get",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "type": "array",
+    "items": {
+    "$ref": "#/components/schemas/PurchaseOrderOut"
+    },
+    "title": "Response List Orders Api V1 Stores  Store Id  Purchase Orders Get"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    },
+    "post": {
+    "tags": [
+    "Purchase Orders"
+    ],
+    "summary": "Create Order",
+    "operationId": "create_order_api_v1_stores__store_id__purchase_orders_post",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    }
+    ],
+    "requestBody": {
+    "required": true,
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/PurchaseOrderCreate"
+    }
+    }
+    }
+    },
+    "responses": {
+    "201": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/PurchaseOrderOut"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/users": {
+    "get": {
+    "tags": [
+    "User Management"
+    ],
+    "summary": "List Users",
+    "operationId": "list_users_api_v1_users_get",
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "items": {
+    "$ref": "#/components/schemas/UserOut"
+    },
+    "type": "array",
+    "title": "Response List Users Api V1 Users Get"
+    }
+    }
+    }
+    }
+    },
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ]
+    }
+    },
+    "/api/v1/users/{user_id}/deactivate": {
+    "patch": {
+    "tags": [
+    "User Management"
+    ],
+    "summary": "Deactivate User",
+    "operationId": "deactivate_user_api_v1_users__user_id__deactivate_patch",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "user_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "User Id"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/MessageResponse"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/users/{user_id}/activate": {
+    "patch": {
+    "tags": [
+    "User Management"
+    ],
+    "summary": "Activate User",
+    "operationId": "activate_user_api_v1_users__user_id__activate_patch",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "user_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "User Id"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/MessageResponse"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/users/assign-role": {
+    "post": {
+    "tags": [
+    "User Management"
+    ],
+    "summary": "Assign Role",
+    "operationId": "assign_role_api_v1_users_assign_role_post",
+    "requestBody": {
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/AssignRoleRequest"
+    }
+    }
+    },
+    "required": true
+    },
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/MessageResponse"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    },
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ]
+    }
+    },
+    "/api/v1/stores/{store_id}/faqs": {
+    "get": {
+    "tags": [
+    "Store FAQ"
+    ],
+    "summary": "List Faqs",
+    "operationId": "list_faqs_api_v1_stores__store_id__faqs_get",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "type": "array",
+    "items": {
+    "$ref": "#/components/schemas/FAQOut"
+    },
+    "title": "Response List Faqs Api V1 Stores  Store Id  Faqs Get"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    },
+    "post": {
+    "tags": [
+    "Store FAQ"
+    ],
+    "summary": "Create Faq",
+    "operationId": "create_faq_api_v1_stores__store_id__faqs_post",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    }
+    ],
+    "requestBody": {
+    "required": true,
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/FAQCreate"
+    }
+    }
+    }
+    },
+    "responses": {
+    "201": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/FAQOut"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/stores/{store_id}/faqs/{faq_id}": {
+    "delete": {
+    "tags": [
+    "Store FAQ"
+    ],
+    "summary": "Delete Faq",
+    "operationId": "delete_faq_api_v1_stores__store_id__faqs__faq_id__delete",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    },
+    {
+    "name": "faq_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Faq Id"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/MessageResponse"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/stores/{store_id}/policies": {
+    "get": {
+    "tags": [
+    "Store Policies"
+    ],
+    "summary": "List Policies",
+    "operationId": "list_policies_api_v1_stores__store_id__policies_get",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "type": "array",
+    "items": {
+    "$ref": "#/components/schemas/PolicyOut"
+    },
+    "title": "Response List Policies Api V1 Stores  Store Id  Policies Get"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    },
+    "post": {
+    "tags": [
+    "Store Policies"
+    ],
+    "summary": "Create Policy",
+    "operationId": "create_policy_api_v1_stores__store_id__policies_post",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Store Id"
+    }
+    }
+    ],
+    "requestBody": {
+    "required": true,
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/PolicyCreate"
+    }
+    }
+    }
+    },
+    "responses": {
+    "201": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/PolicyOut"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/notifications": {
+    "get": {
+    "tags": [
+    "Notifications"
+    ],
+    "summary": "My Notifications",
+    "operationId": "my_notifications_api_v1_notifications_get",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "unread_only",
+    "in": "query",
+    "required": false,
+    "schema": {
+    "type": "boolean",
+    "default": false,
+    "title": "Unread Only"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "type": "array",
+    "items": {
+    "$ref": "#/components/schemas/NotificationOut"
+    },
+    "title": "Response My Notifications Api V1 Notifications Get"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/notifications/{notification_id}/read": {
+    "patch": {
+    "tags": [
+    "Notifications"
+    ],
+    "summary": "Mark Read",
+    "operationId": "mark_read_api_v1_notifications__notification_id__read_patch",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "notification_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "string",
+    "title": "Notification Id"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/MessageResponse"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/stores/{store_id}/discounts": {
+    "get": {
+    "tags": [
+    "Discounts"
+    ],
+    "summary": "List Discounts",
+    "operationId": "list_discounts_api_v1_stores__store_id__discounts_get",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "integer",
+    "title": "Store Id"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "type": "array",
+    "items": {
+    "$ref": "#/components/schemas/DiscountOut"
+    },
+    "title": "Response List Discounts Api V1 Stores  Store Id  Discounts Get"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    },
+    "post": {
+    "tags": [
+    "Discounts"
+    ],
+    "summary": "Create Discount",
+    "operationId": "create_discount_api_v1_stores__store_id__discounts_post",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "integer",
+    "title": "Store Id"
+    }
+    }
+    ],
+    "requestBody": {
+    "required": true,
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/DiscountCreate"
+    }
+    }
+    }
+    },
+    "responses": {
+    "201": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/DiscountOut"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/stores/{store_id}/discounts/{discount_id}": {
+    "patch": {
+    "tags": [
+    "Discounts"
+    ],
+    "summary": "Update Discount",
+    "operationId": "update_discount_api_v1_stores__store_id__discounts__discount_id__patch",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "integer",
+    "title": "Store Id"
+    }
+    },
+    {
+    "name": "discount_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "integer",
+    "title": "Discount Id"
+    }
+    }
+    ],
+    "requestBody": {
+    "required": true,
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/DiscountUpdate"
+    }
+    }
+    }
+    },
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/DiscountOut"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    },
+    "delete": {
+    "tags": [
+    "Discounts"
+    ],
+    "summary": "Delete Discount",
+    "operationId": "delete_discount_api_v1_stores__store_id__discounts__discount_id__delete",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "integer",
+    "title": "Store Id"
+    }
+    },
+    {
+    "name": "discount_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "integer",
+    "title": "Discount Id"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/MessageResponse"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/stores/{store_id}/staff": {
+    "get": {
+    "tags": [
+    "Staff"
+    ],
+    "summary": "List Staff",
+    "description": "Return all active admin/cashier users for the given store.",
+    "operationId": "list_staff_api_v1_stores__store_id__staff_get",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "integer",
+    "title": "Store Id"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "type": "array",
+    "items": {
+    "$ref": "#/components/schemas/StaffOut"
+    },
+    "title": "Response List Staff Api V1 Stores  Store Id  Staff Get"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/stores/{store_id}/customers": {
+    "get": {
+    "tags": [
+    "Customers"
+    ],
+    "summary": "List Customers",
+    "description": "Return all registered customer users (customer role).",
+    "operationId": "list_customers_api_v1_stores__store_id__customers_get",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "integer",
+    "title": "Store Id"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "type": "array",
+    "items": {
+    "$ref": "#/components/schemas/UserOut"
+    },
+    "title": "Response List Customers Api V1 Stores  Store Id  Customers Get"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/api/v1/stores/{store_id}": {
+    "get": {
+    "tags": [
+    "Stores"
+    ],
+    "summary": "Get Store",
+    "operationId": "get_store_api_v1_stores__store_id__get",
+    "security": [
+    {
+    "HTTPBearer": []
+    }
+    ],
+    "parameters": [
+    {
+    "name": "store_id",
+    "in": "path",
+    "required": true,
+    "schema": {
+    "type": "integer",
+    "title": "Store Id"
+    }
+    }
+    ],
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/StoreOut"
+    }
+    }
+    }
+    },
+    "422": {
+    "description": "Validation Error",
+    "content": {
+    "application/json": {
+    "schema": {
+    "$ref": "#/components/schemas/HTTPValidationError"
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "/health": {
+    "get": {
+    "tags": [
+    "Health"
+    ],
+    "summary": "Health",
+    "operationId": "health_health_get",
+    "responses": {
+    "200": {
+    "description": "Successful Response",
+    "content": {
+    "application/json": {
+    "schema": {}
+    }
+    }
+    }
+    }
+    }
+    }
+    },
+    "components": {
+    "schemas": {
+    "AssignRoleRequest": {
+    "properties": {
+    "user_id": {
+    "type": "integer",
+    "title": "User Id"
+    },
+    "role": {
+    "$ref": "#/components/schemas/UserRole"
+    },
+    "store_id": {
+    "type": "integer",
+    "title": "Store Id"
+    }
+    },
+    "type": "object",
+    "required": [
+    "user_id",
+    "role",
+    "store_id"
+    ],
+    "title": "AssignRoleRequest"
+    },
+    "CategoryCreate": {
+    "properties": {
+    "category_name": {
+    "type": "string",
+    "title": "Category Name"
+    },
+    "parent_category_id": {
+    "anyOf": [
+    {
+    "type": "integer"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Parent Category Id"
+    },
+    "description": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Description"
+    }
+    },
+    "type": "object",
+    "required": [
+    "category_name"
+    ],
+    "title": "CategoryCreate"
+    },
+    "CategoryOut": {
+    "properties": {
+    "category_id": {
+    "type": "integer",
+    "title": "Category Id"
+    },
+    "store_id": {
+    "type": "integer",
+    "title": "Store Id"
+    },
+    "category_name": {
+    "type": "string",
+    "title": "Category Name"
+    },
+    "parent_category_id": {
+    "anyOf": [
+    {
+    "type": "integer"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Parent Category Id"
+    },
+    "description": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Description"
+    }
+    },
+    "type": "object",
+    "required": [
+    "category_id",
+    "store_id",
+    "category_name",
+    "parent_category_id",
+    "description"
+    ],
+    "title": "CategoryOut"
+    },
+    "DiscountAppliesTo": {
+    "type": "string",
+    "enum": [
+    "product",
+    "category",
+    "transaction"
+    ],
+    "title": "DiscountAppliesTo"
+    },
+    "DiscountCreate": {
+    "properties": {
+    "discount_name": {
+    "type": "string",
+    "title": "Discount Name"
+    },
+    "discount_type": {
+    "$ref": "#/components/schemas/DiscountType"
+    },
+    "discount_value": {
+    "anyOf": [
+    {
+    "type": "number"
+    },
+    {
+    "type": "string",
+    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+    }
+    ],
+    "title": "Discount Value"
+    },
+    "applies_to": {
+    "$ref": "#/components/schemas/DiscountAppliesTo"
+    },
+    "product_id": {
+    "anyOf": [
+    {
+    "type": "integer"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Product Id"
+    },
+    "category_id": {
+    "anyOf": [
+    {
+    "type": "integer"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Category Id"
+    },
+    "min_purchase_amount": {
+    "anyOf": [
+    {
+    "type": "number"
+    },
+    {
+    "type": "string",
+    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Min Purchase Amount"
+    },
+    "valid_from": {
+    "anyOf": [
+    {
+    "type": "string",
+    "format": "date"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Valid From"
+    },
+    "valid_until": {
+    "anyOf": [
+    {
+    "type": "string",
+    "format": "date"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Valid Until"
+    }
+    },
+    "type": "object",
+    "required": [
+    "discount_name",
+    "discount_type",
+    "discount_value",
+    "applies_to"
+    ],
+    "title": "DiscountCreate"
+    },
+    "DiscountOut": {
+    "properties": {
+    "discount_id": {
+    "type": "integer",
+    "title": "Discount Id"
+    },
+    "store_id": {
+    "type": "integer",
+    "title": "Store Id"
+    },
+    "discount_name": {
+    "type": "string",
+    "title": "Discount Name"
+    },
+    "discount_type": {
+    "$ref": "#/components/schemas/DiscountType"
+    },
+    "discount_value": {
+    "type": "string",
+    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+    "title": "Discount Value"
+    },
+    "applies_to": {
+    "$ref": "#/components/schemas/DiscountAppliesTo"
+    },
+    "min_purchase_amount": {
+    "anyOf": [
+    {
+    "type": "string",
+    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Min Purchase Amount"
+    },
+    "valid_from": {
+    "anyOf": [
+    {
+    "type": "string",
+    "format": "date"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Valid From"
+    },
+    "valid_until": {
+    "anyOf": [
+    {
+    "type": "string",
+    "format": "date"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Valid Until"
+    },
+    "is_active": {
+    "type": "boolean",
+    "title": "Is Active"
+    }
+    },
+    "type": "object",
+    "required": [
+    "discount_id",
+    "store_id",
+    "discount_name",
+    "discount_type",
+    "discount_value",
+    "applies_to",
+    "min_purchase_amount",
+    "valid_from",
+    "valid_until",
+    "is_active"
+    ],
+    "title": "DiscountOut"
+    },
+    "DiscountType": {
+    "type": "string",
+    "enum": [
+    "percentage",
+    "fixed_amount"
+    ],
+    "title": "DiscountType"
+    },
+    "DiscountUpdate": {
+    "properties": {
+    "discount_name": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Discount Name"
+    },
+    "discount_type": {
+    "anyOf": [
+    {
+    "$ref": "#/components/schemas/DiscountType"
+    },
+    {
+    "type": "null"
+    }
+    ]
+    },
+    "discount_value": {
+    "anyOf": [
+    {
+    "type": "number"
+    },
+    {
+    "type": "string",
+    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Discount Value"
+    },
+    "applies_to": {
+    "anyOf": [
+    {
+    "$ref": "#/components/schemas/DiscountAppliesTo"
+    },
+    {
+    "type": "null"
+    }
+    ]
+    },
+    "product_id": {
+    "anyOf": [
+    {
+    "type": "integer"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Product Id"
+    },
+    "category_id": {
+    "anyOf": [
+    {
+    "type": "integer"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Category Id"
+    },
+    "min_purchase_amount": {
+    "anyOf": [
+    {
+    "type": "number"
+    },
+    {
+    "type": "string",
+    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Min Purchase Amount"
+    },
+    "valid_from": {
+    "anyOf": [
+    {
+    "type": "string",
+    "format": "date"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Valid From"
+    },
+    "valid_until": {
+    "anyOf": [
+    {
+    "type": "string",
+    "format": "date"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Valid Until"
+    },
+    "is_active": {
+    "anyOf": [
+    {
+    "type": "boolean"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Is Active"
+    }
+    },
+    "type": "object",
+    "title": "DiscountUpdate"
+    },
+    "FAQCreate": {
+    "properties": {
+    "question": {
+    "type": "string",
+    "title": "Question"
+    },
+    "answer": {
+    "type": "string",
+    "title": "Answer"
+    }
+    },
+    "type": "object",
+    "required": [
+    "question",
+    "answer"
+    ],
+    "title": "FAQCreate"
+    },
+    "FAQOut": {
+    "properties": {
+    "faq_id": {
+    "type": "integer",
+    "title": "Faq Id"
+    },
+    "store_id": {
+    "type": "integer",
+    "title": "Store Id"
+    },
+    "question": {
+    "type": "string",
+    "title": "Question"
+    },
+    "answer": {
+    "type": "string",
+    "title": "Answer"
+    },
+    "is_active": {
+    "type": "boolean",
+    "title": "Is Active"
+    }
+    },
+    "type": "object",
+    "required": [
+    "faq_id",
+    "store_id",
+    "question",
+    "answer",
+    "is_active"
+    ],
+    "title": "FAQOut"
+    },
+    "HTTPValidationError": {
+    "properties": {
+    "detail": {
+    "items": {
+    "$ref": "#/components/schemas/ValidationError"
+    },
+    "type": "array",
+    "title": "Detail"
+    }
+    },
+    "type": "object",
+    "title": "HTTPValidationError"
+    },
+    "InventoryAdjust": {
+    "properties": {
+    "quantity_change": {
+    "type": "integer",
+    "title": "Quantity Change"
+    },
+    "movement_type": {
+    "$ref": "#/components/schemas/MovementType"
+    },
+    "reference_type": {
+    "anyOf": [
+    {
+    "$ref": "#/components/schemas/InventoryReferenceType"
+    },
+    {
+    "type": "null"
+    }
+    ]
+    },
+    "reference_id": {
+    "anyOf": [
+    {
+    "type": "integer"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Reference Id"
+    },
+    "notes": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Notes"
+    }
+    },
+    "type": "object",
+    "required": [
+    "quantity_change",
+    "movement_type"
+    ],
+    "title": "InventoryAdjust"
+    },
+    "InventoryOut": {
+    "properties": {
+    "inventory_id": {
+    "type": "integer",
+    "title": "Inventory Id"
+    },
+    "product_id": {
+    "type": "integer",
+    "title": "Product Id"
+    },
+    "store_id": {
+    "type": "integer",
+    "title": "Store Id"
+    },
+    "quantity_in_stock": {
+    "type": "integer",
+    "title": "Quantity In Stock"
+    },
+    "reorder_level": {
+    "anyOf": [
+    {
+    "type": "integer"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Reorder Level"
+    },
+    "last_restocked_at": {
+    "anyOf": [
+    {
+    "type": "string",
+    "format": "date-time"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Last Restocked At"
+    },
+    "updated_at": {
+    "type": "string",
+    "format": "date-time",
+    "title": "Updated At"
+    }
+    },
+    "type": "object",
+    "required": [
+    "inventory_id",
+    "product_id",
+    "store_id",
+    "quantity_in_stock",
+    "reorder_level",
+    "last_restocked_at",
+    "updated_at"
+    ],
+    "title": "InventoryOut"
+    },
+    "InventoryReferenceType": {
+    "type": "string",
+    "enum": [
+    "transaction",
+    "manual",
+    "return"
+    ],
+    "title": "InventoryReferenceType"
+    },
+    "LoginRequest": {
+    "properties": {
+    "email": {
+    "type": "string",
+    "format": "email",
+    "title": "Email"
+    },
+    "password": {
+    "type": "string",
+    "title": "Password"
+    }
+    },
+    "type": "object",
+    "required": [
+    "email",
+    "password"
+    ],
+    "title": "LoginRequest"
+    },
+    "MessageResponse": {
+    "properties": {
+    "message": {
+    "type": "string",
+    "title": "Message"
+    }
+    },
+    "type": "object",
+    "required": [
+    "message"
+    ],
+    "title": "MessageResponse"
+    },
+    "MovementType": {
+    "type": "string",
+    "enum": [
+    "sale",
+    "restock",
+    "adjustment",
+    "damage",
+    "return"
+    ],
+    "title": "MovementType"
+    },
+    "NotificationChannel": {
+    "type": "string",
+    "enum": [
+    "email",
+    "in_app",
+    "sms"
+    ],
+    "title": "NotificationChannel"
+    },
+    "NotificationOut": {
+    "properties": {
+    "notification_id": {
+    "type": "integer",
+    "title": "Notification Id"
+    },
+    "notification_type": {
+    "$ref": "#/components/schemas/NotificationType"
+    },
+    "channel": {
+    "$ref": "#/components/schemas/NotificationChannel"
+    },
+    "subject": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Subject"
+    },
+    "body": {
+    "type": "string",
+    "title": "Body"
+    },
+    "status": {
+    "$ref": "#/components/schemas/NotificationStatus"
+    },
+    "sent_at": {
+    "anyOf": [
+    {
+    "type": "string",
+    "format": "date-time"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Sent At"
+    },
+    "read_at": {
+    "anyOf": [
+    {
+    "type": "string",
+    "format": "date-time"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Read At"
+    },
+    "created_at": {
+    "type": "string",
+    "format": "date-time",
+    "title": "Created At"
+    }
+    },
+    "type": "object",
+    "required": [
+    "notification_id",
+    "notification_type",
+    "channel",
+    "subject",
+    "body",
+    "status",
+    "sent_at",
+    "read_at",
+    "created_at"
+    ],
+    "title": "NotificationOut"
+    },
+    "NotificationStatus": {
+    "type": "string",
+    "enum": [
+    "pending",
+    "sent",
+    "failed",
+    "read"
+    ],
+    "title": "NotificationStatus"
+    },
+    "NotificationType": {
+    "type": "string",
+    "enum": [
+    "low_stock_alert",
+    "transaction_receipt",
+    "otp",
+    "refund_processed",
+    "system_alert"
+    ],
+    "title": "NotificationType"
+    },
+    "OTPPurpose": {
+    "type": "string",
+    "enum": [
+    "login_2fa",
+    "password_reset",
+    "email_verification"
+    ],
+    "title": "OTPPurpose"
+    },
+    "OTPVerifyRequest": {
+    "properties": {
+    "email": {
+    "type": "string",
+    "format": "email",
+    "title": "Email"
+    },
+    "otp_code": {
+    "type": "string",
+    "title": "Otp Code"
+    },
+    "purpose": {
+    "$ref": "#/components/schemas/OTPPurpose",
+    "default": "login_2fa"
+    }
+    },
+    "type": "object",
+    "required": [
+    "email",
+    "otp_code"
+    ],
+    "title": "OTPVerifyRequest"
+    },
+    "PaginatedResponse": {
+    "properties": {
+    "total": {
+    "type": "integer",
+    "title": "Total"
+    },
+    "page": {
+    "type": "integer",
+    "title": "Page"
+    },
+    "size": {
+    "type": "integer",
+    "title": "Size"
+    },
+    "items": {
+    "items": {},
+    "type": "array",
+    "title": "Items"
+    }
+    },
+    "type": "object",
+    "required": [
+    "total",
+    "page",
+    "size",
+    "items"
+    ],
+    "title": "PaginatedResponse"
+    },
+    "PaymentMethod": {
+    "type": "string",
+    "enum": [
+    "cash",
+    "card"
+    ],
+    "title": "PaymentMethod"
+    },
+    "PolicyAccessLevel": {
+    "type": "string",
+    "enum": [
+    "public",
+    "private"
+    ],
+    "title": "PolicyAccessLevel"
+    },
+    "PolicyCreate": {
+    "properties": {
+    "policy_name": {
+    "type": "string",
+    "title": "Policy Name"
+    },
+    "content": {
+    "type": "string",
+    "title": "Content"
+    },
+    "access_level": {
+    "$ref": "#/components/schemas/PolicyAccessLevel",
+    "default": "public"
+    }
+    },
+    "type": "object",
+    "required": [
+    "policy_name",
+    "content"
+    ],
+    "title": "PolicyCreate"
+    },
+    "PolicyOut": {
+    "properties": {
+    "policy_id": {
+    "type": "integer",
+    "title": "Policy Id"
+    },
+    "store_id": {
+    "type": "integer",
+    "title": "Store Id"
+    },
+    "policy_name": {
+    "type": "string",
+    "title": "Policy Name"
+    },
+    "access_level": {
+    "$ref": "#/components/schemas/PolicyAccessLevel"
+    },
+    "is_active": {
+    "type": "boolean",
+    "title": "Is Active"
+    }
+    },
+    "type": "object",
+    "required": [
+    "policy_id",
+    "store_id",
+    "policy_name",
+    "access_level",
+    "is_active"
+    ],
+    "title": "PolicyOut"
+    },
+    "ProductCreate": {
+    "properties": {
+    "category_id": {
+    "anyOf": [
+    {
+    "type": "integer"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Category Id"
+    },
+    "supplier_id": {
+    "anyOf": [
+    {
+    "type": "integer"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Supplier Id"
+    },
+    "product_name": {
+    "type": "string",
+    "title": "Product Name"
+    },
+    "barcode": {
+    "type": "string",
+    "title": "Barcode"
+    },
+    "description": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Description"
+    },
+    "unit_price": {
+    "anyOf": [
+    {
+    "type": "number"
+    },
+    {
+    "type": "string",
+    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+    }
+    ],
+    "title": "Unit Price"
+    },
+    "tax_rate": {
+    "anyOf": [
+    {
+    "type": "number"
+    },
+    {
+    "type": "string",
+    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+    }
+    ],
+    "title": "Tax Rate",
+    "default": "0.00"
+    },
+    "unit_of_measure": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Unit Of Measure"
+    }
+    },
+    "type": "object",
+    "required": [
+    "product_name",
+    "barcode",
+    "unit_price"
+    ],
+    "title": "ProductCreate"
+    },
+    "ProductOut": {
+    "properties": {
+    "product_id": {
+    "type": "integer",
+    "title": "Product Id"
+    },
+    "store_id": {
+    "type": "integer",
+    "title": "Store Id"
+    },
+    "category_id": {
+    "anyOf": [
+    {
+    "type": "integer"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Category Id"
+    },
+    "supplier_id": {
+    "anyOf": [
+    {
+    "type": "integer"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Supplier Id"
+    },
+    "product_name": {
+    "type": "string",
+    "title": "Product Name"
+    },
+    "barcode": {
+    "type": "string",
+    "title": "Barcode"
+    },
+    "description": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Description"
+    },
+    "unit_price": {
+    "type": "string",
+    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+    "title": "Unit Price"
+    },
+    "tax_rate": {
+    "type": "string",
+    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+    "title": "Tax Rate"
+    },
+    "unit_of_measure": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Unit Of Measure"
+    },
+    "is_active": {
+    "type": "boolean",
+    "title": "Is Active"
+    },
+    "created_at": {
+    "type": "string",
+    "format": "date-time",
+    "title": "Created At"
+    }
+    },
+    "type": "object",
+    "required": [
+    "product_id",
+    "store_id",
+    "category_id",
+    "product_name",
+    "barcode",
+    "description",
+    "unit_price",
+    "tax_rate",
+    "unit_of_measure",
+    "is_active",
+    "created_at"
+    ],
+    "title": "ProductOut"
+    },
+    "ProductUpdate": {
+    "properties": {
+    "category_id": {
+    "anyOf": [
+    {
+    "type": "integer"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Category Id"
+    },
+    "supplier_id": {
+    "anyOf": [
+    {
+    "type": "integer"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Supplier Id"
+    },
+    "product_name": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Product Name"
+    },
+    "description": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Description"
+    },
+    "unit_price": {
+    "anyOf": [
+    {
+    "type": "number"
+    },
+    {
+    "type": "string",
+    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Unit Price"
+    },
+    "tax_rate": {
+    "anyOf": [
+    {
+    "type": "number"
+    },
+    {
+    "type": "string",
+    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Tax Rate"
+    },
+    "unit_of_measure": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Unit Of Measure"
+    },
+    "is_active": {
+    "anyOf": [
+    {
+    "type": "boolean"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Is Active"
+    }
+    },
+    "type": "object",
+    "title": "ProductUpdate"
+    },
+    "PurchaseOrderCreate": {
+    "properties": {
+    "supplier_id": {
+    "type": "integer",
+    "title": "Supplier Id"
+    },
+    "items": {
+    "items": {
+    "$ref": "#/components/schemas/PurchaseOrderItemIn"
+    },
+    "type": "array",
+    "title": "Items"
+    },
+    "expected_date": {
+    "anyOf": [
+    {
+    "type": "string",
+    "format": "date"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Expected Date"
+    },
+    "notes": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Notes"
+    }
+    },
+    "type": "object",
+    "required": [
+    "supplier_id",
+    "items"
+    ],
+    "title": "PurchaseOrderCreate"
+    },
+    "PurchaseOrderItemIn": {
+    "properties": {
+    "product_id": {
+    "type": "integer",
+    "title": "Product Id"
+    },
+    "quantity_ordered": {
+    "type": "integer",
+    "title": "Quantity Ordered"
+    },
+    "unit_cost": {
+    "anyOf": [
+    {
+    "type": "number"
+    },
+    {
+    "type": "string",
+    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+    }
+    ],
+    "title": "Unit Cost"
+    }
+    },
+    "type": "object",
+    "required": [
+    "product_id",
+    "quantity_ordered",
+    "unit_cost"
+    ],
+    "title": "PurchaseOrderItemIn"
+    },
+    "PurchaseOrderOut": {
+    "properties": {
+    "order_id": {
+    "type": "integer",
+    "title": "Order Id"
+    },
+    "store_id": {
+    "type": "integer",
+    "title": "Store Id"
+    },
+    "supplier_id": {
+    "type": "integer",
+    "title": "Supplier Id"
+    },
+    "status": {
+    "$ref": "#/components/schemas/PurchaseOrderStatus"
+    },
+    "order_date": {
+    "type": "string",
+    "format": "date-time",
+    "title": "Order Date"
+    },
+    "expected_date": {
+    "anyOf": [
+    {
+    "type": "string",
+    "format": "date"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Expected Date"
+    }
+    },
+    "type": "object",
+    "required": [
+    "order_id",
+    "store_id",
+    "supplier_id",
+    "status",
+    "order_date",
+    "expected_date"
+    ],
+    "title": "PurchaseOrderOut"
+    },
+    "PurchaseOrderStatus": {
+    "type": "string",
+    "enum": [
+    "pending",
+    "partial",
+    "received",
+    "cancelled"
+    ],
+    "title": "PurchaseOrderStatus"
+    },
+    "RefreshRequest": {
+    "properties": {
+    "refresh_token": {
+    "type": "string",
+    "title": "Refresh Token"
+    }
+    },
+    "type": "object",
+    "required": [
+    "refresh_token"
+    ],
+    "title": "RefreshRequest"
+    },
+    "RefundCreate": {
+    "properties": {
+    "original_transaction_id": {
+    "type": "integer",
+    "title": "Original Transaction Id"
+    },
+    "product_id": {
+    "type": "integer",
+    "title": "Product Id"
+    },
+    "quantity_returned": {
+    "type": "integer",
+    "title": "Quantity Returned"
+    },
+    "reason": {
+    "$ref": "#/components/schemas/RefundReason"
+    },
+    "notes": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Notes"
+    }
+    },
+    "type": "object",
+    "required": [
+    "original_transaction_id",
+    "product_id",
+    "quantity_returned",
+    "reason"
+    ],
+    "title": "RefundCreate"
+    },
+    "RefundReason": {
+    "type": "string",
+    "enum": [
+    "defective",
+    "wrong_item",
+    "customer_change_mind",
+    "other"
+    ],
+    "title": "RefundReason"
+    },
+    "RegisterRequest": {
+    "properties": {
+    "username": {
+    "type": "string",
+    "title": "Username"
+    },
+    "first_name": {
+    "type": "string",
+    "title": "First Name"
+    },
+    "last_name": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Last Name"
+    },
+    "email": {
+    "type": "string",
+    "format": "email",
+    "title": "Email"
+    },
+    "password": {
+    "type": "string",
+    "title": "Password"
+    },
+    "phone": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Phone"
+    }
+    },
+    "type": "object",
+    "required": [
+    "username",
+    "first_name",
+    "email",
+    "password"
+    ],
+    "title": "RegisterRequest"
+    },
+    "StaffOut": {
+    "properties": {
+    "user_id": {
+    "type": "integer",
+    "title": "User Id"
+    },
+    "name": {
+    "type": "string",
+    "title": "Name"
+    },
+    "email": {
+    "type": "string",
+    "title": "Email"
+    },
+    "phone": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Phone"
+    },
+    "role": {
+    "type": "string",
+    "title": "Role"
+    },
+    "store_id": {
+    "type": "integer",
+    "title": "Store Id"
+    },
+    "is_active": {
+    "type": "boolean",
+    "title": "Is Active"
+    },
+    "created_at": {
+    "type": "string",
+    "format": "date-time",
+    "title": "Created At"
+    }
+    },
+    "type": "object",
+    "required": [
+    "user_id",
+    "name",
+    "email",
+    "phone",
+    "role",
+    "store_id",
+    "is_active",
+    "created_at"
+    ],
+    "title": "StaffOut"
+    },
+    "StoreOut": {
+    "properties": {
+    "store_id": {
+    "type": "integer",
+    "title": "Store Id"
+    },
+    "store_name": {
+    "type": "string",
+    "title": "Store Name"
+    },
+    "address": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Address"
+    },
+    "contact_email": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Contact Email"
+    },
+    "contact_phone": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Contact Phone"
+    },
+    "is_active": {
+    "type": "boolean",
+    "title": "Is Active"
+    },
+    "created_at": {
+    "type": "string",
+    "format": "date-time",
+    "title": "Created At"
+    }
+    },
+    "type": "object",
+    "required": [
+    "store_id",
+    "store_name",
+    "address",
+    "contact_email",
+    "contact_phone",
+    "is_active",
+    "created_at"
+    ],
+    "title": "StoreOut"
+    },
+    "SupplierCreate": {
+    "properties": {
+    "supplier_name": {
+    "type": "string",
+    "title": "Supplier Name"
+    },
+    "contact_person": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Contact Person"
+    },
+    "phone": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Phone"
+    },
+    "email": {
+    "anyOf": [
+    {
+    "type": "string",
+    "format": "email"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Email"
+    },
+    "address": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Address"
+    }
+    },
+    "type": "object",
+    "required": [
+    "supplier_name"
+    ],
+    "title": "SupplierCreate"
+    },
+    "SupplierOut": {
+    "properties": {
+    "supplier_id": {
+    "type": "integer",
+    "title": "Supplier Id"
+    },
+    "store_id": {
+    "anyOf": [
+    {
+    "type": "integer"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Store Id"
+    },
+    "supplier_name": {
+    "type": "string",
+    "title": "Supplier Name"
+    },
+    "contact_person": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Contact Person"
+    },
+    "phone": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Phone"
+    },
+    "email": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Email"
+    },
+    "is_active": {
+    "type": "boolean",
+    "title": "Is Active"
+    }
+    },
+    "type": "object",
+    "required": [
+    "supplier_id",
+    "supplier_name",
+    "contact_person",
+    "phone",
+    "email",
+    "is_active"
+    ],
+    "title": "SupplierOut"
+    },
+    "TokenResponse": {
+    "properties": {
+    "access_token": {
+    "type": "string",
+    "title": "Access Token"
+    },
+    "refresh_token": {
+    "type": "string",
+    "title": "Refresh Token"
+    },
+    "token_type": {
+    "type": "string",
+    "title": "Token Type",
+    "default": "bearer"
+    }
+    },
+    "type": "object",
+    "required": [
+    "access_token",
+    "refresh_token"
+    ],
+    "title": "TokenResponse"
+    },
+    "TransactionCreate": {
+    "properties": {
+    "customer_id": {
+    "anyOf": [
+    {
+    "type": "integer"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Customer Id"
+    },
+    "items": {
+    "items": {
+    "$ref": "#/components/schemas/TransactionItemIn"
+    },
+    "type": "array",
+    "title": "Items"
+    },
+    "payment_method": {
+    "$ref": "#/components/schemas/PaymentMethod"
+    },
+    "discount_ids": {
+    "items": {
+    "type": "integer"
+    },
+    "type": "array",
+    "title": "Discount Ids",
+    "default": []
+    }
+    },
+    "type": "object",
+    "required": [
+    "items",
+    "payment_method"
+    ],
+    "title": "TransactionCreate"
+    },
+    "TransactionItemIn": {
+    "properties": {
+    "product_id": {
+    "type": "integer",
+    "title": "Product Id"
+    },
+    "quantity": {
+    "type": "integer",
+    "title": "Quantity"
+    },
+    "discount_id": {
+    "anyOf": [
+    {
+    "type": "integer"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Discount Id"
+    }
+    },
+    "type": "object",
+    "required": [
+    "product_id",
+    "quantity"
+    ],
+    "title": "TransactionItemIn"
+    },
+    "TransactionItemOut": {
+    "properties": {
+    "item_id": {
+    "type": "integer",
+    "title": "Item Id"
+    },
+    "product_id": {
+    "type": "integer",
+    "title": "Product Id"
+    },
+    "quantity": {
+    "type": "integer",
+    "title": "Quantity"
+    },
+    "unit_price_at_sale": {
+    "type": "string",
+    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+    "title": "Unit Price At Sale"
+    },
+    "discount": {
+    "type": "string",
+    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+    "title": "Discount"
+    },
+    "line_total": {
+    "type": "string",
+    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+    "title": "Line Total"
+    }
+    },
+    "type": "object",
+    "required": [
+    "item_id",
+    "product_id",
+    "quantity",
+    "unit_price_at_sale",
+    "discount",
+    "line_total"
+    ],
+    "title": "TransactionItemOut"
+    },
+    "TransactionOut": {
+    "properties": {
+    "transaction_id": {
+    "type": "integer",
+    "title": "Transaction Id"
+    },
+    "invoice_number": {
+    "type": "string",
+    "title": "Invoice Number"
+    },
+    "store_id": {
+    "type": "integer",
+    "title": "Store Id"
+    },
+    "cashier_id": {
+    "type": "integer",
+    "title": "Cashier Id"
+    },
+    "customer_id": {
+    "anyOf": [
+    {
+    "type": "integer"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Customer Id"
+    },
+    "transaction_date": {
+    "type": "string",
+    "format": "date-time",
+    "title": "Transaction Date"
+    },
+    "subtotal": {
+    "type": "string",
+    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+    "title": "Subtotal"
+    },
+    "tax_amount": {
+    "type": "string",
+    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+    "title": "Tax Amount"
+    },
+    "discount_amount": {
+    "type": "string",
+    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+    "title": "Discount Amount"
+    },
+    "total_amount": {
+    "type": "string",
+    "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+    "title": "Total Amount"
+    },
+    "status": {
+    "$ref": "#/components/schemas/TransactionStatus"
+    },
+    "items": {
+    "items": {
+    "$ref": "#/components/schemas/TransactionItemOut"
+    },
+    "type": "array",
+    "title": "Items",
+    "default": []
+    }
+    },
+    "type": "object",
+    "required": [
+    "transaction_id",
+    "invoice_number",
+    "store_id",
+    "cashier_id",
+    "customer_id",
+    "transaction_date",
+    "subtotal",
+    "tax_amount",
+    "discount_amount",
+    "total_amount",
+    "status"
+    ],
+    "title": "TransactionOut"
+    },
+    "TransactionStatus": {
+    "type": "string",
+    "enum": [
+    "pending",
+    "completed",
+    "cancelled",
+    "refunded"
+    ],
+    "title": "TransactionStatus"
+    },
+    "UserOut": {
+    "properties": {
+    "user_id": {
+    "type": "integer",
+    "title": "User Id"
+    },
+    "username": {
+    "type": "string",
+    "title": "Username"
+    },
+    "first_name": {
+    "type": "string",
+    "title": "First Name"
+    },
+    "last_name": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Last Name"
+    },
+    "email": {
+    "type": "string",
+    "title": "Email"
+    },
+    "phone": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "null"
+    }
+    ],
+    "title": "Phone"
+    },
+    "is_active": {
+    "type": "boolean",
+    "title": "Is Active"
+    },
+    "created_at": {
+    "type": "string",
+    "format": "date-time",
+    "title": "Created At"
+    }
+    },
+    "type": "object",
+    "required": [
+    "user_id",
+    "username",
+    "first_name",
+    "last_name",
+    "email",
+    "phone",
+    "is_active",
+    "created_at"
+    ],
+    "title": "UserOut"
+    },
+    "UserRole": {
+    "type": "string",
+    "enum": [
+    "Admin",
+    "Cashier",
+    "Customer"
+    ],
+    "title": "UserRole"
+    },
+    "ValidationError": {
+    "properties": {
+    "loc": {
+    "items": {
+    "anyOf": [
+    {
+    "type": "string"
+    },
+    {
+    "type": "integer"
+    }
+    ]
+    },
+    "type": "array",
+    "title": "Location"
+    },
+    "msg": {
+    "type": "string",
+    "title": "Message"
+    },
+    "type": {
+    "type": "string",
+    "title": "Error Type"
+    },
+    "input": {
+    "title": "Input"
+    },
+    "ctx": {
+    "type": "object",
+    "title": "Context"
+    }
+    },
+    "type": "object",
+    "required": [
+    "loc",
+    "msg",
+    "type"
+    ],
+    "title": "ValidationError"
+    }
+    },
+    "securitySchemes": {
+    "HTTPBearer": {
+    "type": "http",
+    "scheme": "bearer"
+    }
+    }
+    }
+    }

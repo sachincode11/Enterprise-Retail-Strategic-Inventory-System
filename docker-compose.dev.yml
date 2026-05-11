@@ -1,0 +1,76 @@
+# =============================================================
+# ERSIS – docker-compose.dev.yml  (DEVELOPMENT OVERRIDE)
+# =============================================================
+#
+# This file extends the production compose file with dev-only
+# settings: hot-reload, source-code mounts, exposed debug ports.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# What changes vs production:
+#   backend  → uvicorn --reload, source mounted as bind volume
+#   frontend → Vite dev server (hot-reload) instead of Nginx
+#   db       → port 3306 already exposed (no change needed)
+# =============================================================
+
+name: ersis
+
+services:
+
+  # ── Backend: hot-reload development mode ──────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      # Override the CMD to enable --reload; source is bind-mounted
+      # so any .py file change is picked up by watchfiles instantly.
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      # Bind-mount source so edits are reflected without rebuild
+      - ./backend:/app
+      # But keep the venv from the image (don't overwrite it with host)
+      - /app/.venv
+      # Persist FAISS indexes independently of source code
+      - faiss-indexes:/app/faiss_indexes
+    environment:
+      DEBUG: "true"
+    # Override healthcheck to a simpler/faster one for dev
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # ── Frontend: Vite dev server with HMR ────────────────────
+  frontend:
+    # Replace the production Nginx image with a Vite dev server
+    image: node:20-alpine
+    container_name: ersis-frontend-dev
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    volumes:
+      # Bind-mount the entire frontend-web source for HMR
+      - ./frontend-web:/app
+      # Exclude host node_modules (use container's instead)
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      # Tells vite.config.js which host to proxy /api/* to inside Docker
+      VITE_BACKEND_URL: http://backend:8000
+      VITE_API_BASE_URL: /api
+      VITE_DEFAULT_STORE_ID: "1"
+      VITE_USE_MOCK_PRODUCTS: "false"
+      VITE_USE_MOCK_AUTH: "false"
+      VITE_USE_MOCK_SUPPLIERS: "false"
+      VITE_USE_MOCK_TRANSACTIONS: "false"
+      VITE_USE_MOCK_ORDERS: "false"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - ersis-net
+    # No healthcheck needed; Vite output is enough

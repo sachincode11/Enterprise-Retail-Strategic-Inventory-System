@@ -1,0 +1,58 @@
+# ============================================================
+# backend/.dockerignore
+# Prevents unnecessary files from being sent to the Docker
+# build context, keeping image size small and builds fast.
+# ============================================================
+
+# Python runtime artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+
+# Virtual environment (image installs its own via uv)
+.venv/
+venv/
+ENV/
+
+# uv cache
+.cache/
+
+# Tests & development tools
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+tests/
+*.test.py
+
+# Scratch/temporary files
+scratch/
+alter_db.py
+
+# Seed scripts (not needed in the runtime image)
+seed.py
+seed_*.py
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment files (injected at runtime via docker-compose env_file)
+.env
+.env.*
+
+# Git
+.git/
+.gitignore
+
+# Docs
+README.md
+*.md
+
+# OS artifacts
+.DS_Store
+Thumbs.db

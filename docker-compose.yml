@@ -1,0 +1,148 @@
+# =============================================================
+# ERSIS – docker-compose.yml  (PRODUCTION)
+# =============================================================
+#
+# Services:
+#   db        – MySQL 8.0  (persistent volume)
+#   mosquitto – MQTT broker for IoT barcode scanners
+#   backend   – FastAPI / Uvicorn  (Python 3.13)
+#   frontend  – React/Vite SPA served by Nginx
+#
+# Networks:
+#   ersis-net – isolated bridge network; containers talk by
+#               service name (Docker DNS), NOT localhost.
+#
+# Usage:
+#   docker compose up -d --build
+#   docker compose logs -f backend
+#   docker compose down -v        ← also removes volumes
+# =============================================================
+
+name: ersis
+
+# ─────────────────────────── NETWORKS ─────────────────────────
+networks:
+  ersis-net:
+    driver: bridge
+
+# ─────────────────────────── VOLUMES ──────────────────────────
+volumes:
+  # Named volume so MySQL data survives container restarts/rebuilds
+  mysql-data:
+  # Named volume for FAISS vector indexes built by seed_ai.py
+  faiss-indexes:
+
+# ─────────────────────────── SERVICES ─────────────────────────
+services:
+
+  # ── MySQL 8.0 ─────────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: ersis-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-ersis}
+      # ROOT is used by the backend; no separate app user needed for dev
+    ports:
+      # Expose on host for tools like MySQL Workbench; remove in strict prod
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # Optional: run ersis.sql on first boot if it exists
+      # - ./ersis.sql:/docker-entrypoint-initdb.d/ersis.sql:ro
+    networks:
+      - ersis-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
+             "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-password}"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ── Mosquitto MQTT (IoT barcode scanners) ─────────────────
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: ersis-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"   # MQTT
+      - "9001:9001"   # WebSocket (optional dashboard/test)
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    networks:
+      - ersis-net
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-t", "$$SYS/#", "-C", "1",
+             "-i", "healthcheck", "-W", "3"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── FastAPI Backend ────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ersis-backend
+    restart: unless-stopped
+    # Wait for MySQL to be healthy before starting uvicorn
+    depends_on:
+      db:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    env_file:
+      # In production, never commit .env; use Docker secrets or CI/CD secrets.
+      # For local Docker use, we load from backend/.env
+      - ./backend/.env
+    environment:
+      # Override the localhost DB URL from .env with the Docker service name
+      DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:-password}@db/${MYSQL_DATABASE:-ersis}
+      MQTT_BROKER_HOST: mosquitto
+      FAISS_INDEX_DIR: /app/faiss_indexes
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist FAISS vector indexes between container restarts
+      - faiss-indexes:/app/faiss_indexes
+    networks:
+      - ersis-net
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ── React / Vite Frontend (Nginx) ─────────────────────────
+  frontend:
+    build:
+      context: ./frontend-web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
+        VITE_DEFAULT_STORE_ID: "1"
+        VITE_USE_MOCK_PRODUCTS: "false"
+        VITE_USE_MOCK_AUTH: "false"
+        VITE_USE_MOCK_SUPPLIERS: "false"
+        VITE_USE_MOCK_TRANSACTIONS: "false"
+        VITE_USE_MOCK_ORDERS: "false"
+    container_name: ersis-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    networks:
+      - ersis-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

@@ -1,0 +1,331 @@
+import { fakeApi } from '../utils/fakeApi';
+import { lsGet, lsSet, lsDel } from '../utils/storage';
+import { apiRequest, normalizeServiceError, toApiEnvelope } from './apiClient';
+
+const USE_MOCK = import.meta.env.VITE_USE_MOCK_AUTH === 'true';
+const SESSION_KEY = 'invosix_session';
+const PENDING_KEY = 'invosix_pending_login';
+
+const MOCK_USERS = [
+  { id: 1, name: 'Anita Shrestha', email: 'admin@store.np', password: 'admin123', role: 'admin', initials: 'AS', store: 'KTM-001', storeId: 1 },
+  { id: 2, name: 'Kasim Rijal', email: 'kasim@store.np', password: 'cashier123', role: 'cashier', initials: 'KR', store: 'KTM-001', storeId: 1 },
+  { id: 3, name: 'Priya Shrestha', email: 'priya.staff@store.np', password: 'cashier123', role: 'cashier', initials: 'PS', store: 'KTM-001', storeId: 1 },
+];
+
+function normalizeRole(roleValue) {
+  return String(roleValue || '').trim().toLowerCase();
+}
+
+function mapBackendUser(user) {
+  if (!user) return null;
+
+  const role = normalizeRole(user.role || user.user_role || user.role_name || 'customer');
+  const safeName = user.name || [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email || 'User';
+  const initials = user.initials || safeName.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
+
+  return {
+    id: user.id || user.user_id,
+    name: safeName,
+    email: user.email,
+    role,
+    roles: user.roles || [role],
+    initials,
+    username: user.username || safeName,
+    store: user.store || `STORE-${String(user.storeId || user.store_id || 1).padStart(3, '0')}`,
+    storeId: Number(user.storeId || user.store_id || 1),
+    phone: user.phone || '',
+  };
+}
+
+function verifyUserRole(user, expectedRole) {
+  if (!expectedRole) return;
+  const target = normalizeRole(expectedRole);
+  const actual = normalizeRole(user.role);
+  const roles = (user.roles || []).map(normalizeRole);
+
+  if (actual !== target && !roles.includes(target)) {
+    throw { 
+      status: 403, 
+      message: `Access Denied: Your account (${actual}) is not authorized for the ${target} terminal.`,
+      data: null 
+    };
+  }
+}
+
+async function resolveStaffRoleByEmail(email, storeId, accessToken) {
+  if (!email || !storeId || !accessToken) return null;
+  try {
+    const staff = await apiRequest(`/stores/${storeId}/staff`, {
+      method: 'GET',
+      withAuth: false,
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const match = Array.isArray(staff)
+      ? staff.find(member => String(member.email || '').toLowerCase() === String(email).toLowerCase())
+      : null;
+    return mapBackendUser(match);
+  } catch {
+    return null;
+  }
+}
+
+function persistSession(user, accessToken, refreshToken) {
+  const session = {
+    ...user,
+    accessToken,
+    refreshToken,
+    token: accessToken,
+    loginAt: new Date().toISOString(),
+    pending2FA: false,
+  };
+  lsSet(SESSION_KEY, session);
+  lsDel(PENDING_KEY);
+  return session;
+}
+
+function updateSessionUser(userUpdate) {
+  const session = lsGet(SESSION_KEY, null);
+  if (!session) return null;
+  const updated = {
+    ...session,
+    ...userUpdate,
+  };
+  lsSet(SESSION_KEY, updated);
+  return updated;
+}
+
+export async function login({ email, password, expectedRole }) {
+  if (USE_MOCK) {
+    const user = MOCK_USERS.find(u => u.email === email && u.password === password);
+    if (!user) {
+      return new Promise((_, reject) =>
+        setTimeout(() => reject({ status: 401, message: 'Invalid email or password', data: null }), 400)
+      );
+    }
+
+    const { password: _pw, ...safeUser } = user;
+    const pending = {
+      ...safeUser,
+      pending2FA: true,
+      otpPurpose: 'login_2fa',
+      loginAt: new Date().toISOString(),
+    };
+    lsSet(PENDING_KEY, pending);
+    return fakeApi(pending);
+  }
+
+  try {
+    const payload = await apiRequest('/auth/login', {
+      method: 'POST',
+      body: { email, password },
+      withAuth: false,
+    });
+
+    const user = mapBackendUser(payload.user) || { email, role: 'customer', storeId: 1, pending2FA: true };
+
+    // Pre-validate role before sending OTP
+    verifyUserRole(user, expectedRole);
+
+    if (payload.requires_otp) {
+      const pending = {
+        ...user,
+        pending2FA: true,
+        expectedRole: normalizeRole(expectedRole || user.role),
+        otpPurpose: payload.otp_purpose || 'login_2fa',
+        debugOtp: payload.debug_otp || null,
+      };
+      lsSet(PENDING_KEY, pending);
+      return toApiEnvelope(pending, 200, payload.message || 'OTP sent');
+    }
+
+    if (!payload.access_token || !payload.refresh_token) {
+      throw { status: 500, message: 'Login response missing tokens.', data: null };
+    }
+
+    const enriched = (await resolveStaffRoleByEmail(user.email, user.storeId, payload.access_token)) || user;
+    
+    // Role validation
+    verifyUserRole(enriched, expectedRole);
+
+    const session = persistSession(enriched, payload.access_token, payload.refresh_token);
+    return toApiEnvelope(session, 200, 'Success');
+  } catch (error) {
+    throw normalizeServiceError(error, 'Login failed');
+  }
+}
+
+export async function verifyOtp({ otp }) {
+  const pending = getPendingLogin();
+  if (!pending?.email) {
+    throw { status: 400, message: 'No pending login found. Please sign in again.', data: null };
+  }
+
+  if (USE_MOCK) {
+    if (otp === '123456' || otp.length === 6) {
+      const session = persistSession(pending, `mock-token-${Date.now()}`, `mock-refresh-${Date.now()}`);
+      return fakeApi(session);
+    }
+    return new Promise((_, reject) =>
+      setTimeout(() => reject({ status: 400, message: 'Invalid OTP', data: null }), 400)
+    );
+  }
+
+  try {
+    const payload = await apiRequest('/auth/verify-otp', {
+      method: 'POST',
+      withAuth: false,
+      body: {
+        email: pending.email,
+        otp_code: otp,
+        purpose: pending.otpPurpose || 'login_2fa',
+      },
+    });
+
+    const user = mapBackendUser(payload.user) || pending;
+    const resolvedUser = (await resolveStaffRoleByEmail(user.email, user.storeId || pending.storeId, payload.access_token)) || user;
+    
+    // Role validation
+    verifyUserRole(resolvedUser, pending.expectedRole);
+
+    const finalUser = {
+      ...resolvedUser,
+      role: normalizeRole(resolvedUser.role || pending.expectedRole || user.role),
+      roles: resolvedUser.roles || [normalizeRole(resolvedUser.role || pending.expectedRole || user.role || 'customer')],
+    };
+    const session = persistSession(finalUser, payload.access_token, payload.refresh_token);
+    return toApiEnvelope(session, 200, 'Verified');
+  } catch (error) {
+    throw normalizeServiceError(error, 'OTP verification failed');
+  }
+}
+
+export async function resendOtp() {
+  const pending = getPendingLogin();
+  if (!pending?.email) {
+    throw { status: 400, message: 'No pending login found.', data: null };
+  }
+
+  if (USE_MOCK) {
+    return new Promise(resolve => 
+      setTimeout(() => resolve(toApiEnvelope({ sent: true }, 200, 'Mock OTP sent')), 400)
+    );
+  }
+
+  try {
+    const payload = await apiRequest('/auth/resend-otp', {
+      method: 'POST',
+      withAuth: false,
+      body: {
+        email: pending.email,
+        purpose: pending.otpPurpose || 'login_2fa'
+      }
+    });
+    
+    // Update pending login with new debug otp if available
+    if (payload.debug_otp) {
+      lsSet(PENDING_KEY, { ...pending, debugOtp: payload.debug_otp });
+    }
+
+    return toApiEnvelope(payload, 200, payload.message || 'OTP resent');
+  } catch (error) {
+    throw normalizeServiceError(error, 'Failed to resend OTP');
+  }
+}
+
+export async function refreshToken() {
+  const session = getSession();
+  if (!session?.refreshToken) {
+    throw new Error('No refresh token available');
+  }
+
+  if (USE_MOCK) {
+    const newSession = persistSession(session, `mock-at-${Date.now()}`, `mock-rt-${Date.now()}`);
+    return toApiEnvelope(newSession);
+  }
+
+  try {
+    const res = await apiRequest('/auth/refresh', {
+      method: 'POST',
+      body: { refresh_token: session.refreshToken },
+      withAuth: false,
+    });
+
+    const updated = persistSession(session, res.access_token, res.refresh_token);
+    return toApiEnvelope(updated);
+  } catch (error) {
+    lsDel(SESSION_KEY);
+    throw error;
+  }
+}
+
+export async function logout() {
+  const session = lsGet(SESSION_KEY, null);
+
+  if (!USE_MOCK && session?.refreshToken) {
+    try {
+      await apiRequest('/auth/logout', {
+        method: 'POST',
+        body: { refresh_token: session.refreshToken },
+      });
+    } catch {
+      // Logout should clear local session even if backend revoke fails.
+    }
+  }
+
+  lsDel(SESSION_KEY);
+  lsDel(PENDING_KEY);
+  return toApiEnvelope({ loggedOut: true }, 200, 'Success');
+}
+
+export async function changePassword(current_password, new_password) {
+  if (USE_MOCK) {
+    lsSet('invosix_admin_password', new_password);
+    return toApiEnvelope({ message: 'Password changed successfully' }, 200, 'Success');
+  }
+
+  try {
+    const payload = await apiRequest('/auth/change-password', {
+      method: 'POST',
+      body: { current_password, new_password },
+    });
+    return toApiEnvelope(payload, 200, payload.message || 'Password changed successfully');
+  } catch (error) {
+    throw normalizeServiceError(error, 'Password change failed');
+  }
+}
+
+export async function updateProfile(profile) {
+  if (USE_MOCK) {
+    const session = lsGet(SESSION_KEY, null);
+    if (!session) {
+      throw { status: 401, message: 'No active session found.', data: null };
+    }
+    const updated = updateSessionUser({
+      ...session,
+      ...profile,
+      name: `${profile.first_name || session.name?.split(' ')[0] || ''} ${profile.last_name ?? ''}`.trim() || session.name,
+      email: profile.email ?? session.email,
+      phone: profile.phone ?? session.phone,
+    });
+    return fakeApi(updated);
+  }
+
+  try {
+    const payload = await apiRequest('/auth/me', {
+      method: 'PATCH',
+      body: profile,
+    });
+    const session = updateSessionUser(payload.user || payload);
+    return toApiEnvelope(session || payload.user || payload, 200, 'Profile updated');
+  } catch (error) {
+    throw normalizeServiceError(error, 'Profile update failed');
+  }
+}
+
+export function getSession() {
+  return lsGet(SESSION_KEY, null);
+}
+
+export function getPendingLogin() {
+  return lsGet(PENDING_KEY, null);
+}

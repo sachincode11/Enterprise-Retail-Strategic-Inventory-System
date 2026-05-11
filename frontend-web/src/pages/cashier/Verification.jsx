@@ -1,0 +1,103 @@
+// src/pages/cashier/Verification.jsx
+import { useState } from 'react';
+import { useCashier } from '../../context/CashierContext';
+import { useAuth } from '../../context/AuthContext';
+import logo from '../../assets/Full logo.png';
+
+export default function Verification() {
+  const { setCurrentPage, postAuthPage } = useCashier();
+  const { user, verifyOtp, resendOtp, logout, loading } = useAuth();
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  function handleChange(i, val) {
+    if (val.length > 1 || !/^\d?$/.test(val)) return;
+    const next = [...otp]; next[i] = val; setOtp(next);
+    if (val && i < 5) document.getElementById(`c-otp-${i + 1}`)?.focus();
+  }
+  function handleKeyDown(i, e) {
+    if (e.key === 'Backspace' && !otp[i] && i > 0) document.getElementById(`c-otp-${i - 1}`)?.focus();
+  }
+
+  async function handleVerify() {
+    setError('');
+    const code = otp.join('');
+    if (code.length !== 6) {
+      setError('Please enter the 6-digit OTP code.');
+      return;
+    }
+    try {
+      const verifiedUser = await verifyOtp({ otp: code });
+      if (verifiedUser.role !== 'cashier') {
+        setError('This terminal is for cashier accounts only.');
+        return;
+      }
+      setCurrentPage(postAuthPage || 'dashboard');
+    } catch (err) {
+      setError(err?.message || 'OTP verification failed.');
+    }
+  }
+
+  async function handleResend() {
+    setError('');
+    setSuccessMsg('');
+    try {
+      await resendOtp();
+      setSuccessMsg('A new OTP has been sent to your email.');
+      setOtp(['', '', '', '', '', '']);
+    } catch (err) {
+      setError(err?.message || 'Failed to resend OTP.');
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex" style={{ background: '#0f172a' }}>
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <img src={logo} alt="Logo" className="w-48 h-auto" />
+          <p className="text-sm tracking-[0.2em] uppercase mt-3 font-mono" style={{ color: '#475569' }}>POS Cashier Terminal</p>
+        </div>
+      </div>
+      <div className="flex flex-col justify-center px-16" style={{ width: '460px', background: '#ffffff', minHeight: '100vh' }}>
+        <div className="w-full max-w-sm mx-auto">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-6" style={{ background: '#eff6ff' }}>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#1e3a5f" strokeWidth="1.5">
+              <path d="M16 8V6a6 6 0 10-12 0v2" strokeLinecap="round"/>
+              <rect x="2" y="8" width="16" height="11" rx="2"/>
+              <circle cx="10" cy="14" r="1.5" fill="#1e3a5f"/>
+            </svg>
+          </div>
+          <h1 className="text-2xl font-semibold mb-2 text-[#0f172a]">Verify Your Identity</h1>
+          <p className="text-sm mb-8 text-[#94a3b8]">A 6-digit code was sent to <strong className="text-[#0f172a]">{user?.email || 'your email'}</strong></p>
+          <div className="flex gap-3 mb-4">
+            {otp.map((val, i) => (
+              <input key={i} id={`c-otp-${i}`} type="text" inputMode="numeric" maxLength={1} value={val}
+                onChange={e => handleChange(i, e.target.value)} onKeyDown={e => handleKeyDown(i, e)}
+                className="w-full text-center text-xl font-semibold rounded-xl border-2 py-3 outline-none transition-all text-[#0f172a]"
+                style={{ borderColor: val ? '#1e3a5f' : '#e2e8f0', background: val ? '#eff6ff' : '#ffffff' }}
+              />
+            ))}
+          </div>
+          {error && <p className="text-xs text-[#dc2626] mb-3 text-center">{error}</p>}
+          {successMsg && <p className="text-xs text-[#22c55e] mb-3 text-center">{successMsg}</p>}
+          <p className="text-xs text-[#94a3b8] mb-5 text-center">
+            {user?.debugOtp ? `Dev OTP code: ${user.debugOtp}` : 'Enter the 6-digit OTP from your email'}
+          </p>
+          <button onClick={handleVerify} disabled={loading}
+            className="w-full py-3 rounded-lg text-sm font-semibold text-white mb-4 transition-all hover:bg-[#16324f] hover:shadow-[0_4px_12px_rgba(30,58,95,0.35)]"
+            style={{ background: '#1e3a5f' }}
+          >{loading ? 'Verifying…' : 'Verify & Continue'}</button>
+          <div className="flex justify-between mb-8">
+            <button className="text-xs text-[#94a3b8] hover:text-[#475569]">Didn't receive code?</button>
+            <button onClick={handleResend} disabled={loading} className="text-xs font-medium text-[#1e3a5f] hover:text-[#16324f] disabled:opacity-50">Resend OTP</button>
+          </div>
+
+          <button onClick={() => logout()} className="w-full py-2 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors border-t border-gray-100 mt-4 pt-4">
+            ← Back to Login
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

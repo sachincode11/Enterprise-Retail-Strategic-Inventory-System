@@ -1,0 +1,3 @@
+# This directory holds Mosquitto's persistent message store.
+# It is created by Docker volumes — this file is a placeholder
+# so Git tracks the directory.

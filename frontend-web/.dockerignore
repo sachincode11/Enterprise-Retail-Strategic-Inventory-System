@@ -1,0 +1,38 @@
+# ============================================================
+# frontend-web/.dockerignore
+# Prevents unnecessary files from being sent to the Docker
+# build context for the Vite/React frontend.
+# ============================================================
+
+# Dependencies (image installs its own)
+node_modules/
+
+# Compiled output (image rebuilds this)
+dist/
+dist-ssr/
+
+# Vite cache
+.vite/
+
+# Environment files (injected as build args in docker-compose)
+.env
+.env.*
+
+# IDE / OS artifacts
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Docs
+README.md
+*.md
+
+# Nginx config is NOT ignored — it's needed in the image
+# nginx.conf → kept
