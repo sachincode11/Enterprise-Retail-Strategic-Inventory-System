@@ -93,7 +93,7 @@ The easiest way to run the full web stack with a single command.
 
 ```bash
 # 1. Clone the repo
-git clone <repository_url>
+git clone https://github.com/sachincode11/Enterprise-Retail-Strategic-Inventory-System.git
 cd Enterprise-Retail-Strategic-Inventory-System
 
 # 2. Configure environment files
@@ -123,7 +123,7 @@ Use when Docker is not available.
 
 ```bash
 # 1. Clone the repo
-git clone <repository_url>
+git clone https://github.com/sachincode11/Enterprise-Retail-Strategic-Inventory-System.git
 cd Enterprise-Retail-Strategic-Inventory-System
 
 # 2. Backend
