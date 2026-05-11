@@ -32,12 +32,25 @@ export default function LoginScreen({ navigation }) {
       setLoading(true);
 
       await login({
-        email: cleanEmail,   //  FIX A (trim + lowercase)
+        email: cleanEmail,
         password,
       });
 
     } catch (e) {
-      showToast(e.message);
+      if (e.status === 403 && e.message.toLowerCase().includes('not verified')) {
+        showToast('Your account is not verified. Redirecting...', 'success');
+        setTimeout(() => {
+          navigation.navigate('OTP', { 
+            formData: { 
+              email: cleanEmail, 
+              purpose: 'email_verification',
+              autoResend: true 
+            } 
+          });
+        }, 1500);
+      } else {
+        showToast(e.message);
+      }
     } finally {
       setLoading(false);
     }

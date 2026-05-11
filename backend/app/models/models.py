@@ -243,6 +243,22 @@ class Transaction(Base):
     original_refunds      = relationship("RefundItem",          back_populates="original_transaction",  foreign_keys="RefundItem.original_transaction_id")
     refund_transactions   = relationship("RefundItem",          back_populates="refund_transaction",    foreign_keys="RefundItem.refund_transaction_id")
 
+    @property
+    def customer_name(self):
+        if self.customer:
+            return " ".join(filter(None, [self.customer.first_name, self.customer.last_name]))
+        if self.guest_customer:
+            return self.guest_customer.name
+        return None
+
+    @property
+    def customer_phone(self):
+        if self.customer:
+            return self.customer.phone
+        if self.guest_customer:
+            return self.guest_customer.phone
+        return None
+
 # Transaction Item  (line items in a sale) 12
 class TransactionItem(Base):
     __tablename__ = "transaction_items"

@@ -181,6 +181,7 @@ function AppStack() {
       <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />
       <Stack.Screen name="Security" component={SecurityScreen} />
       <Stack.Screen name="Preferences" component={PreferencesScreen} />
+      <Stack.Screen name="OTP" component={OTPScreen} />
       <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
     </Stack.Navigator>
   );
@@ -194,7 +195,7 @@ const linking = {
         screens: {
           Login: 'login',
           Register: 'register',
-          OTP: 'otp',
+          OTP: 'otp/:email/:purpose/:autoResend',
           PrivacyPolicy: 'privacy-policy',
         },
       },
@@ -216,6 +217,7 @@ const linking = {
           PersonalInfo: 'profile/info',
           Security: 'profile/security',
           Preferences: 'profile/preferences',
+          OTP: 'verify/:email/:purpose/:autoResend',
           PrivacyPolicy: 'privacy',
         },
       },

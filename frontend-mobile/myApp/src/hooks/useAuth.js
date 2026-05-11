@@ -61,7 +61,7 @@ export function AuthProvider({ children }) {
     const [first_name, ...last_parts] = fullName.split(' ');
     const last_name = last_parts.join(' ');
 
-    await apiRequest('/auth/register', {
+    return await apiRequest('/auth/register', {
       method: 'POST',
       body: { 
         first_name,
@@ -73,9 +73,44 @@ export function AuthProvider({ children }) {
       },
       withAuth: false
     });
+  };
 
-    // After registration, log them in
-    return await login({ email, password });
+  // ── Verify OTP ───────────────────────────────────────────
+  const verifyOTP = async ({ email, otp_code, purpose }) => {
+    const data = await apiRequest('/auth/verify-otp', {
+      method: 'POST',
+      body: { email, otp_code, purpose },
+      withAuth: false
+    });
+
+    const sessionUser = {
+      id: data.user.id,
+      fullName: data.user.name,
+      email: data.user.email,
+      phone: data.user.phone,
+      avatar: data.user.initials,
+      storeId: data.user.storeId,
+      roles: data.user.roles,
+      verified: data.user.verified,
+    };
+
+    setUser(sessionUser);
+    await saveSession({
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      user: sessionUser
+    });
+    await AsyncStorage.setItem('@invo6_user', JSON.stringify(sessionUser));
+    return data;
+  };
+
+  // ── Resend OTP ───────────────────────────────────────────
+  const resendOTP = async ({ email, purpose }) => {
+    return await apiRequest('/auth/resend-otp', {
+      method: 'POST',
+      body: { email, purpose },
+      withAuth: false
+    });
   };
 
   const logout = async () => {
@@ -124,7 +159,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, verifyOTP, resendOTP, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

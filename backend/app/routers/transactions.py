@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.deps import get_current_user, require_cashier
 from app.database import get_db
@@ -45,7 +45,8 @@ def list_transactions(
         q = q.filter(Transaction.customer_id == customer_id)
     
     total = q.count()
-    items = q.order_by(Transaction.transaction_date.desc()) \
+    items = q.options(joinedload(Transaction.customer), joinedload(Transaction.guest_customer)) \
+              .order_by(Transaction.transaction_date.desc()) \
               .offset((page - 1) * size).limit(size).all()
     
     return {

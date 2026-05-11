@@ -14,8 +14,10 @@ const OTP_LENGTH = 6;
 
 export default function OTPScreen({ navigation, route }) {
   const { Colors } = useTheme();
-  const { register } = useAuth();
-  const { formData } = route.params || {};
+  const { user, verifyOTP, resendOTP } = useAuth();
+  const { formData, email: paramEmail, purpose: paramPurpose, autoResend } = route.params || {};
+  const email = paramEmail || formData?.email || user?.email;
+  const purpose = paramPurpose || formData?.purpose || 'email_verification';
   const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(''));
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(60);
@@ -30,6 +32,13 @@ export default function OTPScreen({ navigation, route }) {
       setCountdown(c => c > 0 ? c - 1 : 0);
     }, 1000);
     return () => clearInterval(t);
+  }, []);
+
+  // Auto-resend if requested
+  useEffect(() => {
+    if (autoResend === 'true' || autoResend === true || formData?.autoResend) {
+      handleResend();
+    }
   }, []);
 
   const handleChange = (val, index) => {
@@ -48,37 +57,47 @@ export default function OTPScreen({ navigation, route }) {
   };
 
   const handleVerify = async () => {
-    const code = otp.join(''); //  FIX
+    const code = otp.join('');
 
     if (code.length < OTP_LENGTH) {
       return showToast('Please enter the full 6-digit code.');
     }
 
-    //  DEMO MODE (before backend)
-    const DEMO_OTP = '123456';
-
-    if (code !== DEMO_OTP) {
-      return showToast('Invalid OTP code.');
-    }
-
     try {
       setLoading(true);
-      await register(formData);
+      await verifyOTP({
+        email,
+        otp_code: code,
+        purpose
+      });
       showToast('Account verified!', 'success');
+      
+      // If user was already logged in (from Profile screen), go back
+      if (user) {
+        setTimeout(() => navigation.goBack(), 1500);
+      }
     } catch (e) {
-      showToast(e.message);
+      showToast(e.message || 'Verification failed. Try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     if (countdown > 0) return;
-    setCountdown(60);
-    setOtp(Array(OTP_LENGTH).fill(''));
-    inputs.current[0]?.focus();
-    showToast('New OTP sent to your email.', 'success');
-    // Replace with: await authService.resendOTP({ email: formData.email })
+    
+    try {
+      await resendOTP({
+        email,
+        purpose
+      });
+      setCountdown(60);
+      setOtp(Array(OTP_LENGTH).fill(''));
+      inputs.current[0]?.focus();
+      showToast('New OTP sent to your email.', 'success');
+    } catch (e) {
+      showToast(e.message || 'Failed to resend OTP.');
+    }
   };
 
   return (
@@ -111,7 +130,7 @@ export default function OTPScreen({ navigation, route }) {
           <Text style={[styles.sub, { color: Colors.textSecondary }]}>
             Enter the 6-digit code sent to{'\n'}
             <Text style={{ color: Colors.textPrimary, fontFamily: Typography.fontFamily.semiBold }}>
-              {formData?.email || 'your email'}
+              {email || 'your account'}
             </Text>
           </Text>
 
@@ -140,9 +159,9 @@ export default function OTPScreen({ navigation, route }) {
             ))}
           </View>
 
-          {/* Demo hint */}
+          {/* Verification hint */}
           <Text style={[styles.hint, { color: Colors.textMuted }]}>
-            Demo code: 123456
+            Checking your email for the code...
           </Text>
 
           <Button
@@ -176,27 +195,29 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   flex: { flex: 1 },
 
-  header: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.xl },
+  header: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.xl, flexDirection: 'row', alignItems: 'center' },
   backBtn: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 42, height: 42, borderRadius: 21,
     borderWidth: 1.5, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.02)'
   },
-  backIcon: { fontSize: 22, lineHeight: 26 },
+  backIcon: { fontSize: 28, lineHeight: 32 },
 
   content: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.xxxl },
-  title: { fontSize: 34, fontFamily: Typography.fontFamily.semiBold, lineHeight: 42, marginBottom: Spacing.md },
-  sub: { fontSize: Typography.fontSize.base, fontFamily: Typography.fontFamily.regular, lineHeight: 24, marginBottom: Spacing.xxxl },
+  title: { fontSize: 36, fontFamily: Typography.fontFamily.semiBold, lineHeight: 44, marginBottom: Spacing.md, letterSpacing: -0.5 },
+  sub: { fontSize: Typography.fontSize.base, fontFamily: Typography.fontFamily.regular, lineHeight: 26, marginBottom: Spacing.xxxxl },
 
-  otpRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
+  otpRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.lg },
   otpBox: {
-    flex: 1, height: 56, borderRadius: Radius.md, borderWidth: 1.5,
-    fontSize: Typography.fontSize.xl, fontFamily: Typography.fontFamily.semiBold,
+    width: 50, height: 64, borderRadius: Radius.lg, borderWidth: 2,
+    fontSize: 24, fontFamily: Typography.fontFamily.semiBold,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2,
   },
 
-  hint: { fontSize: Typography.fontSize.xs, fontFamily: Typography.fontFamily.regular, marginBottom: Spacing.xl, textAlign: 'center' },
-  verifyBtn: { width: '100%', marginBottom: Spacing.xl },
+  hint: { fontSize: Typography.fontSize.xs, fontFamily: Typography.fontFamily.medium, marginBottom: Spacing.xxl, textAlign: 'center', opacity: 0.7 },
+  verifyBtn: { width: '100%', height: 56, borderRadius: Radius.xl, marginBottom: Spacing.xl },
 
-  resendRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+  resendRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: Spacing.md },
   resendText: { fontSize: Typography.fontSize.sm, fontFamily: Typography.fontFamily.regular },
-  resendLink: { fontSize: Typography.fontSize.sm, fontFamily: Typography.fontFamily.semiBold },
+  resendLink: { fontSize: Typography.fontSize.sm, fontFamily: Typography.fontFamily.semiBold, textDecorationLine: 'underline' },
 });

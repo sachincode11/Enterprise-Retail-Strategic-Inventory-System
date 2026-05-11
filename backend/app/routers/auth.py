@@ -70,7 +70,7 @@ def _session_user_payload(db: Session, user: User) -> dict:
 
 # endpoints
 @router.post("/register", response_model=UserOut, status_code=201)
-def register(body: RegisterRequest, db: Session = Depends(get_db)):
+def register(body: RegisterRequest, background: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Self-registration for customers (mobile app).
     Shopkeeper / cashier accounts are created by the admin.
@@ -89,7 +89,8 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
         first_name=body.first_name,
         last_name=body.last_name,
         phone=body.phone,
-        is_active=True
+        is_active=True,
+        is_verified=False
     )
     db.add(user)
     db.flush() # get user_id
@@ -100,8 +101,20 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
     db.add(UserRole(user_id=user.user_id, role_id=customer_role.role_id,
                     store_id=1))  # placeholder
     
+    # Send verification OTP
+    otp = generate_otp()
+    print(f"[OTP] Registration OTP for {user.email}: {otp}")
+    db.add(OTPToken(
+        user_id=user.user_id,
+        otp_code_hash=hash_otp(otp),
+        purpose=OTPPurpose.email_verification,
+        expires_at=otp_expiry()
+    ))
+    
     db.commit()
     db.refresh(user)
+    
+    background.add_task(_send_otp_email, user.email, otp, "Email Verification")
 
     return user
 
@@ -125,10 +138,15 @@ def login(
     roles = _user_roles(db, user)
     user_payload = _session_user_payload(db, user)
 
-    # Customers skip 2FA
+    # Customers skip 2FA but check verification
     if UserRoleEnum.customer in roles and not roles.intersection(
         {UserRoleEnum.admin, UserRoleEnum.cashier}
     ):
+        if not user.is_verified:
+            raise HTTPException(
+                status_code=403, 
+                detail="Account not verified. Please verify your email first."
+            )
         at = create_access_token({"sub": str(user.user_id)})
         rt = create_refresh_token({"sub": str(user.user_id)})
         db.add(RefreshToken(user_id=user.user_id, token_hash=hash_token(rt),
@@ -184,6 +202,11 @@ def verify_otp_endpoint(body: OTPVerifyRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Invalid or expired OTP.")
 
     token_row.is_used = True
+    
+    # If purpose was email verification, mark user as verified
+    if body.purpose == OTPPurpose.email_verification:
+        user.is_verified = True
+        
     at = create_access_token({"sub": str(user.user_id)})
     rt = create_refresh_token({"sub": str(user.user_id)})
     db.add(RefreshToken(user_id=user.user_id, token_hash=hash_token(rt),

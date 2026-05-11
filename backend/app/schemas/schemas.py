@@ -78,7 +78,7 @@ class ForgotPasswordRequest(BaseModel):
 class OTPVerifyRequest(BaseModel):
     email: EmailStr
     otp_code: str
-    purpose: OTPPurpose = OTPPurpose.login_2fa
+    purpose: OTPPurpose
 
 
 class ResendOTPRequest(BaseModel):
@@ -105,6 +105,7 @@ class UserOut(BaseModel):
     email: str
     phone: Optional[str]
     is_active: bool
+    is_verified: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -153,6 +154,16 @@ class AssignRoleRequest(BaseModel):
     user_id: int
     role: UserRole
     store_id: int
+
+
+class GuestCustomerOut(BaseModel):
+    guest_id: int
+    name: Optional[str]
+    phone: Optional[str]
+    email: Optional[str]
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
 
 
 # Store
@@ -381,6 +392,9 @@ class TransactionOut(BaseModel):
     store: Optional[StoreMinimal] = None
     cashier_id: int
     customer_id: Optional[int]
+    customer_name: Optional[str] = None  # Populated via relationship or joined query
+    customer_phone: Optional[str] = None # Populated via relationship or joined query
+    guest_customer: Optional[GuestCustomerOut] = None
     transaction_date: datetime
     subtotal: Decimal
     tax_amount: Decimal

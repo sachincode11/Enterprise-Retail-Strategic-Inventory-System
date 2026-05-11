@@ -90,11 +90,21 @@ export default function ProfileScreen({ navigation }) {
           </View>
           <Text style={[styles.name, { color: Colors.textPrimary }]}>{user?.fullName}</Text>
           <Text style={[styles.email, { color: Colors.textMuted }]}>{user?.email}</Text>
-          {user?.verified && (
+          {user?.verified ? (
             <View style={[styles.verifiedRow]}>
               <View style={[styles.verifiedDot, { backgroundColor: Colors.success }]} />
               <Text style={[styles.verifiedText, { color: Colors.textMuted }]}>VERIFIED ACCOUNT</Text>
             </View>
+          ) : (
+            <TouchableOpacity 
+              style={[styles.verifyBanner, { backgroundColor: Colors.error + '15', borderColor: Colors.error }]}
+              onPress={() => navigation.navigate('OTP', { 
+                formData: { email: user?.email, purpose: 'email_verification', autoResend: true } 
+              })}
+            >
+              <Text style={[styles.verifyBannerText, { color: Colors.error }]}>Verify Account Now</Text>
+              <Text style={[styles.verifyBannerSub, { color: Colors.textSecondary }]}>Click here to complete verification</Text>
+            </TouchableOpacity>
           )}
         </View>
 
@@ -195,6 +205,16 @@ const styles = StyleSheet.create({
   verifiedRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: Spacing.sm },
   verifiedDot: { width: 6, height: 6, borderRadius: 3 },
   verifiedText: { fontSize: 10, fontFamily: Typography.fontFamily.semiBold, letterSpacing: 1 },
+  verifyBanner: {
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  verifyBannerText: { fontSize: 12, fontFamily: Typography.fontFamily.semiBold },
+  verifyBannerSub: { fontSize: 10, fontFamily: Typography.fontFamily.regular, marginTop: 2 },
 
   statsRow: {
     flexDirection: 'row', alignItems: 'center',

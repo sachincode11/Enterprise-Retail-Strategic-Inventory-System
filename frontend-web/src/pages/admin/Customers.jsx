@@ -17,7 +17,16 @@ export default function Customers() {
 
   // Enrich customer data with real transaction metrics from the global state
   const enriched = customers.map(c => {
-    const myTxns = transactions.filter(t => (t.customerId && t.customerId === c.id) || (t.customer?.toLowerCase() === c.name?.toLowerCase()));
+    // Robust matching: ID (loose) OR Name (trimmed) OR Phone (if available)
+    const myTxns = transactions.filter(t => {
+      const matchId = t.customerId && String(t.customerId) === String(c.id);
+      const matchName = t.customer && c.name && t.customer.toLowerCase().trim() === c.name.toLowerCase().trim();
+      const p1 = t.phone?.replace(/\D/g, '');
+      const p2 = c.phone?.replace(/\D/g, '');
+      const matchPhone = p1 && p2 && p1 === p2;
+      return matchId || matchName || matchPhone;
+    });
+    
     const totalVal = myTxns.reduce((sum, t) => sum + (parseInt((t.amount || '').replace(/[^0-9]/g, ''), 10) || 0), 0);
     const lastVisit = myTxns.length > 0 ? myTxns[0].datetime || myTxns[0].date : '—';
     return { ...c, orders: myTxns.length, value: `Rs ${totalVal.toLocaleString()}`, lastVisit };

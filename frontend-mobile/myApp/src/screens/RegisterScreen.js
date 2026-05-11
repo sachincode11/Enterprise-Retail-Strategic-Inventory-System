@@ -64,7 +64,14 @@ export default function RegisterScreen({ navigation }) {
         phone: form.phone,
         password: form.password,
       });
-      // Navigation will be handled by AuthProvider (rendering App stack)
+      showToast('Registration successful! Check your email for OTP.', 'success');
+      
+      // Navigate to OTP screen with form data
+      setTimeout(() => {
+        navigation.navigate('OTP', { 
+          formData: { ...form, purpose: 'email_verification' } 
+        });
+      }, 1500);
     } catch (e) {
       showToast(e.message || 'Registration failed. Try again.');
     } finally {

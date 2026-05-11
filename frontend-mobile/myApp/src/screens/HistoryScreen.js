@@ -122,33 +122,41 @@ export default function HistoryScreen({ navigation }) {
       </View>
 
       {/* Filter Tabs */}
-      <FlatList
-        horizontal
-        data={FILTERS}
-        keyExtractor={i => i}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.tabs}
-        style={styles.tabsScroll}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.tab,
-              { backgroundColor: Colors.bgCard, borderColor: Colors.border },
-              activeFilter === item && { backgroundColor: Colors.textPrimary, borderColor: Colors.textPrimary },
-            ]}
-            onPress={() => setActiveFilter(item)}
-            activeOpacity={0.75}
-          >
-            <Text style={[
-              styles.tabText,
-              { color: Colors.textSecondary },
-              activeFilter === item && { color: Colors.white },
-            ]}>
-              {item}
-            </Text>
-          </TouchableOpacity>
-        )}
-      />
+      <View style={styles.tabsWrapper}>
+        <FlatList
+          horizontal
+          data={FILTERS}
+          keyExtractor={i => i}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabs}
+          renderItem={({ item }) => {
+            const isActive = activeFilter === item;
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.tab,
+                  { backgroundColor: Colors.bgCard, borderColor: Colors.border },
+                  isActive && { 
+                    backgroundColor: Colors.accentPrimary, 
+                    borderColor: Colors.accentPrimary,
+                    ...Shadow.md
+                  },
+                ]}
+                onPress={() => setActiveFilter(item)}
+                activeOpacity={0.8}
+              >
+                <Text style={[
+                  styles.tabText,
+                  { color: Colors.textSecondary },
+                  isActive && { color: Colors.white, fontFamily: Typography.fontFamily.semiBold },
+                ]}>
+                  {item}
+                </Text>
+              </TouchableOpacity>
+            );
+          }}
+        />
+      </View>
 
       {/* Search */}
       <View style={[styles.searchContainer, { backgroundColor: Colors.bgCard, borderColor: Colors.border }]}>
@@ -221,27 +229,37 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.xl, paddingBottom: Spacing.md },
   headerTitle: { fontSize: Typography.fontSize.xl, fontFamily: Typography.fontFamily.semiBold },
 
-  tabsScroll: { height: 90,
-    flexGrow: 0, },
-  tabs: { paddingHorizontal: Spacing.xl, gap: Spacing.sm, paddingVertical: Spacing.sm },
+  tabsWrapper: {
+    height: 60,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  tabs: { 
+    paddingHorizontal: Spacing.xl, 
+    gap: Spacing.md, 
+    alignItems: 'center' 
+  },
   tab: {
-    paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm,
-    borderRadius: Radius.full, borderWidth: 1.5,
+    paddingHorizontal: Spacing.xl, 
+    paddingVertical: 10,
+    borderRadius: Radius.full, 
+    borderWidth: 1.5,
   },
   tabText: { fontSize: Typography.fontSize.sm, fontFamily: Typography.fontFamily.medium },
 
   searchContainer: {
     flexDirection: 'row', alignItems: 'center',
     marginHorizontal: Spacing.xl, marginVertical: Spacing.md,
-    borderRadius: Radius.md, paddingHorizontal: Spacing.lg,
-    borderWidth: 1, height: 48,
+    borderRadius: Radius.lg, paddingHorizontal: Spacing.lg,
+    borderWidth: 1.5, height: 52,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1,
   },
-  searchIcon: { fontSize: 18, marginRight: Spacing.sm },
+  searchIcon: { fontSize: 20, marginRight: Spacing.sm, opacity: 0.6 },
   searchInput: {
     flex: 1, fontSize: Typography.fontSize.base,
     fontFamily: Typography.fontFamily.regular,
   },
-  clearIcon: { fontSize: 20, paddingLeft: Spacing.sm },
+  clearIcon: { fontSize: 22, paddingLeft: Spacing.sm, opacity: 0.5 },
 
   content: { paddingHorizontal: Spacing.xl, paddingBottom: 80 },
   monthLabel: {
