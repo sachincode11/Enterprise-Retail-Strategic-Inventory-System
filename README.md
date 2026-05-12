@@ -4,7 +4,7 @@
 
 ---
 
-## 🚀 Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 | :--- | :--- |
@@ -18,9 +18,9 @@
 
 ---
 
-## 📦 Features
+## Features
 
-### 🖥️ Admin Web Dashboard
+### Admin Web Dashboard
 - Product & inventory management with barcode scanner support
 - Supplier & purchase order management
 - Staff, cashier, and customer user management
@@ -30,7 +30,7 @@
 - Transaction history & refund management
 - Report generation & CSV export
 
-### 💳 Cashier POS Interface
+### Cashier POS Interface
 - Real-time barcode scanning via IoT (ESP32 WiFi scanner → WebSocket)
 - **Scanner status indicator** — live Online/Offline/No Device badge in POS header
 - **IoT Devices settings panel** — heartbeat monitoring, RSSI signal strength, firmware info
@@ -39,7 +39,7 @@
 - Multi-payment method checkout
 - Receipt generation & printing
 
-### 📱 Customer Mobile App (React Native)
+### Customer Mobile App (React Native)
 - Email OTP registration & verification flow
 - Purchase history with period filtering (All / This Week / This Month / Refunds)
 - Loyalty points tracking & analytics
@@ -50,7 +50,7 @@
 
 ---
 
-## 🗂️ Project Structure
+## Project Structure
 
 ```
 Enterprise-Retail-Strategic-Inventory-System/
@@ -87,7 +87,7 @@ Enterprise-Retail-Strategic-Inventory-System/
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 > For full details, see **[SETUP_GUIDE.md](./SETUP_GUIDE.md)**.
 
@@ -187,7 +187,7 @@ python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ---
 
-## 🔑 Default Credentials
+## Default Credentials
 
 After seeding, use these accounts:
 
@@ -201,26 +201,13 @@ After seeding, use these accounts:
 
 ---
 
-## 📖 Documentation
+## Documentation
 
 - **[SETUP_GUIDE.md](./SETUP_GUIDE.md)** — Full setup instructions for Docker, manual, and mobile
-- **[IOT_GUIDE.md](./IOT_GUIDE.md)** — Complete ESP32 wiring, firmware, and connection guide
-- **[PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)** — Detailed file/folder documentation
-- **http://localhost:8000/docs** — Live Swagger API documentation (when running)
 
 ---
 
-## 📱 Mobile App Notes
-
-The mobile customer app uses a **two-step registration**:
-1. Register → OTP sent to email
-2. Verify OTP → Account activated & auto-logged in
-
-Unverified accounts will be redirected to the verification screen on login.
-
----
-
-## 🐳 Docker Commands
+## Docker Commands
 
 ```bash
 # Start (production)

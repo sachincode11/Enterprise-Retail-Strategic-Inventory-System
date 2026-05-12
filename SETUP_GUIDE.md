@@ -116,7 +116,7 @@ docker compose logs -f frontend
 docker compose down
 
 # Stop AND wipe ALL data (fresh start)
-# ⚠️  WARNING: this removes BOTH the MySQL volume (mysql-data) AND the
+#  WARNING: this removes BOTH the MySQL volume (mysql-data) AND the
 #    FAISS vector index volume (faiss-indexes).  After running this you
 #    must re-seed the database to restore the chatbot / RAG knowledge base:
 #      docker compose exec backend python seed.py
@@ -278,8 +278,6 @@ The ESP32 GM67 barcode scanner connects over **WiFi + HTTP** — no MQTT broker 
 
 4. Open the cashier settings at `/#/cashier/s3` — the device will appear with a green **Online** badge within 30 s.
 
-> For the complete wiring diagram, build instructions, troubleshooting, and security configuration, see **[IOT_GUIDE.md](./IOT_GUIDE.md)**.
-
 ### Step 6 – Mobile app
 With the backend running, follow the **[Mobile App section](#-mobile-app-react-native--expo)** above to start the Expo dev server.
 
@@ -320,5 +318,3 @@ With the backend running, follow the **[Mobile App section](#-mobile-app-react-n
 | 404 Not Found on scan | Barcode is not in the database for that `store_id`. Add the product first. |
 | POS badge shows "No Device" | Wait 30–45 s after ESP32 boots; or check heartbeat in Serial Monitor. |
 | Product not added to cart | Refresh the POS page to reconnect the WebSocket, then scan again. |
-
-> For full diagnostics and advanced configuration, see **[IOT_GUIDE.md](./IOT_GUIDE.md)**.
