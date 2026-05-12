@@ -35,12 +35,23 @@ cp .env.docker.example .env
 ```
 Open `.env` and fill in your secrets:
 ```env
+# ── MySQL ──────────────────────────────────────────
 MYSQL_ROOT_PASSWORD=YourStrongPassword!
+MYSQL_DATABASE=ersis
+
+# ── JWT (use a long random string in production) ───
+JWT_SECRET_KEY=change-me-to-a-very-long-random-secret
+
+# ── Groq AI API Key ────────────────────────────────
 GROQ_API_KEY=gsk_...your_key_here...
+
+# ── SMTP (for OTP emails) ──────────────────────────
 SMTP_USER=your-email@gmail.com
 SMTP_PASSWORD=your-gmail-app-password
 EMAIL_FROM=your-email@gmail.com
 ```
+
+> **Tip:** `MYSQL_DATABASE` defaults to `ersis` if omitted, but it is best practice to set it explicitly so it matches any external tools (Workbench, DBeaver) you connect with.
 
 **Backend `.env`** (read by FastAPI inside the container):
 ```bash
@@ -104,7 +115,11 @@ docker compose logs -f frontend
 # Stop containers (keeps database data)
 docker compose down
 
-# Stop AND wipe all data (fresh start)
+# Stop AND wipe ALL data (fresh start)
+# ⚠️  WARNING: this removes BOTH the MySQL volume (mysql-data) AND the
+#    FAISS vector index volume (faiss-indexes).  After running this you
+#    must re-seed the database to restore the chatbot / RAG knowledge base:
+#      docker compose exec backend python seed.py
 docker compose down -v
 
 # Rebuild only the backend (e.g. after adding a Python package)
