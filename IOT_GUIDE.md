@@ -426,8 +426,9 @@ ESP32                          Backend (FastAPI)              Browser (POS)
 
 | Symptom | Serial Log | Fix |
 |:---|:---|:---|
-| `HTTP error: connection refused (-1)` | `[HTTP] HTTP error: -1` | Backend not running, or wrong IP in `API_BASE_URL` |
-| `HTTP error: timeout` | `[HTTP] HTTP error: TIMEOUT` | Firewall blocking port 8000; or backend bound to `127.0.0.1` |
+| `HTTP error: connection refused (-1)` | `[HTTP] HTTP error: -1` | Backend not running, or wrong IP in `API_BASE_URL`. |
+| `ECONNREFUSED` (in Vite) | `[vite] http proxy error` | Your backend server is stopped. Start it with `--host 0.0.0.0`. |
+| `HTTP error: timeout` | `[HTTP] HTTP error: TIMEOUT` | Firewall blocking port 8000; or backend bound to `127.0.0.1`. |
 | `403 Forbidden` | HTTP response code 403 | `IOT_DEVICE_SECRET` mismatch between firmware and `backend/.env` |
 | `404 Not Found` | HTTP response code 404 | Barcode doesn't exist in your product catalogue |
 
